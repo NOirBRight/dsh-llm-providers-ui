@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { applySavedOrder, decodeProviderOrder, PROVIDER_ITEM_ORDER, sortCatalogGroups } from '../src/order.ts'
 
 describe('applySavedOrder', () => {
-  it('returns the preferred catalog when nothing is installed', () => {
-    expect(applySavedOrder([])).toEqual([...PROVIDER_ITEM_ORDER])
+  it('returns empty when nothing is installed so the settings page can show empty copy', () => {
+    expect(applySavedOrder([])).toEqual([])
   })
 
   it('drops saved keys that are not installed and appends new ones', () => {
@@ -54,5 +54,6 @@ describe('sortCatalogGroups', () => {
       'commandcode',
       'deepseek-official',
     ])
+    expect(PROVIDER_ITEM_ORDER[0]).toBe('llm-cursor')
   })
 })

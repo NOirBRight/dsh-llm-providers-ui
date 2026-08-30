@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.ts'
 import { SortableList } from './SortableList.tsx'
 
-interface ProvidersSectionProps {
+export interface ProvidersSectionProps {
   renderSlot?: (name: string, slotProps: object, opts?: { entryKey?: string }) => ReactNode
   t?: (key: 'title' | 'subtitle' | 'empty' | 'drag') => string
   /** Live keyed contributions. */
@@ -40,8 +40,8 @@ export function bindProvidersSection(
   return function BoundProvidersSection(props: ProvidersSectionProps): ReactNode {
     const [, bump] = useState(0)
     useEffect(() => {
-      const stopSlot = subscribe?.(() => bump(n => n + 1))
-      return () => { stopSlot?.() }
+      const stop = subscribe?.(() => bump(n => n + 1))
+      return () => { stop?.() }
     }, [subscribe])
     const order = readOrder?.()
     const next: ProvidersSectionProps = { registeredKeys: listRegisteredKeys() }
@@ -72,7 +72,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       ? <div style={listStyle}>{items.map(item => <Fragment key={item.key}>{renderCard(item)}</Fragment>)}</div>
       : (
         <SortableList
-          framed={false}
+          chrome="card"
           items={items}
           getId={item => item.key}
           dragLabel={item => t('drag') + ': ' + item.key}

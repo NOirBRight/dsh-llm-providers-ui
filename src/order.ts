@@ -17,6 +17,8 @@ export const PROVIDER_ITEM_ORDER = [
 
 export type ProviderItemKey = (typeof PROVIDER_ITEM_ORDER)[number]
 
+const KNOWN_KEYS = new Set<string>(PROVIDER_ITEM_ORDER)
+
 /** settings.provider.item key to llm route id used by session.models / the picker. */
 export const PROVIDER_ROUTES: Record<ProviderItemKey, string> = {
   'llm-cursor': 'cursor',
@@ -47,14 +49,15 @@ export function decodeProviderOrder(value: unknown): ProviderOrderSettings {
  * Merge a saved key list with the keys that are actually installed.
  * Saved keys that are not installed are dropped; installed keys missing from
  * the save append in PROVIDER_ITEM_ORDER, then leftover unknown keys.
+ * Nothing registered yields an empty list (the settings empty state).
  */
 export function applySavedOrder(registered: readonly string[], saved: readonly string[] = []): string[] {
   const have = [...new Set(registered.filter(key => key.length > 0))]
-  if (have.length === 0) return [...PROVIDER_ITEM_ORDER]
+  if (have.length === 0) return []
   const preferredSaved = saved.filter(key => have.includes(key))
   const rest = have.filter(key => !preferredSaved.includes(key))
   const known = PROVIDER_ITEM_ORDER.filter(key => rest.includes(key))
-  const extra = rest.filter(key => !(PROVIDER_ITEM_ORDER as readonly string[]).includes(key))
+  const extra = rest.filter(key => !KNOWN_KEYS.has(key))
   return [...preferredSaved, ...known, ...extra]
 }
 

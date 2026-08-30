@@ -18,8 +18,8 @@ export interface SortableListProps<T> {
   onReorder: (items: T[]) => void
   /** Disable handles while the parent is busy or read-only. */
   disabled?: boolean
-  /** When false, the row has no card chrome so a child card can own the border. */
-  framed?: boolean
+  /** row = inner model-list chrome; card = handle lives inside the provider card frame. */
+  chrome?: 'row' | 'card'
 }
 
 interface DragGhost {
@@ -49,14 +49,24 @@ const handleStyle: CSSProperties = {
   justifyContent: 'center',
   width: 30,
   minHeight: 42,
+  alignSelf: 'stretch',
   border: 0,
   borderRight: '1px solid var(--dsw-alias-border-l2)',
   padding: 0,
+  flex: 'none',
   touchAction: 'none',
   userSelect: 'none',
   background: 'transparent',
   color: 'var(--dsw-alias-label-tertiary)',
 }
+const cardRowStyle: CSSProperties = {
+  ...rowStyle,
+  borderRadius: 10,
+  background: 'var(--dsw-alias-bg-module-platform)',
+  overflow: 'hidden',
+}
+const cardItemStyle: CSSProperties = { minWidth: 0, display: 'flex', flexDirection: 'column' }
+const cardCss = '[data-sortable-card] [data-sortable-item] li,[data-sortable-ghost] [data-sortable-item] li{border:0!important;border-radius:0!important;background:transparent!important;overflow:visible!important;list-style:none;margin:0}'
 const ghostStyle: CSSProperties = {
   ...rowStyle,
   position: 'fixed',
@@ -79,9 +89,8 @@ function IconGrip(): ReactNode {
 }
 
 /**
- * A small dependency-free sortable surface adapted from CodexHub's
- * SortableList: pointer movement drives a portal ghost and a preview array,
- * while FLIP animations move sibling rows into their prospective positions.
+ * Pointer-driven sortable list: a portal ghost follows the pointer, a preview
+ * array records the prospective order, and FLIP animations move sibling rows.
  */
 export function SortableList<T>({
   items,
@@ -90,8 +99,9 @@ export function SortableList<T>({
   dragLabel,
   onReorder,
   disabled = false,
-  framed = true,
+  chrome = 'row',
 }: SortableListProps<T>): ReactNode {
+  const card = chrome === 'card'
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
   const [previewItems, setPreviewItems] = useState<T[] | null>(null)
@@ -267,7 +277,8 @@ export function SortableList<T>({
   }
 
   return (
-    <div style={{ ...listStyle, ...(framed ? {} : { gap: 12 }) }}>
+    <div data-sortable-card={card ? '' : undefined} style={{ ...listStyle, ...(card ? { gap: 12 } : {}) }}>
+      {card ? <style>{cardCss}</style> : null}
       {renderedItems.map((item, index) => {
         const id = getId(item)
         const dragging = draggedId === id
@@ -278,11 +289,10 @@ export function SortableList<T>({
             ref={(node) => { setRowRef(id, node) }}
             data-sortable-row="true"
             style={{
-              ...rowStyle,
-              ...(framed ? {} : { border: 0, borderRadius: 0, background: 'transparent', overflow: 'visible' }),
+              ...(card ? cardRowStyle : rowStyle),
               visibility: dragging ? 'hidden' : 'visible',
               pointerEvents: dragging ? 'none' : 'auto',
-              borderColor: framed ? (dragging ? 'transparent' : 'var(--dsw-alias-border-l2)') : 'transparent',
+              borderColor: dragging ? 'transparent' : 'var(--dsw-alias-border-l2)',
               boxShadow: targeted
                 ? '0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary) 20%, transparent)'
                 : 'none',
@@ -300,7 +310,7 @@ export function SortableList<T>({
             >
               <IconGrip />
             </button>
-            <div style={{ minWidth: 0 }}>{renderItem(item, index)}</div>
+            <div data-sortable-item="" style={card ? cardItemStyle : { minWidth: 0 }}>{renderItem(item, index)}</div>
           </div>
         )
       })}
@@ -310,6 +320,8 @@ export function SortableList<T>({
             data-sortable-ghost="true"
             style={{
               ...ghostStyle,
+              ...(card ? cardRowStyle : {}),
+              position: 'fixed',
               left: dragGhost.x,
               top: dragGhost.y,
               width: dragGhost.width,
@@ -317,7 +329,7 @@ export function SortableList<T>({
             }}
           >
             <div style={{ ...handleStyle, cursor: 'grabbing' }}><IconGrip /></div>
-            <div style={{ minWidth: 0 }}>{renderItem(draggedItem, renderedItems.findIndex(item => getId(item) === draggedId))}</div>
+            <div data-sortable-item="" style={card ? cardItemStyle : { minWidth: 0 }}>{renderItem(draggedItem, renderedItems.findIndex(item => getId(item) === draggedId))}</div>
           </div>,
           document.body,
         )

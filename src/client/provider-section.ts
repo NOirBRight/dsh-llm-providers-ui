@@ -1,6 +1,5 @@
 /** Shared Settings > LLM Providers section. First installed provider plugin wins the nav row. */
 
-import type { ClientContext } from './shim.js'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import { installProvidersNavIcon } from './nav-icon.ts'
 import { bindProvidersSection } from './ProvidersSection.tsx'
@@ -52,14 +51,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
-interface SlotsFace {
-  inject(name: string, factory: () => (() => void) | void): void
+/** Public slots surface used by ensureProviderSection. */
+export interface SlotsFace {
+  inject(name: string, factory: () => unknown): void
   register(options: Record<string, unknown>, component: unknown): () => void
   entries(name: string): readonly { options: { id?: string; key?: string } }[]
   subscribe?(name: string, listener: () => void): () => void
 }
 
-interface LocaleFace {
+/** Public locale surface used by ensureProviderSection. */
+export interface LocaleFace {
   register(namespace: string, dicts: { zh: Record<string, string>; en: Record<string, string> }): () => void
   bind(namespace: string): (key: string) => string
 }
@@ -74,6 +75,13 @@ interface SettingsScopeFace {
   bind(options: { namespace: string, decode: (value: unknown) => { order: string[] } }): OrderScope
 }
 
+/** Browser ctx: Cordis optional get plus the slots/locale services every UI plugin injects. */
+export interface ProviderSectionContext {
+  get(name: string): unknown
+  slots: SlotsFace
+  locale: LocaleFace
+}
+
 function isOccupied(slots: SlotsFace): boolean {
   return slots.entries('settings.section').some(entry => entry.options.id === PROVIDERS_SECTION_ID)
 }
@@ -82,16 +90,20 @@ function duplicateSection(error: unknown): boolean {
   return error instanceof Error && /already has|requires options/.test(error.message)
 }
 
-function bindOrder(ctx: ClientContext): OrderScope | undefined {
-  let settingsScope: SettingsScopeFace | undefined
+function isSettingsScopeFace(value: unknown): value is SettingsScopeFace {
+  return typeof value === 'object' && value !== null && typeof (value as SettingsScopeFace).bind === 'function'
+}
+
+function bindOrder(ctx: ProviderSectionContext): OrderScope | undefined {
+  let value: unknown
   try {
-    settingsScope = ctx.get('settingsScope') as SettingsScopeFace | undefined
+    value = ctx.get('settingsScope')
   } catch {
-    settingsScope = undefined
+    return undefined
   }
-  if (settingsScope === undefined || typeof settingsScope.bind !== 'function') return undefined
+  if (!isSettingsScopeFace(value)) return undefined
   try {
-    return settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
+    return value.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
   } catch {
     return undefined
   }
@@ -100,18 +112,17 @@ function bindOrder(ctx: ClientContext): OrderScope | undefined {
 /**
  * Register the shared LLM Providers section when missing. Uninstalling every
  * provider plugin drops the nav row because only they call this helper.
- * @param ctx - browser plugin context (slots + locale; settingsScope optional).
+ * @param ctx - browser plugin context (slots + locale; settingsScope via ctx.get).
  */
-export function ensureProviderSection(ctx: ClientContext): void {
-  const slots = (ctx as unknown as { slots: SlotsFace }).slots
-  const locale = (ctx as unknown as { locale: LocaleFace }).locale
+export function ensureProviderSection(ctx: ProviderSectionContext): void {
+  const slots = ctx.slots
+  const locale = ctx.locale
   const orderScope = bindOrder(ctx)
 
   slots.inject('settings.section', () => {
     let disposeSection: (() => void) | undefined
     let disposeLocale: (() => void) | undefined
     let disposeIcon: (() => void) | undefined
-    let stopOrder: (() => void) | undefined
 
     const claim = (): void => {
       if (disposeSection !== undefined || isOccupied(slots)) return
@@ -131,11 +142,10 @@ export function ensureProviderSection(ctx: ClientContext): void {
             .filter((key): key is string => typeof key === 'string' && key.length > 0),
           listener => {
             const stopSlot = slots.subscribe?.(PROVIDERS_ITEM_SLOT, listener)
-            stopOrder = orderScope?.subscribe(listener)
+            const stopSaved = orderScope?.subscribe(listener)
             return () => {
               stopSlot?.()
-              stopOrder?.()
-              stopOrder = undefined
+              stopSaved?.()
             }
           },
           () => {
@@ -162,8 +172,6 @@ export function ensureProviderSection(ctx: ClientContext): void {
     })
     return () => {
       stop?.()
-      stopOrder?.()
-      stopOrder = undefined
       disposeIcon?.()
       disposeIcon = undefined
       disposeSection?.()

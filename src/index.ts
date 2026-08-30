@@ -1,8 +1,7 @@
 /** Host half: shared llm-providers settings section (first writer wins). */
 
-import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { PROVIDERS_SETTINGS_NS } from './order.ts'
 
 export {
@@ -35,21 +34,25 @@ function alreadyRegistered(error: unknown): boolean {
   return error instanceof Error && /already registered/.test(error.message)
 }
 
+interface SettingsFiber {
+  settings: {
+    describe(): readonly { ns: string }[]
+    register(ns: ReturnType<typeof settingsNamespace>, schema: z<OrderConfig>, options: { base: OrderConfig }): unknown
+  }
+}
+
 /**
  * Register llm-providers when missing. Duplicate registrations from a
  * second installed llm plugin are ignored; the first loaded fiber owns the
  * section until it unloads.
- * @param ctx - host plugin context that injects settings.
+ * @param ctx - Cordis plugin context; uses public inject(['settings']).
  */
-export function ensureProviderOrderSettings(ctx: Context): void {
-  ctx.inject(['settings'], (sctx) => {
+export function ensureProviderOrderSettings(ctx: { inject: Function }): void {
+  ctx.inject(['settings'], (sctx: SettingsFiber) => {
     const occupied = sctx.settings.describe().some(entry => entry.ns === PROVIDERS_SETTINGS_NS)
     if (occupied) return
     try {
-      installSettingsSection(sctx, NS, OrderConfig, { order: [] }, {
-        setSource: () => {},
-        onChange: () => {},
-      })
+      sctx.settings.register(NS, OrderConfig, { base: { order: [] } })
     } catch (error) {
       if (!alreadyRegistered(error)) throw error
     }
