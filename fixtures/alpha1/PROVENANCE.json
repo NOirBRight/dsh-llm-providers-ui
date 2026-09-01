@@ -6,9 +6,9 @@
     "revision": "cd5ef8148158c3a752a658978873241fdf8e2bbc"
   },
   "root": {
-    "key": "dsh-llm-providers-ui@0.1.1",
+    "key": "dsh-llm-providers-ui@0.1.2",
     "name": "dsh-llm-providers-ui",
-    "version": "0.1.1"
+    "version": "0.1.2"
   },
   "fixtures": [
     {
@@ -6070,9 +6070,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "@deepseek-ai/cordis@4.0.1",
       "childName": "@deepseek-ai/cordis",
       "childVersion": "4.0.1",
@@ -6082,9 +6082,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "@deepseek-ai/dsh-client-locale@0.1.2-alpha.1",
       "childName": "@deepseek-ai/dsh-client-locale",
       "childVersion": "0.1.2-alpha.1",
@@ -6094,9 +6094,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "@deepseek-ai/dsh-client-ui-renderer@0.1.2-alpha.1",
       "childName": "@deepseek-ai/dsh-client-ui-renderer",
       "childVersion": "0.1.2-alpha.1",
@@ -6106,9 +6106,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "@deepseek-ai/dsh-client-ui-settings@0.1.2-alpha.1",
       "childName": "@deepseek-ai/dsh-client-ui-settings",
       "childVersion": "0.1.2-alpha.1",
@@ -6118,9 +6118,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "@deepseek-ai/dsh-client-ui-slots@0.1.2-alpha.1",
       "childName": "@deepseek-ai/dsh-client-ui-slots",
       "childVersion": "0.1.2-alpha.1",
@@ -6130,9 +6130,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "@deepseek-ai/dsh-settings@0.1.2-alpha.1",
       "childName": "@deepseek-ai/dsh-settings",
       "childVersion": "0.1.2-alpha.1",
@@ -6142,9 +6142,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "@deepseek-ai/schemastery@3.18.1",
       "childName": "@deepseek-ai/schemastery",
       "childVersion": "3.18.1",
@@ -6154,9 +6154,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "react-dom@18.3.1",
       "childName": "react-dom",
       "childVersion": "18.3.1",
@@ -6166,9 +6166,9 @@
       "optional": false
     },
     {
-      "parentKey": "dsh-llm-providers-ui@0.1.1",
+      "parentKey": "dsh-llm-providers-ui@0.1.2",
       "parentName": "dsh-llm-providers-ui",
-      "parentVersion": "0.1.1",
+      "parentVersion": "0.1.2",
       "childKey": "react@18.3.1",
       "childName": "react",
       "childVersion": "18.3.1",
