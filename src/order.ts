@@ -54,8 +54,10 @@ export function decodeProviderOrder(value: unknown): ProviderOrderSettings {
 export function applySavedOrder(registered: readonly string[], saved: readonly string[] = []): string[] {
   const have = [...new Set(registered.filter(key => key.length > 0))]
   if (have.length === 0) return []
-  const preferredSaved = saved.filter(key => have.includes(key))
-  const rest = have.filter(key => !preferredSaved.includes(key))
+  const installed = new Set(have)
+  const preferredSaved = [...new Set(saved)].filter(key => installed.has(key))
+  const preferred = new Set(preferredSaved)
+  const rest = have.filter(key => !preferred.has(key))
   const known = PROVIDER_ITEM_ORDER.filter(key => rest.includes(key))
   const extra = rest.filter(key => !KNOWN_KEYS.has(key))
   return [...preferredSaved, ...known, ...extra]

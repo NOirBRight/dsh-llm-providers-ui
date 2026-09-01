@@ -2,12 +2,29 @@
 
 import { Fragment, useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.ts'
-import { SortableList } from './SortableList.tsx'
+import type {
+  PropsLocale,
+  PropsRenderSlots,
+  PropsRuntime,
+} from '@deepseek-ai/dsh-client-ui-slots'
+import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ProviderSectionLocaleKey } from './provider-section.js'
+import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
+import { SortableList } from './SortableList.js'
 
+/** Props composed by the official settings.section and child-slot contracts. */
+type ProvidersSectionSlotProps =
+  PropsRuntime<'settings.section'>
+  & PropsRenderSlots<typeof PROVIDERS_ITEM_SLOT>
+  & PropsLocale<typeof PROVIDERS_LOCALE_NS>
+
+type ProviderRenderSlot = ProvidersSectionSlotProps['renderSlot']
+type ProviderTranslate = ProvidersSectionSlotProps['t'] & ((key: ProviderSectionLocaleKey) => string)
+
+/** Direct-render props retained for focused component tests and previews. */
 export interface ProvidersSectionProps {
-  renderSlot?: (name: string, slotProps: object, opts?: { entryKey?: string }) => ReactNode
-  t?: (key: 'title' | 'subtitle' | 'empty' | 'drag') => string
+  renderSlot?: ProviderRenderSlot
+  t?: ProviderTranslate
   /** Live keyed contributions. */
   registeredKeys?: readonly string[]
   /** Saved order from llm-providers settings. */
@@ -16,6 +33,8 @@ export interface ProvidersSectionProps {
   onReorder?: (keys: string[]) => void
   /** Disable dragging while settings are not writable. */
   disabled?: boolean
+  /** Shell close affordance from the official settings.section owner props. */
+  close?: SettingsSectionOwnerProps['close']
 }
 
 const pageStyle: CSSProperties = {
@@ -30,40 +49,37 @@ const subtitleStyle: CSSProperties = {
 const listStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 12 }
 const emptyStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: '20px' }
 
-/** Bind the shared page to live keyed-slot ledger and saved order. */
+/** Bind the shared page to live keyed-slot and settings snapshots. */
 export function bindProvidersSection(
   listRegisteredKeys: () => readonly string[],
-  subscribe?: (listener: () => void) => (() => void) | undefined,
-  readOrder?: () => { keys: readonly string[], disabled: boolean },
-  onReorder?: (keys: string[]) => void,
-): (props: ProvidersSectionProps) => ReactNode {
-  return function BoundProvidersSection(props: ProvidersSectionProps): ReactNode {
+  subscribe: (listener: () => void) => () => void,
+  readOrder: () => { keys: readonly string[], disabled: boolean },
+  onReorder: (keys: string[]) => void,
+): (props: ProvidersSectionSlotProps) => ReactNode {
+  return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
-    useEffect(() => {
-      const stop = subscribe?.(() => bump(n => n + 1))
-      return () => { stop?.() }
-    }, [subscribe])
-    const order = readOrder?.()
-    const next: ProvidersSectionProps = { registeredKeys: listRegisteredKeys() }
-    if (props.renderSlot !== undefined) next.renderSlot = props.renderSlot
-    if (props.t !== undefined) next.t = props.t
-    if (order !== undefined) {
-      next.savedOrder = order.keys
-      next.disabled = order.disabled
-    }
-    if (onReorder !== undefined) next.onReorder = onReorder
-    return <ProvidersSection {...next} />
+    useEffect(() => subscribe(() => { bump(value => value + 1) }), [subscribe])
+    const order = readOrder()
+    return (
+      <ProvidersSection
+        renderSlot={props.renderSlot}
+        t={props.t}
+        registeredKeys={listRegisteredKeys()}
+        savedOrder={order.keys}
+        disabled={order.disabled}
+        onReorder={onReorder}
+      />
+    )
   }
 }
 
 /** Render installed provider cards. Two or more cards grow a left drag handle. */
 export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const t = props.t ?? ((key: 'title' | 'subtitle' | 'empty' | 'drag') => key)
-  const renderSlot = props.renderSlot
   const keys = applySavedOrder(props.registeredKeys ?? [], props.savedOrder ?? [])
   const items = keys.map(key => ({ key }))
   const renderCard = (item: { key: string }): ReactNode => {
-    const node = renderSlot?.(PROVIDERS_ITEM_SLOT, {}, { entryKey: item.key })
+    const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {}, { entryKey: item.key })
     return node == null ? null : <Fragment>{node}</Fragment>
   }
   const body = keys.length === 0

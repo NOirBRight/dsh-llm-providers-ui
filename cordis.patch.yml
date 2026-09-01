@@ -1,0 +1,4 @@
+# Providers UI bundle: owns LLM Providers Host settings and Web page.
+- insert:
+    - id: llm-providers-ui
+      name: 'dsh-llm-providers-ui'

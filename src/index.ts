@@ -1,8 +1,15 @@
-/** Host half: shared llm-providers settings section (first writer wins). */
+/**
+ * Host plugin: sole owner of the llm-providers settings namespace.
+ * Provider plugins register only their keyed card and llm route. This module
+ * keeps the shared provider-order utilities for dsh-model-switch and the Web picker.
+ * @module dsh-llm-providers-ui
+ */
 
 import z from '@deepseek-ai/schemastery'
+import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-settings'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
-import { PROVIDERS_SETTINGS_NS } from './order.ts'
+import { PROVIDERS_SETTINGS_NS } from './order.js'
 
 export {
   PROVIDERS_SECTION_ID,
@@ -15,10 +22,11 @@ export {
   decodeProviderOrder,
   providerRoute,
   sortCatalogGroups,
-} from './order.ts'
-export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from './order.ts'
+} from './order.js'
+export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from './order.js'
 
 export const name = 'dsh-llm-providers-ui'
+export const inject = ['settings']
 
 const NS = settingsNamespace(PROVIDERS_SETTINGS_NS)
 
@@ -30,31 +38,18 @@ export const OrderConfig: z<OrderConfig> = z.object({
   order: z.array(String).default([]),
 })
 
-function alreadyRegistered(error: unknown): boolean {
-  return error instanceof Error && /already registered/.test(error.message)
-}
-
-interface SettingsFiber {
-  settings: {
-    describe(): readonly { ns: string }[]
-    register(ns: ReturnType<typeof settingsNamespace>, schema: z<OrderConfig>, options: { base: OrderConfig }): unknown
-  }
-}
+/** Host configuration for the providers-ui owner (currently no fields). */
+export interface Config {}
+export const Config: z<Config> = z.object({})
 
 /**
- * Register llm-providers when missing. Duplicate registrations from a
- * second installed llm plugin are ignored; the first loaded fiber owns the
- * section until it unloads.
- * @param ctx - Cordis plugin context; uses public inject(['settings']).
+ * Host plugin apply: sole writer of the llm-providers namespace.
+ * The registration rides the Host fiber, so unloading the owner drops the
+ * namespace, and reloading recreates it. Providers continue to work
+ * Host-side when the owner is absent; their llm routes remain registered.
+ * Duplicate registration fails loud; only one Host owner may be installed.
+ * @param ctx - Host Cordis context.
  */
-export function ensureProviderOrderSettings(ctx: { inject: Function }): void {
-  ctx.inject(['settings'], (sctx: SettingsFiber) => {
-    const occupied = sctx.settings.describe().some(entry => entry.ns === PROVIDERS_SETTINGS_NS)
-    if (occupied) return
-    try {
-      sctx.settings.register(NS, OrderConfig, { base: { order: [] } })
-    } catch (error) {
-      if (!alreadyRegistered(error)) throw error
-    }
-  })
+export function apply(ctx: Context, _config: Config = {}): void {
+  ctx.settings.register(NS, OrderConfig, { base: { order: [] } })
 }
