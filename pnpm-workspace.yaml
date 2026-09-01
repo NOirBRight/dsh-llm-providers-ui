@@ -1,0 +1,11 @@
+packages:
+  - "."
+autoInstallPeers: false
+overrides:
+  "@deepseek-ai/cordis": "file:fixtures/alpha1/tarballs/deepseek-ai-cordis-4.0.1.tgz"
+  "@deepseek-ai/schemastery": "file:fixtures/alpha1/tarballs/deepseek-ai-schemastery-3.18.1.tgz"
+  "@deepseek-ai/dsh-client-locale": "file:fixtures/alpha1/tarballs/deepseek-ai-dsh-client-locale-0.1.2-alpha.1.tgz"
+  "@deepseek-ai/dsh-client-ui-renderer": "file:fixtures/alpha1/tarballs/deepseek-ai-dsh-client-ui-renderer-0.1.2-alpha.1.tgz"
+  "@deepseek-ai/dsh-client-ui-settings": "file:fixtures/alpha1/tarballs/deepseek-ai-dsh-client-ui-settings-0.1.2-alpha.1.tgz"
+  "@deepseek-ai/dsh-client-ui-slots": "file:fixtures/alpha1/tarballs/deepseek-ai-dsh-client-ui-slots-0.1.2-alpha.1.tgz"
+  "@deepseek-ai/dsh-settings": "file:fixtures/alpha1/tarballs/deepseek-ai-dsh-settings-0.1.2-alpha.1.tgz"

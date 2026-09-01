@@ -1,9 +1,17 @@
-/** Browser half of the shared LLM Providers shell. */
-export { SortableList } from './SortableList.tsx';
-export type { SortableListProps } from './SortableList.tsx';
-export { ProvidersSection, bindProvidersSection } from './ProvidersSection.tsx';
-export { ensureProviderSection } from './provider-section.ts';
-export { installProvidersNavIcon } from './nav-icon.ts';
-export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_SETTINGS_NS, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, decodeProviderOrder, providerRoute, sortCatalogGroups, } from './provider-section.ts';
-export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from './provider-section.ts';
+/** Browser owner of the LLM Providers Settings page. */
+import z from '@deepseek-ai/schemastery';
+import type { Context as ClientContext } from '@deepseek-ai/cordis';
+export declare const name = "dsh-llm-providers-ui-client";
+export declare const inject: string[];
+/** Client configuration for the Providers page owner. */
+export interface Config {
+}
+export declare const Config: z<Config>;
+/**
+ * Mount the sole LLM Providers page, locale, slot, and nav-icon adapter.
+ * The page is independent of shell/provider load order and appears only after
+ * the Host-owned settings namespace is available.
+ * @param ctx - Web Cordis context with official slot, locale, and settingsScope faces.
+ */
+export declare function apply(ctx: ClientContext, _config?: Config): void;
 //# sourceMappingURL=index.d.ts.map

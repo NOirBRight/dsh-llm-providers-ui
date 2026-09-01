@@ -1,22 +1,24 @@
-/** Shared Settings > LLM Providers section. First installed provider plugin wins the nav row. */
-export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_SETTINGS_NS, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, decodeProviderOrder, providerRoute, sortCatalogGroups, } from '../order.ts';
-export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from '../order.ts';
-declare const copy: {
-    zh: {
-        nav: string;
-        title: string;
-        subtitle: string;
-        empty: string;
-        drag: string;
+/** Shared Settings > LLM Providers section. The dsh-llm-providers-ui client owns the nav row. */
+export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_SETTINGS_NS, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, decodeProviderOrder, providerRoute, sortCatalogGroups, } from '../order.js';
+export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from '../order.js';
+/** Locale copy: empty state names all six providers. */
+export declare const copy: {
+    readonly zh: {
+        readonly nav: "LLM 供应商";
+        readonly title: "LLM 供应商";
+        readonly subtitle: "连接账号，并选择哪些模型出现在对话的模型列表里。拖动卡片会改变对话模型列表里的供应商顺序。";
+        readonly empty: "安装 Cursor、Grok、Codex、Ollama Cloud、CommandCode 或 OpenCode Go 后，在这里连接账号并选择模型。";
+        readonly drag: "拖动排序";
     };
-    en: {
-        nav: string;
-        title: string;
-        subtitle: string;
-        empty: string;
-        drag: string;
+    readonly en: {
+        readonly nav: "LLM Providers";
+        readonly title: "LLM Providers";
+        readonly subtitle: "Connect accounts and choose which models appear in the chat picker. Drag cards to change provider order in the picker.";
+        readonly empty: "Install Cursor, Grok, Codex, Ollama Cloud, CommandCode, or OpenCode Go to connect an account and pick models here.";
+        readonly drag: "Reorder";
     };
 };
+export type ProviderSectionLocaleKey = keyof typeof copy.en;
 declare module '@deepseek-ai/dsh-client-ui-slots' {
     interface SlotMap {
         'settings.provider.item': {
@@ -28,36 +30,4 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
         'settings.providers': keyof typeof copy.en;
     }
 }
-/** Public slots surface used by ensureProviderSection. */
-export interface SlotsFace {
-    inject(name: string, factory: () => unknown): void;
-    register(options: Record<string, unknown>, component: unknown): () => void;
-    entries(name: string): readonly {
-        options: {
-            id?: string;
-            key?: string;
-        };
-    }[];
-    subscribe?(name: string, listener: () => void): () => void;
-}
-/** Public locale surface used by ensureProviderSection. */
-export interface LocaleFace {
-    register(namespace: string, dicts: {
-        zh: Record<string, string>;
-        en: Record<string, string>;
-    }): () => void;
-    bind(namespace: string): (key: string) => string;
-}
-/** Browser ctx: Cordis optional get plus the slots/locale services every UI plugin injects. */
-export interface ProviderSectionContext {
-    get(name: string): unknown;
-    slots: SlotsFace;
-    locale: LocaleFace;
-}
-/**
- * Register the shared LLM Providers section when missing. Uninstalling every
- * provider plugin drops the nav row because only they call this helper.
- * @param ctx - browser plugin context (slots + locale; settingsScope via ctx.get).
- */
-export declare function ensureProviderSection(ctx: ProviderSectionContext): void;
 //# sourceMappingURL=provider-section.d.ts.map

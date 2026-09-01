@@ -6,10 +6,10 @@ describe('applySavedOrder', () => {
     expect(applySavedOrder([])).toEqual([])
   })
 
-  it('drops saved keys that are not installed and appends new ones', () => {
+  it('drops unknown and duplicate saved keys while appending new ones', () => {
     expect(applySavedOrder(
-      ['llm-grok', 'llm-cursor', 'llm-new'],
-      ['llm-codex', 'llm-cursor', 'llm-grok'],
+      ['llm-grok', 'llm-cursor', 'llm-new', 'llm-cursor'],
+      ['llm-codex', 'llm-cursor', 'llm-cursor', 'llm-grok'],
     )).toEqual(['llm-cursor', 'llm-grok', 'llm-new'])
   })
 })
