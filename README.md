@@ -2,6 +2,8 @@
 
 Mounted owner of the **LLM Providers** Settings page for DeepSeek Harness.
 
+Compatibility: this release requires DeepSeek Harness `0.1.2-alpha.4` and `@deepseek-ai/cordis@4.0.2`; it is not compatible with Alpha.1–Alpha.3. Users on older runtimes must keep the last plugin tag built for that runtime.
+
 ## Ownership
 
 - Host owns the `llm-providers` settings namespace `{ order: string[] }` (sole writer). Unloading the owner drops the namespace; reloading recreates it. Providers continue to work Host-side when the owner is absent because their `llm` routes are independent.
@@ -16,7 +18,7 @@ Load order does not matter. Unloading a provider removes only its card. Unloadin
 
 ## Navigation icon
 
-The 14px globe glyph on the nav row is an **accepted temporary alpha.1 compatibility adapter** (`src/client/nav-icon.ts`). DSH's `settings.section` has no icon field, so this file patches the DOM via `MutationObserver` + rAF. It is isolated, idempotent, and owned only here — do not duplicate it into provider plugins. When DSH exposes a public icon seam, replace this file.
+The 14px globe glyph on the nav row is an isolated temporary adapter (`src/client/nav-icon.ts`). DSH's `settings.section` has no icon field, so this file patches the DOM via `MutationObserver` + rAF. It is idempotent and owned only here — do not duplicate it into provider plugins. When DSH exposes a public icon seam, replace this file.
 
 ## Exports
 
@@ -41,7 +43,7 @@ Until this package is published to npm, lab checkouts may use `link:../dsh-llm-p
 
 ## Release installation (Latest)
 
-Shared LLM Providers settings page, navigation, card order, and picker sort owner. The release artifact targets DeepSeek Harness 0.1.2-alpha.1 and contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency.
+Shared LLM Providers settings page, navigation, card order, and picker sort owner. The release artifact targets DeepSeek Harness 0.1.2-alpha.4 and contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency.
 
 Latest installation (the URL never contains a version):
 
@@ -54,7 +56,7 @@ Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.2/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.3/dsh-llm-providers-ui.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -72,6 +74,6 @@ dsh plugin --profile web remove dsh-llm-providers-ui
 
 Configuration: use the plugin section in Settings for Web UI plugins, or the profile dsh.profile.bundles entry for Host-only plugins. Start with this README's minimal YAML/JSON example and provide credentials/backend addresses explicitly.
 
-Rollback: rerun the fixed v0.1.2 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
+Rollback: rerun the fixed v0.1.3 command (or the previously recorded Alpha.4 tarball), verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
 
-Release and integrity: [v0.1.2](https://github.com/NOirBRight/dsh-llm-providers-ui/releases/tag/v0.1.2) · [SHA256SUMS](https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.2/SHA256SUMS).
+Release and integrity will be published with the Alpha.4 migration release.

@@ -10,14 +10,30 @@ class FakeSettings extends Service {
     super(ctx, 'settings')
   }
 
-  register(namespace: unknown, _schema: unknown, options: { base: unknown }): { get: () => unknown } {
+  register(namespace: unknown, _schema: unknown, options: { base: unknown }): { get: () => unknown, dispose: () => void } {
     const key = String(namespace)
     if (this.namespaces.has(key)) throw new Error('settings namespace "' + key + '" is already registered')
     this.namespaces.set(key, options.base)
-    this.ctx.effect(() => () => {
+    const dispose = (): void => {
       if (this.namespaces.get(key) === options.base) this.namespaces.delete(key)
+    }
+    this.ctx.effect(() => () => {
+      dispose()
     })
-    return { get: () => options.base }
+    return { get: () => options.base, dispose }
+  }
+
+  installSection(
+    owner: Context,
+    namespace: unknown,
+    schema: unknown,
+    entry: unknown,
+    hooks: { setSource: (source: () => unknown) => void, onChange: () => void },
+  ): void {
+    const registration = this.register(namespace, schema, { base: entry })
+    hooks.setSource(() => registration.get())
+    hooks.onChange()
+    owner.effect(() => registration.dispose)
   }
 
   has(namespace: string): boolean {
@@ -30,7 +46,7 @@ class FakeSettings extends Service {
 }
 
 class FailingSettings extends FakeSettings {
-  override register(namespace: unknown, schema: unknown, options: { base: unknown }): { get: () => unknown } {
+  override register(namespace: unknown, schema: unknown, options: { base: unknown }): { get: () => unknown, dispose: () => void } {
     super.register(namespace, schema, options)
     throw new Error('settings fixture failed after registration')
   }
@@ -69,6 +85,15 @@ async function expectFailure(fiber: { await: () => Promise<unknown> }, message: 
 }
 
 describe('providers-ui Host ownership', () => {
+  it('starts without the optional Settings service', async () => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    const owner = ctx.plugin(ProvidersUi)
+    await owner.await()
+    expect(ctx.get('settings')).toBeUndefined()
+    await owner.dispose()
+  })
+
   it('owns one effect-scoped settings namespace and recreates it after reload', async () => {
     const { ctx, settings } = await makeContext()
     const owner = ctx.plugin(ProvidersUi)

@@ -2,7 +2,7 @@
 
 import z from '@deepseek-ai/schemastery'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-// These imports intentionally load the official alpha.1 declaration merges:
+// These imports intentionally load the official Alpha.4 declaration merges:
 // settingsScope, locale, SlotRegistry, and the SlotCore contract table.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'

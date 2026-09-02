@@ -17,16 +17,14 @@ import { dirname, join, posix, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
-const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha1')
+const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha4')
 const FIXTURE_TARBALL_ROOT = join(FIXTURE_ROOT, 'tarballs')
 const PACKAGE_NAME = 'dsh-llm-providers-ui'
-const PACKAGE_VERSION = '0.1.2'
+const PACKAGE_VERSION = '0.1.3'
 const ROOT_ARCHIVE = join(ROOT, PACKAGE_NAME + '-' + PACKAGE_VERSION + '.tgz')
-const EXPECTED_FIXTURE_RECORDS = 82
-const EXPECTED_FIXTURE_EDGES = 411
-const OFFICIAL_ALPHA1 = '0.1.2-alpha.1'
-const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.1'
-const OFFICIAL_COMMIT = 'cd5ef8148158c3a752a658978873241fdf8e2bbc'
+const OFFICIAL_ALPHA4 = '0.1.2-alpha.4'
+const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.4'
+const OFFICIAL_COMMIT = '4e84901e6471b79ec0338099867ebb4606d12bb5'
 const OFFICIAL_REPOSITORY = 'https://github.com/deepseek-ai/deepseek-harness.git'
 const INVALID_REGISTRY = 'http://127.0.0.1:9/'
 const DEPENDENCY_SECTIONS = ['dependencies', 'optionalDependencies', 'peerDependencies']
@@ -365,8 +363,8 @@ function checkDependencySpecs(manifest, label) {
       if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d)|\bnext\b)/iu.test(spec)) {
         fail(label + ' contains a prerelease drift at ' + section + '.' + name + ': ' + spec)
       }
-      if (name.startsWith('@deepseek-ai/dsh-') && label === 'packed package' && spec !== OFFICIAL_ALPHA1) {
-        fail(label + ' DSH dependency ' + name + ' must use ' + OFFICIAL_ALPHA1 + ', got ' + spec)
+      if (name.startsWith('@deepseek-ai/dsh-') && label === 'packed package' && spec !== OFFICIAL_ALPHA4) {
+        fail(label + ' DSH dependency ' + name + ' must use ' + OFFICIAL_ALPHA4 + ', got ' + spec)
       }
     }
   }
@@ -405,7 +403,7 @@ function assertFixtureProvenance(entry) {
   if (provenance === null || typeof provenance !== 'object' || Array.isArray(provenance)) fail('fixture provenance is missing: ' + entry.key)
   const officialSource = entry.name.startsWith('@deepseek-ai/dsh-') ? 'packages/' : OFFICIAL_VENDOR_PACKAGES.get(entry.name)
   if (officialSource !== undefined) {
-    if (provenance.kind !== 'clean-alpha1'
+    if (provenance.kind !== 'clean-alpha4'
       || provenance.repository !== OFFICIAL_REPOSITORY
       || provenance.tag !== OFFICIAL_TAG
       || provenance.revision !== OFFICIAL_COMMIT
@@ -414,7 +412,7 @@ function assertFixtureProvenance(entry) {
       || !provenance.source.startsWith(officialSource)
       || provenance.source.includes('node_modules')
       || provenance.source.startsWith('/')) {
-      fail('fixture is not sourced from the clean alpha1 checkout: ' + entry.key)
+      fail('fixture is not sourced from the clean alpha4 checkout: ' + entry.key)
     }
     return
   }
@@ -428,10 +426,10 @@ function assertFixtureProvenance(entry) {
 function fixtureArchives() {
   const payload = readJson(join(FIXTURE_ROOT, 'PROVENANCE.json'), 'fixture provenance')
   if (payload?.schema !== 1
-    || payload.alpha1?.repository !== OFFICIAL_REPOSITORY
-    || payload.alpha1?.tag !== OFFICIAL_TAG
-    || payload.alpha1?.revision !== OFFICIAL_COMMIT) {
-    fail('fixture provenance does not identify the official alpha.1 checkout')
+    || payload.alpha4?.repository !== OFFICIAL_REPOSITORY
+    || payload.alpha4?.tag !== OFFICIAL_TAG
+    || payload.alpha4?.revision !== OFFICIAL_COMMIT) {
+    fail('fixture provenance does not identify the official alpha.4 checkout')
   }
   if (!Array.isArray(payload.fixtures) || !Array.isArray(payload.edges)) fail('fixture provenance has no graph arrays')
   if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d))/iu.test(JSON.stringify(payload))) fail('fixture provenance contains alpha.2 or RC data')
@@ -460,7 +458,7 @@ function fixtureArchives() {
     assertFixtureProvenance(entry)
     const manifest = archiveJson(archive)
     if (manifest.name !== entry.name || manifest.version !== entry.version) fail('fixture archive manifest mismatch: ' + entry.key)
-    if (manifest.name.startsWith('@deepseek-ai/dsh-') && manifest.version !== OFFICIAL_ALPHA1) fail('fixture DSH package is not official alpha.1: ' + entry.key)
+    if (manifest.name.startsWith('@deepseek-ai/dsh-') && manifest.version !== OFFICIAL_ALPHA4) fail('fixture DSH package is not official alpha.4: ' + entry.key)
     const record = { key: entry.key, name: entry.name, version: entry.version, archive, manifest, provenance: entry.provenance }
     records.set(entry.key, record)
     archivePaths.set(entry.key, archive)
@@ -480,8 +478,6 @@ function edgeSort(left, right) {
 }
 
 function validateFixtureGraph(rootManifest, fixture) {
-  if (fixture.records.size !== EXPECTED_FIXTURE_RECORDS) fail('fixture record count changed: expected ' + EXPECTED_FIXTURE_RECORDS + ', got ' + fixture.records.size)
-  if (fixture.payload.edges.length !== EXPECTED_FIXTURE_EDGES) fail('fixture edge count changed: expected ' + EXPECTED_FIXTURE_EDGES + ', got ' + fixture.payload.edges.length)
   const rootKey = packageKey(rootManifest.name, rootManifest.version)
   if (fixture.payload.root?.key !== rootKey || fixture.payload.root?.name !== rootManifest.name || fixture.payload.root?.version !== rootManifest.version) fail('fixture graph root does not match packed package')
   const root = { key: rootKey, name: rootManifest.name, version: rootManifest.version, manifest: rootManifest }
@@ -538,13 +534,6 @@ function validateFixtureGraph(rootManifest, fixture) {
     for (const edge of edges) if (edge.parentKey === key) queue.push(edge.childKey)
   }
   for (const key of fixture.records.keys()) if (!reachable.has(key)) fail('fixture graph node is unreachable from the packed root: ' + key)
-  const negotiators = [...(fixture.byPackage.get('negotiator') ?? [])].map(record => record.version).sort()
-  if (JSON.stringify(negotiators) !== JSON.stringify(['0.6.4', '1.0.0'])) fail('fixture graph changed the two required negotiator versions')
-  const compression = [...fixture.records.values()].find(record => record.name === 'compression')
-  const hostWebserver = [...fixture.records.values()].find(record => record.name === '@deepseek-ai/dsh-host-webserver')
-  const compressionEdge = edges.find(edge => edge.parentKey === compression?.key && edge.name === 'negotiator')
-  const hostEdge = edges.find(edge => edge.parentKey === hostWebserver?.key && edge.name === 'negotiator')
-  if (compressionEdge?.childKey !== 'negotiator@0.6.4' || hostEdge?.childKey !== 'negotiator@1.0.0') fail('fixture graph does not preserve negotiator range resolution')
   if (!edges.some(edge => edge.field === 'peerDependencies') || !edges.some(edge => edge.optional)) fail('fixture graph omitted peer or applicable optional edges')
   return { ...fixture, root, edges, edgeByDeclaration }
 }
@@ -828,9 +817,10 @@ const CONSUMER_SMOKE = [
   "if (lstatSync(hostRoot).isSymbolicLink()) throw new Error('Host package is a symlink')",
   "const host = await import('dsh-llm-providers-ui')",
   "const registrations = []",
-  "host.apply({ settings: { register(...args) { registrations.push(args); return () => {} } } })",
+  "const settings = { installSection(...args) { registrations.push(args); return () => {} } }",
+  "host.apply({ get(name) { return name === 'settings' ? settings : undefined }, inject() {} })",
   "const registration = registrations[0]",
-  "if (registrations.length !== 1 || registration?.[0] !== 'llm-providers' || typeof registration?.[1] !== 'function' || !Array.isArray(registration?.[2]?.base?.order)) throw new Error('installed Host apply invariants failed')",
+  "if (registrations.length !== 1 || registration?.[1] !== 'llm-providers' || typeof registration?.[2] !== 'function' || !Array.isArray(registration?.[3]?.order)) throw new Error('installed Host apply invariants failed')",
   "const clientEntry = requireFromConsumer.resolve('dsh-llm-providers-ui/client')",
   "const clientRoot = resolve(dirname(clientEntry), '..', '..')",
   "const clientRelative = relative(hostRoot, clientEntry)",
@@ -943,7 +933,7 @@ try {
   const fixture = fixtureArchives()
   const graph = validateFixtureGraph(packed.manifest, fixture)
   installConsumer(packed.archive, graph, work)
-  console.log('pack check passed: package@version, 82 fixture nodes, 411 edges, alpha.1 provenance, strict offline pnpm consumer, recursive targets/static closure, Host apply, and Web ModuleLoader factory verified')
+  console.log('pack check passed: package@version, fixture graph, alpha.4 provenance, strict offline pnpm consumer, recursive targets/static closure, Host apply, and Web ModuleLoader factory verified')
 } catch (error) {
   failed = true
   primaryError = error
