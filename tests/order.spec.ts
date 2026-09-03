@@ -38,6 +38,25 @@ describe('decodeProviderOrder', () => {
   })
 })
 
+describe('decodeProviderOrder hiddenUsageProviders (sidebar provider usage contract)', () => {
+  it('defaults both lists on undefined input', () => {
+    expect(decodeProviderOrder(undefined)).toEqual({ order: [], hiddenUsageProviders: [] })
+  })
+
+  it('filters hidden strings while preserving order', () => {
+    expect(decodeProviderOrder({
+      order: ['llm-grok'],
+      hiddenUsageProviders: ['llm-codex', 1, '', 'llm-grok'],
+    })).toEqual({ order: ['llm-grok'], hiddenUsageProviders: ['llm-codex', 'llm-grok'] })
+  })
+})
+
+describe('applySavedOrder ignores hidden visibility settings', () => {
+  it('still orders hidden keys because visibility filtering happens elsewhere', () => {
+    expect(applySavedOrder(['llm-cursor', 'llm-grok'], ['llm-grok'])).toEqual(['llm-grok', 'llm-cursor'])
+  })
+})
+
 describe('sortCatalogGroups', () => {
   const groups = [
     { id: 'deepseek-official', name: 'DeepSeek' },
