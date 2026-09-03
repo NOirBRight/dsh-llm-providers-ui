@@ -14,6 +14,7 @@ export declare const inject: string[];
 /** Schema of the shared provider-order settings section. */
 export interface OrderConfig {
     order: string[];
+    hiddenUsageProviders: string[];
 }
 export declare const OrderConfig: z<OrderConfig>;
 /** Host configuration for the providers-ui owner (currently no fields). */

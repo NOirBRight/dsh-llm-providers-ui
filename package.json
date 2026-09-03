@@ -62,7 +62,10 @@
         "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-slots",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-settings"
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-session"
       ],
       "platform": "web"
     },
@@ -80,6 +83,9 @@
     "@deepseek-ai/dsh-client-ui-slots": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
     "@deepseek-ai/dsh-settings": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-connection": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-sidebar": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-session": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
     "@deepseek-ai/schemastery": "^3.18.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -90,6 +96,9 @@
     "@deepseek-ai/dsh-client-ui-settings": "0.1.2-alpha.4",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.2-alpha.4",
     "@deepseek-ai/dsh-client-ui-renderer": "0.1.2-alpha.4",
+    "@deepseek-ai/dsh-client-connection": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-session": "0.1.2-rc.1",
     "@deepseek-ai/dsh-settings": "0.1.2-alpha.4",
     "@deepseek-ai/schemastery": "^3.18.1",
     "@testing-library/react": "^16.3.2",

@@ -3,31 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
-/** Normalized sidebar usage contract (spec section 4). Local to this UI slice; the parent wires real summaries in. */
-export type ProviderUsageStatus =
-  | 'loading'
-  | 'ready'
-  | 'logged-out'
-  | 'unsupported'
-  | 'stale'
-  | 'error'
-
-export interface UsageWindowSummary {
-  id: string
-  label: string
-  shortLabel: string
-  remainingPercent?: number
-  valueText: string
-  resetsAt?: string
-}
-
-export interface ProviderUsageSummary {
-  providerKey: string
-  name: string
-  status: ProviderUsageStatus
-  fetchedAt?: string
-  windows: readonly UsageWindowSummary[]
-}
+import type { ProviderUsageSummary, UsageWindowSummary } from './usage.js'
+export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 
 /** Headline window: smallest remainingPercent, else the first window. Never ranks providers. */
 function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined {

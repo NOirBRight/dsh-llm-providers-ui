@@ -6,6 +6,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // settingsScope, locale, SlotRegistry, and the SlotCore contract table.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-connection/client'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   PROVIDERS_ITEM_SLOT,
@@ -19,6 +20,7 @@ import { bindProvidersSection } from './ProvidersSection.js'
 import { disposeAfterSetup, disposeReverse } from './cleanup.js'
 import { installProvidersNavIcon } from './nav-icon.js'
 import { copy } from './provider-section.js'
+import { installProviderUsage } from './usage-action.js'
 
 export const name = 'dsh-llm-providers-ui-client'
 export const inject = ['slots', 'locale', 'settingsScope']
@@ -178,6 +180,7 @@ export function apply(ctx: ClientContext, _config: Config = {}): void {
       disposers.push(installMissingOwnerDiagnostic(orderScope))
       disposers.push(installMissingSectionDiagnostic(ctx, orderScope))
       disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav')))
+      disposers.push(installProviderUsage(ctx, orderScope))
     } catch (error) {
       disposeAfterSetup(error, disposers, 'dsh-llm-providers-ui: setup failed and cleanup failed')
     }
