@@ -35,14 +35,23 @@ const ROUTE_TO_KEY = new Map<string, ProviderItemKey>(
 
 export interface ProviderOrderSettings {
   order: string[]
+  hiddenUsageProviders: string[]
 }
 
-/** Decode the llm-providers settings section. Unknown input becomes an empty order. */
+/** Decode the llm-providers settings section. Unknown input becomes an empty order with nothing hidden. */
 export function decodeProviderOrder(value: unknown): ProviderOrderSettings {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { order: [] }
-  const raw = (value as { order?: unknown }).order
-  if (!Array.isArray(raw)) return { order: [] }
-  return { order: raw.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0) }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { order: [], hiddenUsageProviders: [] }
+  const record = value as { order?: unknown; hiddenUsageProviders?: unknown }
+  const rawOrder = record.order
+  const rawHidden = record.hiddenUsageProviders
+  return {
+    order: Array.isArray(rawOrder)
+      ? rawOrder.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+      : [],
+    hiddenUsageProviders: Array.isArray(rawHidden)
+      ? rawHidden.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+      : [],
+  }
 }
 
 /**
