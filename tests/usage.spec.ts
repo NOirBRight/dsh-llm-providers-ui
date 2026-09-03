@@ -46,6 +46,25 @@ describe('Provider Usage readers', () => {
     })
   })
 
+  it('maps the documented Agent, Day and Local labels', async () => {
+    const rpc = rpcFor(async () => ({
+      ok: true,
+      value: {
+        status: 'ok',
+        usage: {
+          fetchedAt: 'now',
+          windows: [
+            { id: 'agent', period: 'Agent', used: 10, limit: 100, unit: 'percent' },
+            { id: 'day', period: 'Day', used: 20, limit: 100, unit: 'percent' },
+            { id: 'local', period: 'Local', used: 30, limit: 100, unit: 'percent' },
+          ],
+        },
+      },
+    }))
+    const result = await cursorReader.read(rpc, false, new AbortController().signal)
+    expect(result).toMatchObject({ status: 'ready', windows: [{ shortLabel: 'A' }, { shortLabel: 'D' }, { shortLabel: 'L' }] })
+  })
+
   it('rejects secret-shaped fields in a successful provider view', async () => {
     const rpc = rpcFor(async () => ({
       ok: true,
@@ -75,6 +94,29 @@ describe('Provider Usage readers', () => {
     store.refresh()
     await flush()
     expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'stale', fetchedAt: 'now', windows: [{ remainingPercent: 90 }] })
+    store.dispose()
+  })
+
+  it('keeps explicit login states instead of relabeling them stale', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      return { ok: true, value: { status: 'logged-out' } }
+    })
+    const store = createProviderUsageStore(rpc)
+    store.configure(['llm-cursor'], [], [])
+    await flush()
+    store.refresh()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
+    store.dispose()
+  })
+
+  it('exposes an unavailable state when no connection RPC exists', () => {
+    const store = createProviderUsageStore(undefined)
+    store.configure(['llm-cursor'], [], [])
+    expect(store.getSnapshot()).toMatchObject({ unavailable: true, providers: [{ providerKey: 'llm-cursor', status: 'loading' }] })
     store.dispose()
   })
 

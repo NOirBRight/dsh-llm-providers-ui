@@ -77,10 +77,15 @@ function percentageText(value: number): string {
 function shortLabel(value: string): string {
   const normalized = value.toLowerCase()
   if (normalized.includes('five') || normalized.includes('5h') || normalized.includes('5-hour')) return '5h'
-  if (normalized.includes('session') || normalized.includes('hour') || normalized.includes('daily')) return normalized.includes('hour') ? 'H' : 'S'
+  if (normalized.includes('two-hour') || normalized.includes('2-hour') || normalized.includes('2h')) return '2h'
+  if (normalized.includes('session')) return 'S'
   if (normalized.includes('week')) return 'W'
   if (normalized.includes('month')) return 'M'
   if (normalized.includes('credit')) return 'Cr'
+  if (normalized.includes('agent')) return 'A'
+  if (normalized.includes('daily') || normalized.includes('day')) return 'D'
+  if (normalized.includes('local')) return 'L'
+  if (normalized.includes('hour')) return 'H'
   return value.slice(0, 4)
 }
 
@@ -180,6 +185,7 @@ function decodeCommandCodeUsage(usage: RecordValue): { fetchedAt: string, window
   return { fetchedAt: usage.fetchedAt, windows }
 }
 
+// RC1 Codex has no secret-free usage/read RPC; do not invent a credential path.
 const readerDefinitions: readonly ProviderUsageReader[] = [
   { providerKey: 'llm-cursor', name: 'Cursor', read: (rpc, refresh, signal) => rpc.call('/cursor', 'usage/read', refresh ? { refresh: true } : {}, signal).then(result => result.ok ? usageResult(result.value, decodePercentUsage) : { status: 'error', message: result.error.message }) },
   { providerKey: 'llm-grok', name: 'Grok', read: (rpc, refresh, signal) => rpc.call('/grok', 'usage/read', refresh ? { refresh: true } : {}, signal).then(result => result.ok ? usageResult(result.value, decodePercentUsage) : { status: 'error', message: result.error.message }) },
@@ -199,6 +205,7 @@ export interface ProviderUsageStoreSnapshot {
   providers: readonly ProviderUsageSummary[]
   hiddenKeys: readonly string[]
   refreshing: boolean
+  unavailable: boolean
 }
 
 export interface ProviderUsageStore {
@@ -214,8 +221,8 @@ function hasUsageData(summary: ProviderUsageSummary | undefined): summary is Pro
 }
 
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
-export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsageStore {
-  let snapshot: ProviderUsageStoreSnapshot = { providers: [], hiddenKeys: [], refreshing: false }
+export function createProviderUsageStore(rpc: ClientConnectionRpc | undefined): ProviderUsageStore {
+  let snapshot: ProviderUsageStoreSnapshot = { providers: [], hiddenKeys: [], refreshing: false, unavailable: rpc === undefined }
   let configuredKeys: string[] = []
   const current = new Map<string, ProviderUsageSummary>()
   const active = new Map<string, AbortController>()
@@ -225,12 +232,12 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
 
   const notify = (): void => { for (const listener of listeners) listener() }
   const publish = (): void => {
-    snapshot = { providers: configuredKeys.map(key => current.get(key)).filter((item): item is ProviderUsageSummary => item !== undefined), hiddenKeys: [...snapshot.hiddenKeys], refreshing: active.size > 0 }
+    snapshot = { providers: configuredKeys.map(key => current.get(key)).filter((item): item is ProviderUsageSummary => item !== undefined), hiddenKeys: [...snapshot.hiddenKeys], refreshing: active.size > 0, unavailable: rpc === undefined }
     notify()
   }
   const read = (key: string, refresh: boolean): void => {
     const reader = providerUsageReader(key)
-    if (reader === undefined || active.has(key) || disposed) return
+    if (reader === undefined || rpc === undefined || active.has(key) || disposed) return
     const previous = current.get(key)
     if (previous === undefined || !hasUsageData(previous)) {
       current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
@@ -244,7 +251,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       const old = current.get(key)
       const next: ProviderUsageSummary = result.status === 'ready'
         ? { providerKey: key, name: reader.name, status: 'ready', fetchedAt: result.fetchedAt, windows: result.windows }
-        : hasUsageData(old)
+        : result.status === 'error' && hasUsageData(old)
           ? { ...old, status: 'stale' }
           : { providerKey: key, name: reader.name, status: result.status, windows: [] }
       current.set(key, next)
@@ -268,7 +275,8 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       const ordered = applySavedOrder(registeredKeys, savedOrder).filter(key => providerUsageReader(key) !== undefined)
       configuredKeys = [...new Set(ordered)]
       snapshot = { ...snapshot, hiddenKeys: [...new Set(hiddenKeys)] }
-      for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) { active.get(key)?.abort(); active.delete(key); current.delete(key) }
+      for (const [key, controller] of active) if (!configuredKeys.includes(key) || snapshot.hiddenKeys.includes(key)) { controller.abort(); active.delete(key) }
+      for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) { current.delete(key) }
       for (const key of configuredKeys) if (!current.has(key)) {
         const reader = providerUsageReader(key)
         if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })

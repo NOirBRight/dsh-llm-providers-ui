@@ -39,6 +39,7 @@ export interface ProviderUsageStoreSnapshot {
     providers: readonly ProviderUsageSummary[];
     hiddenKeys: readonly string[];
     refreshing: boolean;
+    unavailable: boolean;
 }
 export interface ProviderUsageStore {
     getSnapshot(): ProviderUsageStoreSnapshot;
@@ -48,6 +49,6 @@ export interface ProviderUsageStore {
     dispose(): void;
 }
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
-export declare function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsageStore;
+export declare function createProviderUsageStore(rpc: ClientConnectionRpc | undefined): ProviderUsageStore;
 export {};
 //# sourceMappingURL=usage.d.ts.map

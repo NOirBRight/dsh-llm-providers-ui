@@ -53,6 +53,7 @@ function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
       {...activeProviderKey === undefined ? {} : { currentProviderKey: activeProviderKey }}
       refreshing={usage.refreshing}
       loading={usage.providers.some(provider => provider.status === 'loading')}
+      unavailable={usage.unavailable}
       onRefresh={props.usage.refresh}
       onToggleVisibility={props.toggleVisibility}
       onShowAll={props.showAll}
@@ -72,15 +73,14 @@ export function installProviderUsage(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
 ): () => void {
-  let connection: ConnectionHandle
+  let rpc: ConnectionHandle['rpc'] | undefined
   try {
     const candidate = ctx.get('connection') as unknown
-    if (candidate === undefined || candidate === null || typeof candidate !== 'object' || !('rpc' in candidate)) return () => {}
-    connection = candidate as ConnectionHandle
+    if (candidate !== undefined && candidate !== null && typeof candidate === 'object' && 'rpc' in candidate) rpc = (candidate as ConnectionHandle).rpc
   } catch {
-    return () => {}
+    // The panel remains useful as an explicit unavailable state in partial runtimes.
   }
-  const usage = createProviderUsageStore(connection.rpc)
+  const usage = createProviderUsageStore(rpc)
   let lastConfig = ''
   const reconcile = (): void => {
     const settings = orderScope.getSnapshot()
