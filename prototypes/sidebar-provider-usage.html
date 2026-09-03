@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PROTOTYPE — Sidebar Provider Usage</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #25272b;
+      background: #f5f6f8;
+      --sidebar: #f8f9fb;
+      --border: #e2e4e8;
+      --muted: #7c818a;
+      --soft: #eff1f4;
+      --blue: #4b7cff;
+      --green: #21c16b;
+      --amber: #f6a623;
+      --red: #eb5757;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; overflow: hidden; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .app { display: flex; height: 100vh; min-height: 680px; }
+    .sidebar {
+      position: relative; display: flex; flex: 0 0 276px; flex-direction: column;
+      width: 276px; min-width: 276px; height: 100%; padding: 14px 12px 8px;
+      overflow: hidden; border-right: 1px solid #dcdfe4; background: var(--sidebar);
+    }
+    .brand-row { display: flex; align-items: center; height: 48px; padding: 0 2px; }
+    .brand-mark { width: 23px; height: 23px; margin-right: 8px; border-radius: 60% 45% 55% 42%; background: #17191c; transform: rotate(-8deg); }
+    .brand { font-size: 19px; font-weight: 650; letter-spacing: -.4px; }
+    .harness { margin-left: 5px; padding: 1px 4px; border-radius: 3px; color: white; background: #23252a; font-size: 9px; font-weight: 700; letter-spacing: .7px; }
+    .collapse { margin-left: auto; border: 0; background: transparent; color: #60656d; font-size: 17px; }
+    .new-session { height: 40px; margin: 8px 0 18px; border: 1px solid #d7d9dd; border-radius: 9px; background: white; font-size: 14px; }
+    .section-head { display: flex; align-items: center; height: 30px; color: #8a8e96; font-size: 13px; }
+    .section-actions { display: flex; gap: 11px; margin-left: auto; color: #545962; font-size: 15px; }
+    .session-region { flex: 1 1 auto; min-height: 150px; overflow: auto; scrollbar-width: thin; }
+    .sessions { display: flex; flex-direction: column; gap: 1px; padding-bottom: 8px; }
+    .session { display: flex; align-items: center; min-height: 31px; padding: 0 8px; border-radius: 7px; font-size: 13.5px; }
+    .session.selected { background: #e8eaee; }
+    .session-dot { width: 6px; height: 6px; margin-right: 9px; border-radius: 50%; background: #d2d6dc; }
+    .session-dot.live { background: #2bce73; }
+    .session-dot.wait { background: #ffae24; }
+    .session-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .session-time { margin-left: auto; padding-left: 8px; color: #8b9098; font-size: 12px; }
+    .usage-panel { flex: none; margin: 5px 0 8px; padding: 7px; border: 1px solid #e2e5ea; border-radius: 12px; background: rgb(255 255 255 / 72%); box-shadow: 0 1px 2px rgb(20 27 40 / 4%); }
+    .usage-head { display: flex; align-items: center; height: 28px; padding: 0 1px 5px; }
+    .usage-title { font-size: 12.5px; font-weight: 650; }
+    .usage-count { margin-left: 6px; color: var(--muted); font-size: 11px; }
+    .icon-btn { display: grid; place-items: center; width: 25px; height: 25px; border: 0; border-radius: 6px; background: transparent; color: #686d75; cursor: pointer; }
+    .icon-btn:hover { background: #eef0f3; }
+    .icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+    .icon-btn.spinning svg { animation: spin .55s ease; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .usage-actions { display: flex; gap: 2px; margin-left: auto; }
+    .usage-scroll { max-height: 170px; overflow: auto; padding: 0; scrollbar-width: thin; }
+    .provider-icon { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 6px; color: white; background: var(--provider); font-size: 10px; font-weight: 750; }
+    .active-ring { box-shadow: 0 0 0 1.5px var(--blue); }
+    .tone-low { --tone: var(--red); }
+    .tone-warn { --tone: var(--amber); }
+    .tone-ok { --tone: var(--green); }
+    .tone-neutral { --tone: #a4a9b2; }
+
+    /* Variant A: provider-first cards */
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .quota-card { min-width: 0; padding: 7px; border: 1px solid #e1e3e7; border-radius: 9px; background: #fff; cursor: pointer; text-align: left; }
+    .quota-card:hover { border-color: #bec5d0; }
+    .quota-card.active { border-color: #91aafc; background: #f7f9ff; }
+    .card-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .card-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; font-weight: 620; }
+    .card-value { margin-left: auto; color: var(--tone); font-size: 12px; font-weight: 700; }
+    .meter { height: 3px; margin-top: 7px; overflow: hidden; border-radius: 3px; background: #eceef1; }
+    .meter > i { display: block; width: var(--remaining); height: 100%; border-radius: inherit; background: var(--tone); }
+    .card-meta { display: flex; gap: 5px; margin-top: 5px; color: var(--muted); font-size: 9.5px; white-space: nowrap; }
+    .card-meta span { overflow: hidden; text-overflow: ellipsis; }
+
+    /* Variant B: one provider row, every known window */
+    .rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid #e7e9ed; border-radius: 9px; background: #fff; }
+    .quota-row { display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: 100%; min-width: 0; min-height: 51px; padding: 7px 8px 6px; border: 0; border-right: 1px solid #eceef1; border-bottom: 1px solid #eceef1; border-radius: 0; background: #fff; cursor: pointer; text-align: left; }
+    .quota-row:nth-child(even) { border-right: 0; }
+    .quota-row:nth-last-child(-n + 2) { border-bottom: 0; }
+    .quota-row:hover { background: #f7f8fa; }
+    .quota-row.active { background: #f5f8ff; box-shadow: inset 2px 0 #6f91f7; }
+    .row-top { display: flex; align-items: center; gap: 5px; min-width: 0; }
+    .row-provider { display: flex; align-items: center; gap: 5px; min-width: 0; }
+    .row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #34383f; font-size: 10.5px; font-weight: 650; }
+    .quota-row .provider-icon { width: 16px; height: 16px; border-radius: 5px; color: var(--provider); background: color-mix(in srgb, var(--provider) 11%, white); font-size: 8px; }
+    .row-primary { margin-left: auto; color: #444a52; font-size: 10.5px; font-variant-numeric: tabular-nums; }
+    .tone-low .row-primary { color: #d94848; }
+    .tone-warn .row-primary { color: #c47b08; }
+    .row-windows { display: grid; grid-template-columns: repeat(var(--window-count), minmax(0, 1fr)); gap: 2px; min-width: 0; color: #717780; font-size: 8px; line-height: 11px; white-space: nowrap; }
+    .row-window { display: flex; justify-content: center; gap: 2px; min-width: 0; overflow: hidden; }
+    .row-window small { flex: none; color: #a0a5ad; font-size: inherit; text-transform: uppercase; }
+    .row-window b { color: #656b74; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* Variant C: window-first groups */
+    .window-groups { display: flex; flex-direction: column; gap: 7px; }
+    .window-group { padding: 6px; border-radius: 8px; background: #eef0f4; }
+    .window-group-head { display: flex; align-items: center; margin-bottom: 5px; color: #686d75; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+    .window-group-head span { margin-left: auto; color: #92969e; font-weight: 500; text-transform: none; letter-spacing: 0; }
+    .window-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+    .window-pill { display: flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 6px 3px 3px; border: 0; border-radius: 6px; background: white; cursor: pointer; }
+    .window-pill.active { box-shadow: 0 0 0 1px #91aafc; }
+    .window-pill b { color: var(--tone); font-size: 10px; }
+    .window-pill .provider-icon { width: 17px; height: 17px; border-radius: 5px; font-size: 8px; }
+
+    .settings-row { display: flex; align-items: center; flex: none; height: 40px; padding: 0 8px; border-radius: 8px; font-size: 14px; }
+    .settings-row span:first-child { margin-right: 9px; font-size: 17px; }
+    .visibility-popover {
+      position: absolute; z-index: 20; right: 10px; bottom: 50px; left: 10px;
+      max-height: min(520px, calc(100vh - 100px)); overflow: hidden;
+      border: 1px solid #d7dae0; border-radius: 12px; background: white;
+      box-shadow: 0 14px 40px rgb(24 28 36 / 18%);
+    }
+    .popover-head { display: flex; align-items: center; padding: 12px 12px 8px; }
+    .popover-title { font-size: 13px; font-weight: 700; }
+    .popover-sub { margin-top: 2px; color: var(--muted); font-size: 10.5px; }
+    .popover-close { margin-left: auto; }
+    .filter-search { width: calc(100% - 20px); height: 30px; margin: 0 10px 6px; padding: 0 9px; border: 1px solid #dfe2e7; border-radius: 7px; outline: none; }
+    .filter-search:focus { border-color: #8ca9ff; }
+    .filter-list { max-height: 330px; overflow: auto; padding: 2px 8px 8px; }
+    .filter-item { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 5px; border-radius: 7px; font-size: 12px; }
+    .filter-item:hover { background: #f3f4f6; }
+    .filter-item input { accent-color: var(--blue); }
+    .filter-item .provider-icon { width: 19px; height: 19px; }
+    .filter-all { border-bottom: 1px solid #eceef1; font-weight: 650; }
+    .empty { padding: 22px 8px; color: var(--muted); text-align: center; font-size: 11px; }
+
+    .conversation { position: relative; flex: 1; min-width: 0; background: #fff; }
+    .conversation::before { content: "Conversation preview"; position: absolute; top: 28px; left: 28px; color: #c5c8cd; font-size: 14px; }
+    .conversation::after { content: "Prototype only — no real Provider calls"; position: absolute; right: 24px; bottom: 24px; color: #c5c8cd; font-size: 11px; }
+    .mock-message { width: min(620px, 72%); height: 74px; margin: 120px auto 0; border-radius: 12px; background: linear-gradient(90deg,#f6f7f9,#fafafa); }
+
+    .switcher {
+      position: fixed; z-index: 1000; bottom: 16px; left: calc(276px + (100vw - 276px) / 2); display: flex; align-items: center; gap: 7px;
+      padding: 7px 9px; border: 1px solid #242933; border-radius: 999px;
+      color: white; background: #16191f; box-shadow: 0 8px 30px rgb(0 0 0 / 25%); transform: translateX(-50%);
+      font-size: 12px;
+    }
+    .switcher button, .switcher a { display: inline-grid; place-items: center; height: 27px; border: 0; border-radius: 999px; color: white; background: #2a303a; cursor: pointer; text-decoration: none; }
+    .switcher .arrow { width: 27px; }
+    .switcher .label { min-width: 155px; padding: 0 10px; background: #3a4351; }
+    .scenario { display: flex; gap: 2px; }
+    .scenario a { min-width: 31px; padding: 0 7px; }
+    .scenario a.active { background: #597ff4; }
+    .state { color: #aeb5c0; white-space: nowrap; }
+    [hidden] { display: none !important; }
+    @media (max-width: 640px) {
+      .conversation { display: none; }
+      .sidebar { flex-basis: 100%; width: 100%; min-width: 0; border-right: 0; }
+      .switcher { bottom: 8px; left: 50%; gap: 4px; max-width: calc(100vw - 12px); }
+      .switcher .label { min-width: 124px; padding: 0 7px; }
+      .rows { grid-template-columns: 1fr; }
+      .quota-row { min-height: 45px; border-right: 0; }
+      .quota-row:nth-last-child(-n + 2) { border-bottom: 1px solid #eceef1; }
+      .quota-row:last-child { border-bottom: 0; }
+      .row-windows { gap: 8px; font-size: 9px; }
+      .state { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- PROTOTYPE: Three sidebar Provider-usage layouts, switchable via ?variant=, with ?count= scale scenarios. -->
+  <main class="app">
+    <aside class="sidebar" aria-label="Prototype sidebar">
+      <header class="brand-row"><span class="brand-mark"></span><span class="brand">deepseek</span><span class="harness">HARNESS</span><button class="collapse" aria-label="折叠侧栏">◧</button></header>
+      <button class="new-session">⊕&nbsp; New Session</button>
+      <div class="section-head"><span>Sessions</span><span class="section-actions"><span>⌕</span><span>☷</span><span>⊞</span></span></div>
+      <section class="session-region" aria-label="Sessions">
+        <div class="sessions" id="sessions"></div>
+      </section>
+      <section class="usage-panel" aria-label="Provider usage prototype">
+        <div class="usage-head">
+          <span class="usage-title">Provider Usage</span><span class="usage-count" id="usageCount"></span>
+          <span class="usage-actions">
+            <button class="icon-btn" id="visibilityButton" aria-label="选择侧栏显示的 Provider" title="选择显示的 Provider"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h8M15 5h2M9 10h8M3 10h2M3 15h6M13 15h4"/><circle cx="13" cy="5" r="2"/><circle cx="7" cy="10" r="2"/><circle cx="11" cy="15" r="2"/></svg></button>
+            <button class="icon-btn" id="refreshButton" aria-label="刷新用量" title="刷新全部"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5"/><path d="M16.2 3.8V7H13"/></svg></button>
+          </span>
+        </div>
+        <div class="usage-scroll" id="usage"></div>
+      </section>
+      <div class="settings-row"><span>⚙</span><span>Settings</span></div>
+      <section class="visibility-popover" id="visibilityPopover" hidden>
+        <div class="popover-head">
+          <div><div class="popover-title">侧栏显示</div><div class="popover-sub">只影响 Provider Usage，不影响模型列表</div></div>
+          <button class="icon-btn popover-close" id="popoverClose" aria-label="关闭">×</button>
+        </div>
+        <input class="filter-search" id="providerSearch" type="search" placeholder="搜索 Provider">
+        <div class="filter-list" id="providerFilter"></div>
+      </section>
+    </aside>
+    <section class="conversation" aria-hidden="true"><div class="mock-message"></div></section>
+  </main>
+  <nav class="switcher" aria-label="Prototype variants">
+    <a class="arrow" id="previous" aria-label="上一个方案">←</a>
+    <a class="label" id="variantLabel"></a>
+    <a class="arrow" id="next" aria-label="下一个方案">→</a>
+    <span class="scenario" aria-label="Provider count scenarios">
+      <a id="count6" data-count="6">6</a><a id="count12" data-count="12">12</a><a id="count20" data-count="20">20</a>
+    </span>
+    <span class="state" id="state"></span>
+  </nav>
+  <script>
+    const variants = [
+      { key: 'A', name: '重点窗口卡片' },
+      { key: 'B', name: '双列摘要' },
+      { key: 'C', name: '按窗口分组' },
+    ]
+    const allProviders = [
+      ['codex','Codex','#15171b','C',[['5h',72,'1h 48m'],['Week',38,'4d 8h']]],
+      ['cursor','Cursor','#30343b','Cu',[['Month',61,'12d'],['Agent',88,'12d']]],
+      ['grok','Grok','#111827','G',[['2h',26,'42m'],['Week',80,'5d']]],
+      ['ollama','Ollama Cloud','#e87935','O',[['Session',90,'3h'],['Week',66,'3d'],['Month',44,'18d']]],
+      ['commandcode','CommandCode','#6d5ce7','CC',[['Credits',null,'$8.42'],['Month',70,'21d']]],
+      ['opencode','OpenCode Go','#16846f','OG',[['Session',15,'36m'],['Week',52,'2d'],['Month',93,'27d']]],
+      ['claude','Claude','#d97757','A',[['5h',54,'2h'],['Week',29,'3d']]],
+      ['gemini','Gemini','#4285f4','Ge',[['Day',84,'18h'],['Month',47,'14d']]],
+      ['kimi','Kimi','#5a63e8','K',[['Day',33,'9h']]],
+      ['deepseek','DeepSeek API','#4d6bfe','D',[['Credits',null,'¥36.20']]],
+      ['openrouter','OpenRouter','#5946d2','OR',[['Credits',null,'$14.70']]],
+      ['mistral','Mistral','#f97316','M',[['Month',76,'22d']]],
+      ['qwen','Qwen','#6558d3','Q',[['Day',91,'20h'],['Month',58,'16d']]],
+      ['zhipu','Zhipu','#2563eb','Z',[['Month',22,'7d']]],
+      ['minimax','MiniMax','#ef4444','MM',[['Week',67,'5d']]],
+      ['github','GitHub Models','#24292f','GH',[['Day',48,'11h'],['Month',81,'24d']]],
+      ['copilot','Copilot','#111827','Co',[['Month',63,'19d']]],
+      ['local','Local Runtime','#64748b','L',[['Local',null,'Unlimited']]],
+      ['azure','Azure OpenAI','#0078d4','Az',[['Month',35,'10d']]],
+      ['bedrock','Bedrock','#ff9900','B',[['Credits',null,'$22.10']]],
+    ].map(([key,name,color,monogram,windows]) => ({ key,name,color,monogram,windows: windows.map(([label,remaining,reset]) => ({label,remaining,reset})) }))
+    const sessionNames = ['Codex Host 架构与 DSH 插件讨论','设计对话界面的 Provider 用量','核查 DSH Ponytail Skill 注入机制','讨论 DSH 看板插件方案','Codex App 自动更新方法','你看下，我们现在 3080 上安装','修复侧边栏链接打开与点击失效','Codebase Design','你检查下我们的 fast 模式设置','排查 3080 卡顿与模型切换问题','解析 Codex Host 架构与借鉴','Luna 整理变慢原因及替换计划','计划模式内外模型开关讨论','两个插件是否需要安装','检查美股 Pipeline 切换定时任务']
+    const params = new URLSearchParams(location.search)
+    let variant = variants.some(v => v.key === params.get('variant')) ? params.get('variant') : 'A'
+    let count = [6,12,20].includes(Number(params.get('count'))) ? Number(params.get('count')) : 6
+    let visible = new Set(allProviders.slice(0,count).map(p => p.key))
+    let active = 'codex'
+    let filter = ''
+
+    const providers = () => allProviders.slice(0,count)
+    const shown = () => providers().filter(p => visible.has(p.key))
+    const tone = value => value === null ? 'neutral' : value <= 15 ? 'low' : value <= 35 ? 'warn' : 'ok'
+    const primary = provider => provider.windows.reduce((best, item) => item.remaining === null ? best : best === null || item.remaining < best.remaining ? item : best, null) ?? provider.windows[0]
+    const valueOf = window => window.remaining === null ? window.reset : window.remaining + '%'
+    const shortWindowLabel = label => ({ Session:'S', Week:'W', Month:'M', Credits:'Cr', Agent:'A', Day:'D', Local:'L' })[label] ?? label
+    const icon = (provider, small = false) => '<span class="provider-icon'+(provider.key===active?' active-ring':'')+'" style="--provider:'+provider.color+'">'+provider.monogram+'</span>'
+
+    function renderSessions() {
+      document.querySelector('#sessions').innerHTML = sessionNames.map((name,index) => '<div class="session '+(index===1?'selected':'')+'"><i class="session-dot '+(index===0?'live':index===1?'wait':'')+'"></i><span class="session-title">'+name+'</span><span class="session-time">'+(['3min','7min','9min','1h','1h','6h','7h','2d','3d','3d','3d','3d','5d','5d','6d'][index])+'</span></div>').join('')
+    }
+    function renderA(items) {
+      return '<div class="cards">'+items.map(provider => {
+        const p=primary(provider), t=tone(p.remaining), remaining=p.remaining===null?100:p.remaining
+        return '<button type="button" class="quota-card tone-'+t+' '+(provider.key===active?'active':'')+'" data-provider="'+provider.key+'" aria-label="'+provider.name+' '+valueOf(p)+' remaining"><div class="card-top">'+icon(provider)+'<span class="card-name">'+provider.name+'</span><b class="card-value">'+valueOf(p)+'</b></div><div class="meter" style="--remaining:'+remaining+'%"><i></i></div><div class="card-meta"><span>'+p.label+'</span><span>·</span><span>'+p.reset+'</span></div></button>'
+      }).join('')+'</div>'
+    }
+    function renderB(items) {
+      return '<div class="rows">'+items.map(provider => { const p=primary(provider), windows=provider.windows.slice(0,3); return '<button type="button" class="quota-row tone-'+tone(p.remaining)+' '+(provider.key===active?'active':'')+'" data-provider="'+provider.key+'" aria-label="'+provider.name+' usage"><div class="row-top"><span class="row-provider">'+icon(provider)+'<span class="row-name">'+provider.name+'</span></span><b class="row-primary">'+valueOf(p)+'</b></div><div class="row-windows" style="--window-count:'+windows.length+'">'+windows.map(w => '<span class="row-window" title="'+w.label+' · reset '+w.reset+'"><small>'+shortWindowLabel(w.label)+'</small><b>'+valueOf(w)+'</b></span>').join('')+'</div></button>' }).join('')+'</div>'
+    }
+    function bucket(label) {
+      const l=label.toLowerCase()
+      if (/2h|5h|session|day|local/.test(l)) return 'Short windows'
+      if (/week/.test(l)) return 'Weekly windows'
+      return 'Monthly & credits'
+    }
+    function renderC(items) {
+      const groups = new Map([['Short windows',[]],['Weekly windows',[]],['Monthly & credits',[]]])
+      items.forEach(provider => provider.windows.forEach(window => groups.get(bucket(window.label)).push({provider,window})))
+      return '<div class="window-groups">'+[...groups].filter(([,entries])=>entries.length).map(([label,entries]) => '<section class="window-group"><div class="window-group-head">'+label+'<span>'+entries.length+' windows</span></div><div class="window-pills">'+entries.map(({provider,window}) => '<button type="button" class="window-pill tone-'+tone(window.remaining)+' '+(provider.key===active?'active':'')+'" data-provider="'+provider.key+'" aria-label="'+provider.name+' '+window.label+' '+valueOf(window)+'">'+icon(provider)+'<b>'+valueOf(window)+'</b><small>'+window.label+'</small></button>').join('')+'</div></section>').join('')+'</div>'
+    }
+    function renderUsage() {
+      const items=shown()
+      document.querySelector('#usage').innerHTML = items.length === 0 ? '<div class="empty">没有显示的 Provider<br>使用右上角筛选按钮添加</div>' : variant==='A' ? renderA(items) : variant==='B' ? renderB(items) : renderC(items)
+      document.querySelector('#usageCount').textContent = items.length+' / '+providers().length
+      document.querySelectorAll('[data-provider]').forEach(el => el.addEventListener('click', () => { active=el.dataset.provider; renderUsage(); renderFilter(); renderSwitcher() }))
+    }
+    function renderFilter() {
+      const items=providers().filter(p => p.name.toLowerCase().includes(filter.toLowerCase()))
+      const allChecked=providers().length>0 && providers().every(p=>visible.has(p.key))
+      document.querySelector('#providerFilter').innerHTML = '<label class="filter-item filter-all"><input id="toggleAll" type="checkbox" aria-label="显示全部 Provider" '+(allChecked?'checked':'')+'>显示全部 '+providers().length+' 个</label>'+items.map(provider => '<label class="filter-item"> <input type="checkbox" data-visible="'+provider.key+'" aria-label="在侧栏显示 '+provider.name+'" '+(visible.has(provider.key)?'checked':'')+'>'+icon(provider)+'<span>'+provider.name+'</span></label>').join('')
+      document.querySelector('#toggleAll').addEventListener('change', event => { visible = event.target.checked ? new Set(providers().map(p=>p.key)) : new Set(); renderFilter(); renderUsage(); renderSwitcher() })
+      document.querySelectorAll('[data-visible]').forEach(input => input.addEventListener('change', () => { input.checked ? visible.add(input.dataset.visible) : visible.delete(input.dataset.visible); renderFilter(); renderUsage(); renderSwitcher() }))
+    }
+    function renderSwitcher() {
+      const meta=variants.find(v=>v.key===variant)
+      document.querySelector('#variantLabel').textContent = meta.key+' · '+meta.name
+      document.querySelector('#state').textContent = '显示 '+shown().length+'/'+providers().length
+      const index=variants.findIndex(v=>v.key===variant)
+      document.querySelector('#previous').href = '?variant='+variants[(index-1+variants.length)%variants.length].key+'&count='+count
+      document.querySelector('#next').href = '?variant='+variants[(index+1)%variants.length].key+'&count='+count
+      document.querySelector('#variantLabel').href = document.querySelector('#next').href
+      document.querySelectorAll('[data-count]').forEach(link => { link.classList.toggle('active',Number(link.dataset.count)===count); link.href='?variant='+variant+'&count='+link.dataset.count })
+    }
+    function cycle(delta) {
+      const index=variants.findIndex(v=>v.key===variant)
+      location.href='?variant='+variants[(index+delta+variants.length)%variants.length].key+'&count='+count
+    }
+    document.querySelector('#visibilityButton').addEventListener('click',()=>{const pop=document.querySelector('#visibilityPopover');pop.hidden=!pop.hidden;if(!pop.hidden){renderFilter();document.querySelector('#providerSearch').focus()}})
+    document.querySelector('#popoverClose').addEventListener('click',()=>document.querySelector('#visibilityPopover').hidden=true)
+    document.querySelector('#providerSearch').addEventListener('input',event=>{filter=event.target.value;renderFilter()})
+    document.querySelector('#refreshButton').addEventListener('click',event=>{event.currentTarget.classList.add('spinning');setTimeout(()=>event.currentTarget.classList.remove('spinning'),600)})
+    document.addEventListener('keydown',event=>{if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName)||document.activeElement.isContentEditable)return;if(event.key==='ArrowLeft')cycle(-1);if(event.key==='ArrowRight')cycle(1);if(event.key==='Escape')document.querySelector('#visibilityPopover').hidden=true})
+    renderSessions(); renderUsage(); renderFilter(); renderSwitcher()
+  </script>
+</body>
+</html>

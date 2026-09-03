@@ -46,6 +46,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.json && tsdown",
     "pack:check": "node scripts/check-pack.mjs",
+    "prototype:sidebar-usage": "python3 -m http.server 4178 --directory prototypes",
     "check": "pnpm run test && pnpm run typecheck && pnpm run build && pnpm run pack:check"
   },
   "engines": {
