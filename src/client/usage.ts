@@ -140,7 +140,7 @@ function decodeFractionUsage(keys: readonly ('session' | 'weekly' | 'monthly')[]
     const item = record(value)
     if (item === undefined || !nonNegativeNumber(item.usage)) return undefined
     if (item.resetsAt !== undefined && !nonEmptyString(item.resetsAt)) return undefined
-    const label = key === 'session' ? 'Session' : key === 'weekly' ? 'Weekly' : 'Monthly'
+    const label = key === 'session' ? 'Session' : key === 'weekly' ? 'Week' : 'Month'
     const remaining = percentage(100 * (1 - item.usage))
     windows.push({
       id: key,
@@ -167,7 +167,7 @@ function decodeCommandCodeUsage(usage: RecordValue): { fetchedAt: string, window
     if (!nonNegativeNumber(monthly)) return undefined
     windows.push({ id: 'monthly-credits', label: 'Credits', shortLabel: 'Cr', valueText: displayNumber(monthly) })
   }
-  for (const [key, label] of [['fiveHour', '5-hour'], ['weekly', 'Weekly']] as const) {
+  for (const [key, label] of [['fiveHour', '5-hour'], ['weekly', 'Week']] as const) {
     const raw = value[key]
     if (raw === undefined) continue
     const item = record(raw)
