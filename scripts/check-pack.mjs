@@ -20,7 +20,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha4')
 const FIXTURE_TARBALL_ROOT = join(FIXTURE_ROOT, 'tarballs')
 const PACKAGE_NAME = 'dsh-llm-providers-ui'
-const PACKAGE_VERSION = '0.1.4'
+const PACKAGE_VERSION = '0.1.5'
 const ROOT_ARCHIVE = join(ROOT, PACKAGE_NAME + '-' + PACKAGE_VERSION + '.tgz')
 const OFFICIAL_ALPHA4 = '0.1.2-alpha.4'
 const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.4'
@@ -360,11 +360,12 @@ function checkDependencySpecs(manifest, label) {
       if (/^(?:file|link|workspace|npm):/u.test(spec) || spec.startsWith('/') || /^[A-Za-z]:[\\/]/u.test(spec)) {
         fail(label + ' contains a local or alias dependency at ' + section + '.' + name)
       }
-      if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d)|\bnext\b)/iu.test(spec)) {
+      const allowsVerifiedDshRange = name.startsWith('@deepseek-ai/dsh-') && satisfiesRange(OFFICIAL_ALPHA4, spec) && satisfiesRange('0.1.2-rc.1', spec)
+      if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d)|\bnext\b)/iu.test(spec) && !allowsVerifiedDshRange) {
         fail(label + ' contains a prerelease drift at ' + section + '.' + name + ': ' + spec)
       }
-      if (name.startsWith('@deepseek-ai/dsh-') && label === 'packed package' && spec !== OFFICIAL_ALPHA4) {
-        fail(label + ' DSH dependency ' + name + ' must use ' + OFFICIAL_ALPHA4 + ', got ' + spec)
+      if (name.startsWith('@deepseek-ai/dsh-') && label === 'packed package' && spec !== OFFICIAL_ALPHA4 && !allowsVerifiedDshRange) {
+        fail(label + ' DSH dependency ' + name + ' must include Alpha.4 and rc.1, got ' + spec)
       }
     }
   }
@@ -432,7 +433,8 @@ function fixtureArchives() {
     fail('fixture provenance does not identify the official alpha.4 checkout')
   }
   if (!Array.isArray(payload.fixtures) || !Array.isArray(payload.edges)) fail('fixture provenance has no graph arrays')
-  if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d))/iu.test(JSON.stringify(payload))) fail('fixture provenance contains alpha.2 or RC data')
+  const fixtureText = JSON.stringify(payload).replaceAll('0.1.2-rc.1', '')
+  if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d))/iu.test(fixtureText)) fail('fixture provenance contains alpha.2 or unapproved RC data')
   const entries = readdirSync(FIXTURE_TARBALL_ROOT, { withFileTypes: true })
   if (entries.some(entry => !entry.isFile() || !entry.name.endsWith('.tgz'))) fail('fixture tarball directory contains an ignored non-archive entry')
   const files = entries.map(entry => entry.name).sort()

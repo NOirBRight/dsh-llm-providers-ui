@@ -6,6 +6,15 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 兼容性：本版本要求 DeepSeek Harness `0.1.2-alpha.4` 与 `@deepseek-ai/cordis@4.0.2`；与 Alpha.1–Alpha.3 不兼容。仍使用旧 runtime 的用户请保留为该 runtime 构建的最后一个插件 tag。
 
+## 兼容性
+
+已验证运行时是 DeepSeek Harness `0.1.2-alpha.4` 与 `0.1.2-rc.1`（Cordis `4.0.2`）；这份记录只是证据，不是 allowlist。
+
+未知的新版本会先打一条 warning，再按正常挂载路径 best-effort 尝试，不会因为未验证而跳过。
+
+只有复现过的故障才会加入 blocklist；受影响版本、原因和证据见[兼容性记录](package.json)。
+
+
 ## Ownership
 
 - Host 拥有 `llm-providers` 设置命名空间 `{ order: string[] }`（唯一写者）。卸载 owner 会删除该命名空间；重装后重建。各 provider 的 `llm` 路由相互独立，因此缺 owner 时 provider 在 Host 侧照常工作。
@@ -42,7 +51,6 @@ provider 插件只 import 自己的设置/模型契约，并以自己的 `settin
 
 在 npm 发布之前，lab checkout 在开发时可用 `link:../dsh-llm-providers-ui`，但工作区 `package.json` 不得提交 `link:` spec。
 
-
 ## Release 安装（Latest）
 
 共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。release 产物面向 DeepSeek Harness 0.1.2-alpha.4，只含构建后的 Host/Client 文件；没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。
@@ -51,14 +59,14 @@ Latest 安装（URL 永不带版本号）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.3.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.5.tgz
 ~~~
 
 固定版本安装：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.3/dsh-llm-providers-ui-0.1.3.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.5/dsh-llm-providers-ui-0.1.5.tgz
 ~~~
 
 更新、卸载与验证：
@@ -66,7 +74,7 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到最新 Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.3.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.5.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor

@@ -10,6 +10,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-settings'
 import type SettingsProvider from '@deepseek-ai/dsh-settings'
 import { PROVIDERS_SETTINGS_NS } from './order.js'
+import { allowDshRuntime } from './compatibility.ts'
 
 export {
   PROVIDERS_SECTION_ID,
@@ -50,6 +51,8 @@ export const Config: z<Config> = z.object({})
  * @param ctx - Host Cordis context.
  */
 export function apply(ctx: Context, _config: Config = {}): void {
+  if (!allowDshRuntime(ctx.logger, 'dsh-llm-providers-ui', ['@deepseek-ai/dsh-settings'])) return
+
   const install = (settings: SettingsProvider): void => {
     settings.installSection(ctx, PROVIDERS_SETTINGS_NS, OrderConfig, { order: [] }, {
       setSource: () => undefined,
