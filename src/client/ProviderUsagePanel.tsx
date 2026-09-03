@@ -242,7 +242,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
                 <div className="pu-popover-title">侧栏显示</div>
                 <div className="pu-popover-sub">只影响 Provider Usage，不影响模型列表</div>
               </div>
-              <button type="button" className="pu-icon-btn pu-popover-close" aria-label="关闭" onClick={() => { setFilterOpen(false) }}>×</button>
+              <button type="button" className="pu-icon-btn pu-popover-close" aria-label="关闭筛选" onClick={() => { setFilterOpen(false) }}>×</button>
             </div>
             <input
               ref={searchRef}

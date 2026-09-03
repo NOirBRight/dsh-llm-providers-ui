@@ -52,7 +52,7 @@ function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
       hiddenKeys={usage.hiddenKeys}
       {...activeProviderKey === undefined ? {} : { currentProviderKey: activeProviderKey }}
       refreshing={usage.refreshing}
-      loading={usage.providers.some(provider => provider.status === 'loading')}
+      loading={usage.providers.some(provider => provider.status === 'loading' && !usage.hiddenKeys.includes(provider.providerKey))}
       unavailable={usage.unavailable}
       onRefresh={props.usage.refresh}
       onToggleVisibility={props.toggleVisibility}
