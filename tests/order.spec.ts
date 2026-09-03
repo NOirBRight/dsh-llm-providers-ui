@@ -18,8 +18,23 @@ describe('decodeProviderOrder', () => {
   it('reads string keys and ignores junk', () => {
     expect(decodeProviderOrder({ order: ['llm-grok', 1, '', 'llm-cursor'] })).toEqual({
       order: ['llm-grok', 'llm-cursor'],
+      hiddenUsageProviders: [],
     })
-    expect(decodeProviderOrder(null)).toEqual({ order: [] })
+    expect(decodeProviderOrder(null)).toEqual({ order: [], hiddenUsageProviders: [] })
+  })
+
+  it('defaults a missing hidden list so old saves keep showing every provider', () => {
+    expect(decodeProviderOrder({ order: ['llm-grok'] })).toEqual({
+      order: ['llm-grok'],
+      hiddenUsageProviders: [],
+    })
+    expect(decodeProviderOrder({
+      order: ['llm-grok'],
+      hiddenUsageProviders: ['llm-cursor', 1, '', 'llm-codex'],
+    })).toEqual({
+      order: ['llm-grok'],
+      hiddenUsageProviders: ['llm-cursor', 'llm-codex'],
+    })
   })
 })
 
