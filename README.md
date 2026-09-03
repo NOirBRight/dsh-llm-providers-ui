@@ -1,5 +1,7 @@
 # dsh-llm-providers-ui
 
+English | [中文](README.zh.md)
+
 Mounted owner of the **LLM Providers** Settings page for DeepSeek Harness.
 
 Compatibility: this release requires DeepSeek Harness `0.1.2-alpha.4` and `@deepseek-ai/cordis@4.0.2`; it is not compatible with Alpha.1–Alpha.3. Users on older runtimes must keep the last plugin tag built for that runtime.
