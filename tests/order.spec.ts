@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applySavedOrder, decodeProviderOrder, PROVIDER_ITEM_ORDER, sortCatalogGroups } from '../src/order.ts'
+import { applySavedOrder, decodeProviderOrder, providerKeyForRoute, PROVIDER_ITEM_ORDER, sortCatalogGroups } from '../src/order.ts'
 
 describe('applySavedOrder', () => {
   it('returns empty when nothing is installed so the settings page can show empty copy', () => {
@@ -21,6 +21,7 @@ describe('decodeProviderOrder', () => {
       hiddenUsageProviders: [],
     })
     expect(decodeProviderOrder(null)).toEqual({ order: [], hiddenUsageProviders: [] })
+    expect(decodeProviderOrder(undefined)).toEqual({ order: [], hiddenUsageProviders: [] })
   })
 
   it('defaults a missing hidden list so old saves keep showing every provider', () => {
@@ -38,22 +39,16 @@ describe('decodeProviderOrder', () => {
   })
 })
 
-describe('decodeProviderOrder hiddenUsageProviders (sidebar provider usage contract)', () => {
-  it('defaults both lists on undefined input', () => {
-    expect(decodeProviderOrder(undefined)).toEqual({ order: [], hiddenUsageProviders: [] })
-  })
-
-  it('filters hidden strings while preserving order', () => {
-    expect(decodeProviderOrder({
-      order: ['llm-grok'],
-      hiddenUsageProviders: ['llm-codex', 1, '', 'llm-grok'],
-    })).toEqual({ order: ['llm-grok'], hiddenUsageProviders: ['llm-codex', 'llm-grok'] })
-  })
-})
-
 describe('applySavedOrder ignores hidden visibility settings', () => {
   it('still orders hidden keys because visibility filtering happens elsewhere', () => {
     expect(applySavedOrder(['llm-cursor', 'llm-grok'], ['llm-grok'])).toEqual(['llm-grok', 'llm-cursor'])
+  })
+})
+
+describe('provider route mapping', () => {
+  it('maps an llm route back to its provider key', () => {
+    expect(providerKeyForRoute('ollama-cloud')).toBe('llm-ollama')
+    expect(providerKeyForRoute('unknown')).toBeUndefined()
   })
 })
 

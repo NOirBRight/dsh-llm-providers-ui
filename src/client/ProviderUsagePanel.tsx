@@ -3,34 +3,33 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import type { ProviderUsageSummary, UsageWindowSummary } from './usage.js'
+import type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 
 /** Headline window: smallest remainingPercent, else the first window. Never ranks providers. */
 function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined {
   let best: UsageWindowSummary | undefined
-  for (const window of windows) {
-    const remaining = window.remainingPercent
+  for (const quotaWindow of windows) {
+    const remaining = quotaWindow.remainingPercent
     if (remaining === undefined) continue
-    if (best === undefined || remaining < (best.remainingPercent ?? Number.POSITIVE_INFINITY)) best = window
+    if (best === undefined || remaining < (best.remainingPercent ?? Number.POSITIVE_INFINITY)) best = quotaWindow
   }
   return best ?? windows[0]
 }
 
-/** Headline text: percent when known, otherwise the window's own text. */
-function primaryValueText(window: UsageWindowSummary | undefined): string {
-  if (window === undefined) return ''
-  return window.remainingPercent === undefined ? window.valueText : String(window.remainingPercent) + '%'
+function windowValueText(quotaWindow: UsageWindowSummary): string {
+  return quotaWindow.remainingPercent === undefined ? quotaWindow.valueText : String(quotaWindow.remainingPercent) + '%'
 }
 
-type UsageTone = 'low' | 'warn' | 'ok' | 'neutral'
-
 /** Only low/warn headlines take red/amber; everything else stays neutral. */
-function usageTone(remainingPercent: number | undefined): UsageTone {
-  if (remainingPercent === undefined) return 'neutral'
-  if (remainingPercent <= 15) return 'low'
-  if (remainingPercent <= 35) return 'warn'
-  return 'ok'
+function usageToneClass(remainingPercent: number | undefined): string {
+  if (remainingPercent !== undefined && remainingPercent <= 15) return ' pu-low'
+  if (remainingPercent !== undefined && remainingPercent <= 35) return ' pu-warn'
+  return ''
+}
+
+function providerInitial(name: string): string {
+  return name.trim().charAt(0)
 }
 
 /** Controlled props: normalized summaries in display order plus visibility callbacks. */
@@ -43,20 +42,17 @@ export interface ProviderUsagePanelProps {
   currentProviderKey?: string
   /** Spins the refresh icon while a parent-driven refresh is in flight. */
   refreshing?: boolean
-  /** Initial load with no data yet. */
-  loading?: boolean
-  /** Usage channel unavailable and no data to show. */
-  unavailable?: boolean
   onRefresh: () => void
   onToggleVisibility: (providerKey: string, visible: boolean) => void
   onShowAll: () => void
-  onHideAll: () => void
 }
 
-const STATUS_TEXT: Record<string, string> = {
+const STATUS_TEXT: Record<ProviderUsageStatus, string> = {
   loading: '加载中…',
+  ready: '暂无额度数据',
   'logged-out': '未登录',
   unsupported: '不支持查询',
+  stale: '额度已过期',
   error: '加载失败',
 }
 
@@ -101,16 +97,17 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-filter-list{max-height:330px;overflow:auto;padding:2px 8px 8px}',
   '[data-provider-usage-panel] .pu-filter-item{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 5px;border-radius:7px;font-size:12px;color:var(--dsw-alias-label-primary);cursor:pointer}',
   '[data-provider-usage-panel] .pu-filter-item:hover{background:var(--dsw-alias-bg-module-platform)}',
-  '[data-provider-usage-panel] .pu-filter-all{border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:650}',
+  '[data-provider-usage-panel] .pu-filter-all{width:100%;border:0;border-bottom:1px solid var(--dsw-alias-border-l2);background:transparent;text-align:left;font-weight:650}',
+  '[data-provider-usage-panel] .pu-filter-all:disabled{cursor:default;opacity:.55}',
   '[data-provider-usage-panel] .pu-filter-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
   '[data-provider-usage-panel] .pu-no-match{padding:16px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px}',
   '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:1fr}[data-provider-usage-panel] .pu-row{min-height:45px;border-right:0}[data-provider-usage-panel] .pu-row:nth-last-child(-n+2){border-bottom:1px solid var(--dsw-alias-border-l2)}[data-provider-usage-panel] .pu-row:last-child{border-bottom:0}[data-provider-usage-panel] .pu-windows{gap:8px;font-size:9px}}',
 ].join('\n')
 
-function windowTooltip(windows: readonly { label: string, valueText: string, remainingPercent?: number, resetsAt?: string }[]): string {
+function windowTooltip(windows: readonly UsageWindowSummary[]): string {
   return windows
-    .map(window => window.label + ' ' + (window.remainingPercent === undefined ? window.valueText : String(window.remainingPercent) + '%')
-      + (window.resetsAt === undefined ? '' : ' · 重置 ' + window.resetsAt))
+    .map(quotaWindow => quotaWindow.label + ' ' + windowValueText(quotaWindow)
+      + (quotaWindow.resetsAt === undefined ? '' : ' · 重置 ' + quotaWindow.resetsAt))
     .join('；')
 }
 
@@ -119,10 +116,9 @@ function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean }):
   const summary = props.summary
   const hasData = summary.status === 'ready' || summary.status === 'stale'
   const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
-  const tone = primary === undefined ? 'neutral' : usageTone(primary.remainingPercent)
-  const headline = primary === undefined ? (STATUS_TEXT[summary.status] ?? '') : primaryValueText(primary)
+  const headline = primary === undefined ? STATUS_TEXT[summary.status] : windowValueText(primary)
   const shown = summary.windows.slice(0, 3)
-  const toneClass = tone === 'low' ? ' pu-low' : tone === 'warn' ? ' pu-warn' : ''
+  const toneClass = usageToneClass(primary?.remainingPercent)
   return (
     <button
       type="button"
@@ -132,7 +128,7 @@ function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean }):
     >
       <span className="pu-top">
         <span className="pu-id">
-          <span className="pu-icon" aria-hidden>{summary.name.trim().charAt(0)}</span>
+          <span className="pu-icon" aria-hidden>{providerInitial(summary.name)}</span>
           <span className="pu-name">{summary.name}</span>
         </span>
         <b className="pu-primary">{headline}</b>
@@ -143,10 +139,10 @@ function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean }):
       {shown.length > 0
         ? (
           <span className="pu-windows" style={{ gridTemplateColumns: 'repeat(' + String(shown.length) + ', minmax(0, 1fr))' }}>
-            {shown.map(window => (
-              <span key={window.id} className="pu-window" title={window.label + (window.resetsAt === undefined ? '' : ' · 重置 ' + window.resetsAt)}>
-                <small>{window.shortLabel}</small>
-                <b>{window.remainingPercent === undefined ? window.valueText : String(window.remainingPercent) + '%'}</b>
+            {shown.map(quotaWindow => (
+              <span key={quotaWindow.id} className="pu-window" title={windowTooltip([quotaWindow])}>
+                <small>{quotaWindow.shortLabel}</small>
+                <b>{windowValueText(quotaWindow)}</b>
               </span>
             ))}
           </span>
@@ -176,11 +172,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
   const allVisible = props.providers.length > 0 && visible.length === props.providers.length
 
   let body: ReactNode
-  if (props.unavailable === true) {
-    body = <p className="pu-empty">Provider 用量暂不可用，请稍后刷新重试。</p>
-  } else if (props.loading === true && visible.length === 0) {
-    body = <p className="pu-empty">正在加载 Provider 用量…</p>
-  } else if (visible.length === 0) {
+  if (visible.length === 0) {
     body = (
       <div className="pu-empty">
         <div>{props.providers.length === 0 ? '暂无可查询的 Provider' : '没有显示的 Provider'}</div>
@@ -254,15 +246,14 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
               onChange={event => { setQuery(event.target.value) }}
             />
             <div className="pu-filter-list">
-              <label className="pu-filter-item pu-filter-all">
-                <input
-                  type="checkbox"
-                  aria-label="显示全部 Provider"
-                  checked={allVisible}
-                  onChange={event => { if (event.target.checked) props.onShowAll(); else props.onHideAll() }}
-                />
-                <span className="pu-filter-name">{'显示全部 ' + String(props.providers.length) + ' 个'}</span>
-              </label>
+              <button
+                type="button"
+                className="pu-filter-item pu-filter-all"
+                disabled={allVisible}
+                onClick={props.onShowAll}
+              >
+                {'显示全部 ' + String(props.providers.length) + ' 个'}
+              </button>
               {matches.map(summary => (
                 <label key={summary.providerKey} className="pu-filter-item">
                   <input
@@ -271,7 +262,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
                     checked={!hidden.has(summary.providerKey)}
                     onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
                   />
-                  <span className="pu-icon" aria-hidden>{summary.name.trim().charAt(0)}</span>
+                  <span className="pu-icon" aria-hidden>{providerInitial(summary.name)}</span>
                   <span className="pu-filter-name">{summary.name}</span>
                 </label>
               ))}

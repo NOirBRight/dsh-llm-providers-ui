@@ -34,21 +34,24 @@ export interface ProviderUsageReader {
     read(rpc: ClientConnectionRpc, refresh: boolean, signal: AbortSignal): Promise<ProviderUsageRead>;
 }
 export declare const PROVIDER_USAGE_READERS: readonly ProviderUsageReader[];
-export declare function providerUsageReader(key: string): ProviderUsageReader | undefined;
 export interface ProviderUsageStoreSnapshot {
     providers: readonly ProviderUsageSummary[];
     hiddenKeys: readonly string[];
     refreshing: boolean;
-    unavailable: boolean;
+}
+export interface ProviderUsageConfig {
+    registeredKeys: readonly string[];
+    savedOrder: readonly string[];
+    hiddenKeys: readonly string[];
 }
 export interface ProviderUsageStore {
     getSnapshot(): ProviderUsageStoreSnapshot;
     subscribe(listener: () => void): () => void;
-    configure(registeredKeys: readonly string[], savedOrder: readonly string[], hiddenKeys: readonly string[]): void;
+    configure(config: ProviderUsageConfig): void;
     refresh(): void;
     dispose(): void;
 }
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
-export declare function createProviderUsageStore(rpc: ClientConnectionRpc | undefined): ProviderUsageStore;
+export declare function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsageStore;
 export {};
 //# sourceMappingURL=usage.d.ts.map

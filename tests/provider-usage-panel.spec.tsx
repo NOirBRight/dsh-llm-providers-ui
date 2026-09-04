@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createElement } from 'react'
+import { act, createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
 import {
   ProviderUsagePanel,
@@ -14,14 +13,14 @@ import {
 
 const mounted: Root[] = []
 afterEach(() => {
-  while (mounted.length > 0) mounted.pop()?.unmount()
+  act(() => { while (mounted.length > 0) mounted.pop()?.unmount() })
   document.body.innerHTML = ''
 })
 
 const SIX: readonly ProviderUsageSummary[] = [
   {
     providerKey: 'codex', name: 'Codex', status: 'ready', windows: [
-      { id: 'w-5h', label: '5h', shortLabel: '5h', remainingPercent: 72, valueText: '72%' },
+      { id: 'w-5h', label: '5h', shortLabel: '5h', remainingPercent: 72, valueText: '72%', resetsAt: '2026-09-05T00:00:00Z' },
       { id: 'w-week', label: 'Week', shortLabel: 'W', remainingPercent: 38, valueText: '38%' },
     ],
   },
@@ -65,7 +64,6 @@ function props(overrides: Partial<ProviderUsagePanelProps> = {}): ProviderUsageP
     onRefresh: vi.fn(),
     onToggleVisibility: vi.fn(),
     onShowAll: vi.fn(),
-    onHideAll: vi.fn(),
     ...overrides,
   }
 }
@@ -115,6 +113,21 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-rows').length).toBe(1)
   })
 
+  it('renders 20 providers in the same internally scrollable responsive grid', () => {
+    const providers = Array.from({ length: 20 }, (_, index): ProviderUsageSummary => ({
+      providerKey: 'provider-' + String(index),
+      name: 'Provider ' + String(index),
+      status: 'ready',
+      windows: [{ id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 50, valueText: '50%' }],
+    }))
+    const container = mount({ providers })
+    expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
+    expect(container.querySelector('.pu-scroll')).not.toBeNull()
+    const html = staticHtml({ providers })
+    expect(html).toContain('max-height:170px;overflow:auto')
+    expect(html).toContain('@media (max-width:640px)')
+  })
+
   it('shows every window of a three-window provider without truncation', () => {
     const html = staticHtml()
     // Ollama Cloud: S 90% · W 66% · M 44%, headline is the tightest window (44%).
@@ -122,6 +135,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).toContain('<small>S</small><b>90%</b>')
     expect(html).toContain('<small>W</small><b>66%</b>')
     expect(html).toContain('<small>M</small><b>44%</b>')
+    expect(html).toContain('title="5h 72% · 重置 2026-09-05T00:00:00Z"')
   })
 
   it('shows Credits text as-is instead of deriving a percent', () => {
@@ -144,10 +158,6 @@ describe('ProviderUsagePanel six-provider grid', () => {
 })
 
 describe('ProviderUsagePanel states', () => {
-  it('shows a loading state before any data arrives', () => {
-    expect(staticHtml({ providers: [], loading: true })).toContain('正在加载')
-  })
-
   it('shows an empty state with a filter entry when nothing is visible', () => {
     const html = staticHtml({ hiddenKeys: SIX.map(summary => summary.providerKey) })
     expect(html).toContain('没有显示的 Provider')
@@ -159,8 +169,8 @@ describe('ProviderUsagePanel states', () => {
     expect(staticHtml({ providers: [] })).toContain('暂无可查询的 Provider')
   })
 
-  it('shows an unavailable state when the usage channel is down', () => {
-    expect(staticHtml({ unavailable: true })).toContain('暂不可用')
+  it('gives a ready provider without windows an accessible fallback', () => {
+    expect(staticHtml({ providers: [{ providerKey: 'empty', name: 'Empty', status: 'ready', windows: [] }] })).toContain('aria-label="Empty 暂无额度数据"')
   })
 
   it('renders per-provider logged-out, unsupported, error, loading and stale states', () => {
@@ -223,22 +233,21 @@ describe('ProviderUsagePanel callbacks', () => {
     typeSearch(container, 'codex')
     expect(container.querySelector('input[aria-label="在侧栏显示 Codex"]')).not.toBeNull()
     expect(container.querySelector('input[aria-label="在侧栏显示 Cursor"]')).toBeNull()
-    expect(container.querySelector('input[aria-label="显示全部 Provider"]')).not.toBeNull()
+    expect(container.querySelector('button.pu-filter-all')).not.toBeNull()
   })
 
-  it('calls onHideAll when unchecking select-all while everything is visible', () => {
-    const onHideAll = vi.fn()
-    const container = mount({ onHideAll })
-    openPopover(container)
-    click(container.querySelector('input[aria-label="显示全部 Provider"]'))
-    expect(onHideAll).toHaveBeenCalledTimes(1)
-  })
-
-  it('calls onShowAll when checking select-all while something is hidden', () => {
+  it('enables show-all only while something is hidden', () => {
     const onShowAll = vi.fn()
-    const container = mount({ hiddenKeys: ['grok'], onShowAll })
-    openPopover(container)
-    click(container.querySelector('input[aria-label="显示全部 Provider"]'))
+    const visibleContainer = mount({ onShowAll })
+    openPopover(visibleContainer)
+    const disabled = visibleContainer.querySelector('button.pu-filter-all')
+    expect(disabled).toHaveProperty('disabled', true)
+
+    const hiddenContainer = mount({ hiddenKeys: ['grok'], onShowAll })
+    openPopover(hiddenContainer)
+    const enabled = hiddenContainer.querySelector('button.pu-filter-all')
+    expect(enabled).toHaveProperty('disabled', false)
+    click(enabled)
     expect(onShowAll).toHaveBeenCalledTimes(1)
   })
 

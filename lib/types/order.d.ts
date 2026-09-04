@@ -24,6 +24,8 @@ export declare function applySavedOrder(registered: readonly string[], saved?: r
 export interface CatalogGroup {
     id: string;
 }
+/** Map an llm route id to its settings.provider.item key when known. */
+export declare function providerKeyForRoute(route: string): ProviderItemKey | undefined;
 /** Map a settings.provider.item key to its llm route id when known. */
 export declare function providerRoute(key: string): string | undefined;
 /**

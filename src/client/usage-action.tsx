@@ -4,11 +4,10 @@ import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import type {} from '@deepseek-ai/dsh-client-connection/client'
 import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { PROVIDERS_ITEM_SLOT, PROVIDER_ROUTES, type ProviderOrderSettings } from '../order.js'
+import { PROVIDERS_ITEM_SLOT, providerKeyForRoute, type ProviderOrderSettings } from '../order.js'
 import { ProviderUsagePanel } from './ProviderUsagePanel.js'
 import { createProviderUsageStore, type ProviderUsageStore } from './usage.js'
 import { disposeReverse } from './cleanup.js'
@@ -26,7 +25,6 @@ interface ProviderUsageActionFace {
   usage: ProviderUsageStore
   toggleVisibility: (providerKey: string, visible: boolean) => void
   showAll: () => void
-  hideAll: () => void
 }
 
 type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & ProviderUsageActionFace
@@ -34,17 +32,17 @@ type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & Provider
 type SessionListState = ReturnType<ProviderUsageActionProps['useSessions']>
 
 function currentProviderKey(state: SessionListState): string | undefined {
-  if (state.current === undefined) return undefined
-  const provider = state.byId[state.current]?.projectionValues?.modelSelection?.next?.provider
-  if (provider === undefined) return undefined
-  for (const [key, route] of Object.entries(PROVIDER_ROUTES)) if (route === provider) return key
-  return undefined
+  const currentSessionId = state.current
+  if (currentSessionId === undefined) return undefined
+  const session = state.byId[currentSessionId]
+  const selection = session?.projectionValues?.modelSelection
+  const provider = selection?.next?.provider
+  return provider === undefined ? undefined : providerKeyForRoute(provider)
 }
 
 function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
   const usage = useSyncExternalStore(props.usage.subscribe, props.usage.getSnapshot, props.usage.getSnapshot)
-  const sessionState = props.useSessions((state: SessionListState) => state)
-  const activeProviderKey = currentProviderKey(sessionState)
+  const activeProviderKey = props.useSessions(currentProviderKey)
   if (!props.wide) return null
   return (
     <ProviderUsagePanel
@@ -52,12 +50,9 @@ function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
       hiddenKeys={usage.hiddenKeys}
       {...activeProviderKey === undefined ? {} : { currentProviderKey: activeProviderKey }}
       refreshing={usage.refreshing}
-      loading={usage.providers.some(provider => provider.status === 'loading' && !usage.hiddenKeys.includes(provider.providerKey))}
-      unavailable={usage.unavailable}
       onRefresh={props.usage.refresh}
       onToggleVisibility={props.toggleVisibility}
       onShowAll={props.showAll}
-      onHideAll={props.hideAll}
     />
   )
 }
@@ -73,14 +68,15 @@ export function installProviderUsage(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
 ): () => void {
-  let rpc: ConnectionHandle['rpc'] | undefined
+  let connection: ConnectionHandle
   try {
     const candidate = ctx.get('connection') as unknown
-    if (candidate !== undefined && candidate !== null && typeof candidate === 'object' && 'rpc' in candidate) rpc = (candidate as ConnectionHandle).rpc
+    if (candidate === undefined || candidate === null || typeof candidate !== 'object' || !('rpc' in candidate)) return () => {}
+    connection = candidate as ConnectionHandle
   } catch {
-    // The panel remains useful as an explicit unavailable state in partial runtimes.
+    return () => {}
   }
-  const usage = createProviderUsageStore(rpc)
+  const usage = createProviderUsageStore(connection.rpc)
   let lastConfig = ''
   const reconcile = (): void => {
     const settings = orderScope.getSnapshot()
@@ -90,7 +86,7 @@ export function installProviderUsage(
     const config = JSON.stringify([keys, order, hidden])
     if (config === lastConfig) return
     lastConfig = config
-    usage.configure(keys, order, hidden)
+    usage.configure({ registeredKeys: keys, savedOrder: order, hiddenKeys: hidden })
   }
   const writeHidden = (hidden: readonly string[]): void => {
     const settings = orderScope.getSnapshot()
@@ -106,13 +102,12 @@ export function installProviderUsage(
     writeHidden([...hidden])
   }
   const showAll = (): void => { writeHidden([]) }
-  const hideAll = (): void => { writeHidden(usage.getSnapshot().providers.map(provider => provider.providerKey)) }
   reconcile()
   const action = ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'llm-providers-usage',
     order: 0,
-    inject: (): ProviderUsageActionFace => ({ usage, toggleVisibility, showAll, hideAll }),
+    inject: (): ProviderUsageActionFace => ({ usage, toggleVisibility, showAll }),
   }, ProviderUsageAction))
   const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, reconcile)
   const stopSettings = orderScope.subscribe(reconcile)

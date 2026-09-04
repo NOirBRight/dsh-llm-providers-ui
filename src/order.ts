@@ -38,19 +38,19 @@ export interface ProviderOrderSettings {
   hiddenUsageProviders: string[]
 }
 
+function decodeStringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+    : []
+}
+
 /** Decode the llm-providers settings section. Unknown input becomes an empty order with nothing hidden. */
 export function decodeProviderOrder(value: unknown): ProviderOrderSettings {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return { order: [], hiddenUsageProviders: [] }
   const record = value as { order?: unknown; hiddenUsageProviders?: unknown }
-  const rawOrder = record.order
-  const rawHidden = record.hiddenUsageProviders
   return {
-    order: Array.isArray(rawOrder)
-      ? rawOrder.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
-      : [],
-    hiddenUsageProviders: Array.isArray(rawHidden)
-      ? rawHidden.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
-      : [],
+    order: decodeStringList(record.order),
+    hiddenUsageProviders: decodeStringList(record.hiddenUsageProviders),
   }
 }
 
@@ -74,6 +74,11 @@ export function applySavedOrder(registered: readonly string[], saved: readonly s
 
 export interface CatalogGroup {
   id: string
+}
+
+/** Map an llm route id to its settings.provider.item key when known. */
+export function providerKeyForRoute(route: string): ProviderItemKey | undefined {
+  return ROUTE_TO_KEY.get(route)
 }
 
 /** Map a settings.provider.item key to its llm route id when known. */

@@ -12,14 +12,9 @@ export interface ProviderUsagePanelProps {
     currentProviderKey?: string;
     /** Spins the refresh icon while a parent-driven refresh is in flight. */
     refreshing?: boolean;
-    /** Initial load with no data yet. */
-    loading?: boolean;
-    /** Usage channel unavailable and no data to show. */
-    unavailable?: boolean;
     onRefresh: () => void;
     onToggleVisibility: (providerKey: string, visible: boolean) => void;
     onShowAll: () => void;
-    onHideAll: () => void;
 }
 /** Controlled sidebar Provider Usage panel (desktop two columns, mobile one column). */
 export declare function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode;
