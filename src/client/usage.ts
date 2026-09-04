@@ -315,6 +315,8 @@ export interface ProviderUsageConfig {
 
 export const USAGE_POLL_MS = 15 * 60 * 1000
 export const USAGE_MIN_REFETCH_MS = 5 * 60 * 1000
+export const USAGE_READ_TIMEOUT_MS = 8_000
+const USAGE_MAX_IN_FLIGHT = 3
 
 export interface ProviderUsageStore {
   getSnapshot(): ProviderUsageStoreSnapshot
@@ -340,6 +342,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
   let configuredKeys: string[] = []
   const current = new Map<string, ProviderUsageSummary>()
   const active = new Map<string, AbortController>()
+  const queued: Array<{ key: string, refresh: boolean }> = []
   const listeners = new Set<() => void>()
   let disposed = false
   let refreshGeneration = 0
@@ -350,7 +353,18 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
     snapshot = { providers: configuredKeys.map(key => current.get(key)).filter((item): item is ProviderUsageSummary => item !== undefined), hiddenKeys: [...snapshot.hiddenKeys], refreshing: active.size > 0 }
     notify()
   }
-  const read = (key: string, refresh: boolean): void => {
+  const pump = (): void => {
+    while (!disposed && active.size < USAGE_MAX_IN_FLIGHT && queued.length > 0) {
+      const item = queued.shift()
+      if (item !== undefined) startRead(item.key, item.refresh)
+    }
+  }
+  const enqueue = (key: string, refresh: boolean): void => {
+    if (disposed || active.has(key) || queued.some(item => item.key === key)) return
+    queued.push({ key, refresh })
+    pump()
+  }
+  const startRead = (key: string, refresh: boolean): void => {
     const reader = readerByKey.get(key)
     if (reader === undefined || active.has(key) || disposed) return
     const previous = current.get(key)
@@ -359,24 +373,32 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       publish()
     }
     const controller = new AbortController()
+    const failOpen = (): void => {
+      if (disposed || active.get(key) !== controller) return
+      const old = current.get(key)
+      current.set(key, hasUsageData(old) ? { ...old, status: 'stale' } : { providerKey: key, name: reader.name, status: 'error', windows: [] })
+      active.delete(key)
+      publish()
+      pump()
+    }
+    const timer = setTimeout(() => { controller.abort('timeout'); failOpen() }, USAGE_READ_TIMEOUT_MS)
     active.set(key, controller)
     const generation = refreshGeneration
     void reader.read(rpc, refresh, controller.signal).then(result => {
-      if (disposed || controller.signal.aborted || generation !== refreshGeneration) return
+      if (disposed || generation !== refreshGeneration || controller.signal.aborted) return
       const old = current.get(key)
-      const next: ProviderUsageSummary = result.status === 'ready'
+      current.set(key, result.status === 'ready'
         ? { providerKey: key, name: reader.name, status: 'ready', fetchedAt: result.fetchedAt, windows: result.windows }
         : result.status === 'error' && hasUsageData(old)
           ? { ...old, status: 'stale' }
-          : { providerKey: key, name: reader.name, status: result.status, windows: [] }
-      current.set(key, next)
+          : { providerKey: key, name: reader.name, status: result.status, windows: [] })
     }).catch(() => {
-      if (disposed || controller.signal.aborted || generation !== refreshGeneration) return
-      const old = current.get(key)
-      current.set(key, hasUsageData(old) ? { ...old, status: 'stale' } : { providerKey: key, name: reader.name, status: 'error', windows: [] })
+      if (disposed || generation !== refreshGeneration || controller.signal.aborted) return
+      failOpen()
     }).finally(() => {
+      clearTimeout(timer)
       if (active.get(key) === controller) active.delete(key)
-      if (!disposed) publish()
+      if (!disposed) { publish(); pump() }
     })
   }
   const visibleKeys = (keys?: readonly string[]): string[] => {
@@ -385,7 +407,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
   }
   const sync = (force = false, keys?: readonly string[]): void => {
     const now = Date.now()
-    for (const key of visibleKeys(keys)) if (force || !isFresh(current.get(key), now)) read(key, force)
+    for (const key of visibleKeys(keys)) if (force || !isFresh(current.get(key), now)) enqueue(key, force)
     publish()
   }
   const startPoll = (): void => {
@@ -400,6 +422,10 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       configuredKeys = [...new Set(ordered)]
       snapshot = { ...snapshot, hiddenKeys: [...new Set(config.hiddenKeys)] }
       for (const [key, controller] of active) if (!configuredKeys.includes(key) || snapshot.hiddenKeys.includes(key)) { controller.abort(); active.delete(key) }
+      for (let index = queued.length - 1; index >= 0; index -= 1) {
+        const item = queued[index]
+        if (item !== undefined && (!configuredKeys.includes(item.key) || snapshot.hiddenKeys.includes(item.key))) queued.splice(index, 1)
+      }
       for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) { current.delete(key) }
       for (const key of configuredKeys) if (!current.has(key)) {
         const reader = readerByKey.get(key)
@@ -412,6 +438,10 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       refreshGeneration += 1
       const targets = visibleKeys(keys)
       for (const [key, controller] of active) if (targets.includes(key)) { controller.abort(); active.delete(key) }
+      for (let index = queued.length - 1; index >= 0; index -= 1) {
+        const item = queued[index]
+        if (item !== undefined && targets.includes(item.key)) queued.splice(index, 1)
+      }
       for (const key of targets) {
         const reader = readerByKey.get(key)
         const previous = current.get(key)

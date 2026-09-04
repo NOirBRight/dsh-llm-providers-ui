@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
-import { PROVIDER_USAGE_READERS, USAGE_POLL_MS, createProviderUsageStore } from '../src/client/usage.ts'
+import { PROVIDER_USAGE_READERS, USAGE_POLL_MS, USAGE_READ_TIMEOUT_MS, createProviderUsageStore } from '../src/client/usage.ts'
 
 const cursorReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-cursor')!
 const codexReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-codex')!
@@ -233,6 +233,24 @@ describe('Provider Usage readers', () => {
     await vi.advanceTimersByTimeAsync(USAGE_POLL_MS)
     await flush()
     expect(reads).toBe(3)
+    store.dispose()
+    vi.useRealTimers()
+  })
+
+  it('turns a hung read into an error instead of leaving it loading', async () => {
+    vi.useFakeTimers()
+    const rpc = rpcFor(async (_channel, _payload, signal) => {
+      await new Promise((_, reject) => {
+        signal?.addEventListener('abort', () => { reject(new DOMException('Aborted', 'AbortError')) })
+      })
+    })
+    const store = createProviderUsageStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]?.status).toBe('loading')
+    await vi.advanceTimersByTimeAsync(USAGE_READ_TIMEOUT_MS)
+    await flush()
+    expect(store.getSnapshot().providers[0]?.status).toBe('error')
     store.dispose()
     vi.useRealTimers()
   })
