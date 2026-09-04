@@ -69,7 +69,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-head{display:flex;align-items:center;height:32px;padding:0 2px 7px}',
   '[data-provider-usage-panel] .pu-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:680;letter-spacing:.01em;color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-actions{display:flex;gap:2px;margin-left:auto}',
-  '[data-provider-usage-panel] .pu-back{margin-right:4px}',
+  '[data-provider-usage-panel] .pu-mini-spin{display:inline-block;width:9px;height:9px;margin-left:5px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:middle;animation:pu-spin .55s linear infinite}',
   '[data-provider-usage-panel] .pu-icon-btn{display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}',
   '[data-provider-usage-panel] .pu-icon-btn:hover{background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-icon-btn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}',
@@ -91,8 +91,10 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-low .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-low{color:#d94848}',
   '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:#c47b08}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
-  '[data-provider-usage-panel] .pu-detail{padding:4px 6px 2px}',
-  '[data-provider-usage-panel] .pu-detail-sub{margin-bottom:8px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
+  '[data-provider-usage-panel] .pu-detail{box-sizing:border-box;height:100%;padding:10px 12px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}',
+  '[data-provider-usage-panel] .pu-detail-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}',
+  '[data-provider-usage-panel] .pu-detail-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary)}',
+  '[data-provider-usage-panel] .pu-detail-sub{margin-bottom:6px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
   '[data-provider-usage-panel] .pu-tip-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px;min-height:22px;font-size:12px}',
   '[data-provider-usage-panel] .pu-tip-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary)}',
   '[data-provider-usage-panel] .pu-tip-value{font-variant-numeric:tabular-nums;font-weight:700;color:var(--dsw-alias-label-primary)}',
@@ -149,16 +151,24 @@ function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean, se
       <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
       <span className="pu-copy">
         <span className="pu-name">{summary.name}{summary.status === 'stale' ? ' · 已过期' : ''}</span>
-        <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
+        <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}{summary.refreshing === true ? <span className="pu-mini-spin" aria-hidden /> : null}</b>
       </span>
     </button>
   )
 }
 
-function UsageDetail(props: { summary: ProviderUsageSummary }): ReactNode {
+function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void }): ReactNode {
   const summary = props.summary
   return (
     <div className="pu-detail" aria-label={summary.name + ' 额度详情'}>
+      <div className="pu-detail-head">
+        <button type="button" className="pu-icon-btn" aria-label="返回全部 Provider" onClick={props.onBack}>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>
+        </button>
+        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
+        <span className="pu-detail-name">{summary.name}</span>
+        {summary.refreshing === true ? <span className="pu-mini-spin" aria-hidden /> : null}
+      </div>
       <div className="pu-detail-sub">剩余额度</div>
       {summary.windows.length === 0
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
@@ -236,20 +246,8 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
     <section data-provider-usage-panel aria-label="Provider Usage">
       <style>{panelCss}</style>
       <div className="pu-head">
-        {detail === undefined
-          ? <span className="pu-title">Provider Usage</span>
-          : (
-            <>
-              <button type="button" className="pu-icon-btn pu-back" aria-label="返回全部 Provider" onClick={() => { setDetailKey(undefined) }}>
-                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>
-              </button>
-              <span className="pu-mark"><ProviderMark providerKey={detail.providerKey} fallback={providerInitial(detail.name)} /></span>
-              <span className="pu-title">{detail.name}</span>
-            </>
-          )}
+        <span className="pu-title">Provider Usage</span>
         <span className="pu-actions">
-          {detail === undefined
-            ? (
           <button
             type="button"
             className="pu-icon-btn"
@@ -260,8 +258,6 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           >
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h8M15 5h2M9 10h8M3 10h2M3 15h6M13 15h4" /><circle cx="13" cy="5" r="2" /><circle cx="7" cy="10" r="2" /><circle cx="11" cy="15" r="2" /></svg>
           </button>
-            )
-            : null}
           <button
             type="button"
             className={'pu-icon-btn' + (props.refreshing === true ? ' pu-spinning' : '')}
@@ -273,7 +269,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           </button>
         </span>
       </div>
-      <div className="pu-stage">{detail === undefined ? body : <UsageDetail summary={detail} />}</div>
+      <div className="pu-stage">{detail === undefined ? body : <UsageDetail summary={detail} onBack={() => { setDetailKey(undefined) }} />}</div>
       {filterOpen
         ? (
           <section

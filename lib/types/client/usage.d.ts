@@ -15,6 +15,7 @@ export interface ProviderUsageSummary {
     status: ProviderUsageStatus;
     fetchedAt?: string;
     windows: readonly UsageWindowSummary[];
+    refreshing?: boolean;
 }
 type ProviderUsageRead = {
     status: 'ready';

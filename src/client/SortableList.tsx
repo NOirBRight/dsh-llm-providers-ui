@@ -58,6 +58,8 @@ const handleStyle: CSSProperties = {
   userSelect: 'none',
   background: 'transparent',
   color: 'var(--dsw-alias-label-tertiary)',
+  position: 'relative',
+  zIndex: 2,
 }
 const cardRowStyle: CSSProperties = {
   ...rowStyle,
@@ -194,12 +196,13 @@ export function SortableList<T>({
     })
   }, [renderedItems])
 
-  const startDrag = (event: ReactPointerEvent<HTMLButtonElement>, id: string): void => {
-    if (disabled || event.button !== 0) return
+  const startDrag = (event: ReactPointerEvent<HTMLElement>, id: string): void => {
+    if (disabled || dragGhostRef.current !== null) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
     const row = event.currentTarget.closest('[data-sortable-row="true"]')
     if (!(row instanceof HTMLElement)) return
     event.preventDefault()
-    event.currentTarget.focus()
+    if (typeof event.currentTarget.focus === 'function') event.currentTarget.focus()
     try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* embedded webviews may drop capture */ }
     const rect = row.getBoundingClientRect()
     const nextGhost = {
@@ -297,9 +300,15 @@ export function SortableList<T>({
                 ? '0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary) 20%, transparent)'
                 : 'none',
             }}
+            onPointerDown={(event) => {
+              const target = event.target
+              if (target instanceof Element && target.closest('a, input, select, textarea, label, button:not([data-sortable-handle])') !== null) return
+              startDrag(event, id)
+            }}
           >
             <button
               type="button"
+              data-sortable-handle=""
               style={{ ...handleStyle, cursor: disabled ? 'default' : draggedId === null ? 'grab' : 'grabbing' }}
               aria-label={dragLabel(item, index)}
               aria-grabbed={dragging}

@@ -250,6 +250,30 @@ describe('Provider Usage readers', () => {
     vi.useRealTimers()
   })
 
+  it('keeps cached numbers and marks refreshing while a reread is in flight', async () => {
+    let release: (() => void) | undefined
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 40, limit: 100, unit: 'percent' }] } } }
+      await new Promise<void>(resolve => { release = resolve })
+      return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'later', windows: [{ id: 'weekly', used: 50, limit: 100, unit: 'percent' }] } } }
+    })
+    const store = createProviderUsageStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
+    store.refresh()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', refreshing: true })
+    expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
+    release?.()
+    await flush()
+    expect(store.getSnapshot().providers[0]?.refreshing).toBeUndefined()
+    expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(50)
+    store.dispose()
+  })
+
   it('turns a hung read into an error instead of leaving it loading', async () => {
     vi.useFakeTimers()
     const rpc = rpcFor(async (_channel, _payload, signal) => {

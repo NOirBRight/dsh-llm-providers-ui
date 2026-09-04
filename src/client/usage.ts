@@ -20,6 +20,7 @@ export interface ProviderUsageSummary {
   status: ProviderUsageStatus
   fetchedAt?: string
   windows: readonly UsageWindowSummary[]
+  refreshing?: boolean
 }
 
 type ProviderUsageRead =
@@ -352,8 +353,17 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
   let pollTimer: ReturnType<typeof setInterval> | undefined
 
   const notify = (): void => { for (const listener of listeners) listener() }
+  const pending = (key: string): boolean => active.has(key) || queued.some(item => item.key === key)
   const publish = (): void => {
-    snapshot = { providers: configuredKeys.map(key => current.get(key)).filter((item): item is ProviderUsageSummary => item !== undefined), hiddenKeys: [...snapshot.hiddenKeys], refreshing: active.size > 0 }
+    snapshot = {
+      providers: configuredKeys.map(key => {
+        const item = current.get(key)
+        if (item === undefined) return undefined
+        return pending(key) ? { ...item, refreshing: true } : item
+      }).filter((item): item is ProviderUsageSummary => item !== undefined),
+      hiddenKeys: [...snapshot.hiddenKeys],
+      refreshing: active.size > 0 || queued.length > 0,
+    }
     notify()
   }
   const pump = (): void => {
@@ -371,7 +381,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
     const reader = readerByKey.get(key)
     if (reader === undefined || active.has(key) || disposed) return
     const previous = current.get(key)
-    if (previous === undefined || !hasUsageData(previous)) {
+    if (previous === undefined) {
       current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
       publish()
     }
@@ -444,11 +454,6 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       for (let index = queued.length - 1; index >= 0; index -= 1) {
         const item = queued[index]
         if (item !== undefined && targets.includes(item.key)) queued.splice(index, 1)
-      }
-      for (const key of targets) {
-        const reader = readerByKey.get(key)
-        const previous = current.get(key)
-        if (reader !== undefined && !hasUsageData(previous)) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
       }
       sync(true, keys)
     },
