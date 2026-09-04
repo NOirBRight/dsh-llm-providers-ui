@@ -56,6 +56,7 @@ S 90% · W 66%
 | Agent | A |
 | Day | D |
 | Local | L |
+| Other | Oth |
 | 2h / 5h 等短标签 | 保持原样 |
 
 仅在存在重置时间时提供单窗口 Tooltip，格式为 `W · 53% · 9/7 00:00 UTC 重置`；不提供整卡聚合 Tooltip，不显示原始 ISO 时间。

@@ -84,6 +84,7 @@ const SHORT_LABELS: readonly [pattern: RegExp, label: string][] = [
   [/agent/u, 'A'],
   [/daily|day/u, 'D'],
   [/local/u, 'L'],
+  [/other/u, 'Oth'],
 ]
 
 function shortLabel(value: string): string {

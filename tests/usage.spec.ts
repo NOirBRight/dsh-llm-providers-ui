@@ -109,12 +109,13 @@ describe('Provider Usage readers', () => {
             { id: 'agent', period: 'Agent', used: 10, limit: 100, unit: 'percent' },
             { id: 'day', period: 'Day', used: 20, limit: 100, unit: 'percent' },
             { id: 'local', period: 'Local', used: 30, limit: 100, unit: 'percent' },
+            { id: 'other', period: 'Other', used: 40, limit: 100, unit: 'percent' },
           ],
         },
       },
     }))
     const result = await cursorReader.read(rpc, false, new AbortController().signal)
-    expect(result).toMatchObject({ status: 'ready', windows: [{ shortLabel: 'A' }, { shortLabel: 'D' }, { shortLabel: 'L' }] })
+    expect(result).toMatchObject({ status: 'ready', windows: [{ shortLabel: 'A' }, { shortLabel: 'D' }, { shortLabel: 'L' }, { shortLabel: 'Oth' }] })
   })
 
   it('rejects secret-shaped fields in a successful provider view', async () => {
