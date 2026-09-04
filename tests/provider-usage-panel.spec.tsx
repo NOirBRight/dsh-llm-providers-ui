@@ -102,13 +102,13 @@ function typeSearch(container: HTMLElement, value: string): void {
 }
 
 describe('ProviderUsagePanel six-provider grid', () => {
-  it('renders all six providers in one grid with a 6 / 6 title count', () => {
+  it('renders all six providers in one grid without a 6 / 6 title count', () => {
     const html = staticHtml()
-    expect(html).not.toContain('class="pu-scroll pu-scroll-more"')
+    expect(html).toContain('height:132px')
+    expect(html).not.toContain('6 / 6')
     for (const name of ['Codex', 'Cursor', 'Grok', 'Ollama Cloud', 'CommandCode', 'OpenCode Go']) {
       expect(html).toContain(name)
     }
-    expect(html).toContain('6 / 6')
     const container = mount()
     expect(container.querySelectorAll('.pu-row').length).toBe(6)
     expect(container.querySelectorAll('.pu-rows').length).toBe(1)
@@ -123,9 +123,9 @@ describe('ProviderUsagePanel six-provider grid', () => {
     }))
     const container = mount({ providers })
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
-    expect(container.querySelector('.pu-scroll')).not.toBeNull()
+    expect(container.querySelector('.pu-stage')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('class="pu-scroll pu-scroll-more"')
+    expect(html).toContain('pu-stage')
     expect(html).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
   })
 
@@ -152,7 +152,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(staticHtml({ providers })).toContain('aria-label="Cursor 63%"')
   })
 
-  it('opens a local-time detail card instead of a native title tooltip', () => {
+  it('opens a local-time detail page and returns to the grid', () => {
     const container = mount()
     const row = container.querySelector('[aria-label="Codex 38%"]')
     expect(row?.getAttribute('title')).toBeNull()
@@ -160,6 +160,10 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.textContent).toContain('剩余额度')
     expect(container.textContent).toContain('5h')
     expect(container.textContent).not.toContain('UTC')
+    expect(container.querySelector('.pu-rows')).toBeNull()
+    click(container.querySelector('[aria-label="返回全部 Provider"]'))
+    expect(container.querySelector('.pu-rows')).not.toBeNull()
+    expect(container.querySelector('[aria-label="Codex 38%"]')).not.toBeNull()
   })
 
   it('renders a two-column mini grid without meters', () => {
@@ -196,7 +200,7 @@ describe('ProviderUsagePanel states', () => {
     const html = staticHtml({ hiddenKeys: SIX.map(summary => summary.providerKey) })
     expect(html).toContain('没有显示的 Provider')
     expect(html).toContain('打开筛选')
-    expect(html).toContain('0 / 6')
+    expect(html).not.toContain('0 / 6')
   })
 
   it('shows an empty state when no provider is queryable', () => {
@@ -235,7 +239,7 @@ describe('ProviderUsagePanel states', () => {
     expect(html).not.toContain('Grok')
     expect(html).not.toContain('Cursor')
     expect(html).toContain('Codex')
-    expect(html).toContain('4 / 6')
+    expect(html).not.toContain('4 / 6')
   })
 })
 

@@ -67,17 +67,16 @@ const STATUS_TEXT: Record<ProviderUsageStatus, string> = {
 const panelCss = [
   '[data-provider-usage-panel]{display:flex;flex-direction:column;position:relative;min-width:0;padding:6px 6px 8px;background:transparent}',
   '[data-provider-usage-panel] .pu-head{display:flex;align-items:center;height:32px;padding:0 2px 7px}',
-  '[data-provider-usage-panel] .pu-title{font-size:12px;font-weight:680;letter-spacing:.01em;color:var(--dsw-alias-label-primary)}',
-  '[data-provider-usage-panel] .pu-count{margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-tertiary);font-size:9.5px;font-variant-numeric:tabular-nums}',
+  '[data-provider-usage-panel] .pu-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:680;letter-spacing:.01em;color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-actions{display:flex;gap:2px;margin-left:auto}',
+  '[data-provider-usage-panel] .pu-back{margin-right:4px}',
   '[data-provider-usage-panel] .pu-icon-btn{display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}',
   '[data-provider-usage-panel] .pu-icon-btn:hover{background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-icon-btn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}',
   '[data-provider-usage-panel] .pu-icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}',
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
-  '[data-provider-usage-panel] .pu-scroll{padding:1px;margin:-1px}',
-  '[data-provider-usage-panel] .pu-scroll-more{max-height:168px;overflow:auto;scrollbar-width:thin}',
+  '[data-provider-usage-panel] .pu-stage{height:132px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
   '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
   '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
@@ -92,10 +91,8 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-low .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-low{color:#d94848}',
   '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:#c47b08}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
-  '[data-provider-usage-panel] .pu-tip{position:absolute;z-index:15;right:6px;bottom:8px;left:6px;padding:10px 12px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-shadow-lv2,0 10px 28px rgba(0,0,0,.16))}',
-  '[data-provider-usage-panel] .pu-tip-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}',
-  '[data-provider-usage-panel] .pu-tip-name{font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary)}',
-  '[data-provider-usage-panel] .pu-tip-sub{color:var(--dsw-alias-label-tertiary);font-size:11px}',
+  '[data-provider-usage-panel] .pu-detail{padding:4px 6px 2px}',
+  '[data-provider-usage-panel] .pu-detail-sub{margin-bottom:8px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
   '[data-provider-usage-panel] .pu-tip-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px;min-height:22px;font-size:12px}',
   '[data-provider-usage-panel] .pu-tip-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary)}',
   '[data-provider-usage-panel] .pu-tip-value{font-variant-numeric:tabular-nums;font-weight:700;color:var(--dsw-alias-label-primary)}',
@@ -117,7 +114,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-filter-all:disabled{cursor:default;opacity:.55}',
   '[data-provider-usage-panel] .pu-filter-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
   '[data-provider-usage-panel] .pu-no-match{padding:16px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px}',
-  '@media (max-width:640px){[data-provider-usage-panel] .pu-name{font-size:11px;line-height:13px}[data-provider-usage-panel] .pu-tip{bottom:6px}}',
+  '@media (max-width:640px){[data-provider-usage-panel] .pu-name{font-size:11px;line-height:13px}}',
 ].join('\n')
 
 function localReset(value: string | undefined): string | undefined {
@@ -158,14 +155,11 @@ function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean, se
   )
 }
 
-function UsageTip(props: { summary: ProviderUsageSummary }): ReactNode {
+function UsageDetail(props: { summary: ProviderUsageSummary }): ReactNode {
   const summary = props.summary
   return (
-    <div className="pu-tip" role="dialog" aria-label={summary.name + ' 额度详情'}>
-      <div className="pu-tip-head">
-        <span className="pu-tip-name">{summary.name}</span>
-        <span className="pu-tip-sub">剩余额度</span>
-      </div>
+    <div className="pu-detail" aria-label={summary.name + ' 额度详情'}>
+      <div className="pu-detail-sub">剩余额度</div>
       {summary.windows.length === 0
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
         : summary.windows.map(quotaWindow => {
@@ -230,8 +224,8 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             key={summary.providerKey}
             summary={summary}
             active={summary.providerKey === props.currentProviderKey}
-            selected={summary.providerKey === detailKey}
-            onSelect={() => { setFilterOpen(false); setDetailKey(current => current === summary.providerKey ? undefined : summary.providerKey) }}
+            selected={false}
+            onSelect={() => { setFilterOpen(false); setDetailKey(summary.providerKey) }}
           />
         ))}
       </div>
@@ -242,21 +236,32 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
     <section data-provider-usage-panel aria-label="Provider Usage">
       <style>{panelCss}</style>
       <div className="pu-head">
-        <span className="pu-title">Provider Usage</span>
-        <span className="pu-count" aria-label={'已显示 ' + String(visible.length) + ' / 可查询 ' + String(props.providers.length)}>
-          {String(visible.length) + ' / ' + String(props.providers.length)}
-        </span>
+        {detail === undefined
+          ? <span className="pu-title">Provider Usage</span>
+          : (
+            <>
+              <button type="button" className="pu-icon-btn pu-back" aria-label="返回全部 Provider" onClick={() => { setDetailKey(undefined) }}>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>
+              </button>
+              <span className="pu-mark"><ProviderMark providerKey={detail.providerKey} fallback={providerInitial(detail.name)} /></span>
+              <span className="pu-title">{detail.name}</span>
+            </>
+          )}
         <span className="pu-actions">
+          {detail === undefined
+            ? (
           <button
             type="button"
             className="pu-icon-btn"
             aria-label="选择侧栏显示的 Provider"
             aria-expanded={filterOpen}
             title="选择显示的 Provider"
-            onClick={() => { setDetailKey(undefined); setFilterOpen(open => !open) }}
+            onClick={() => { setFilterOpen(open => !open) }}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h8M15 5h2M9 10h8M3 10h2M3 15h6M13 15h4" /><circle cx="13" cy="5" r="2" /><circle cx="7" cy="10" r="2" /><circle cx="11" cy="15" r="2" /></svg>
           </button>
+            )
+            : null}
           <button
             type="button"
             className={'pu-icon-btn' + (props.refreshing === true ? ' pu-spinning' : '')}
@@ -268,8 +273,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           </button>
         </span>
       </div>
-      <div className={'pu-scroll' + (visible.length > 6 ? ' pu-scroll-more' : '')}>{body}</div>
-      {detail === undefined ? null : <UsageTip summary={detail} />}
+      <div className="pu-stage">{detail === undefined ? body : <UsageDetail summary={detail} />}</div>
       {filterOpen
         ? (
           <section

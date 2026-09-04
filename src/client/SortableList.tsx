@@ -35,7 +35,7 @@ interface DragGhost {
 const listStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8 }
 const rowStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '30px minmax(0, 1fr)',
+  gridTemplateColumns: '44px minmax(0, 1fr)',
   alignItems: 'stretch',
   overflow: 'hidden',
   border: '1px solid var(--dsw-alias-border-l2)',
@@ -47,8 +47,8 @@ const handleStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: 30,
-  minHeight: 42,
+  width: 44,
+  minHeight: 44,
   alignSelf: 'stretch',
   border: 0,
   borderRight: '1px solid var(--dsw-alias-border-l2)',
