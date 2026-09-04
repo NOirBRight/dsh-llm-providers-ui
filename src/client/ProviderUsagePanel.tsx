@@ -79,6 +79,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
   '[data-provider-usage-panel] .pu-stage{width:100%;min-width:0;height:132px;overflow:hidden;padding:1px;margin:-1px}',
+  '[data-provider-usage-panel] .pu-stage-open{height:auto;overflow:visible}',
   '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
   '[data-provider-usage-panel] .pu-row{box-sizing:border-box;position:relative;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 22px 5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
@@ -93,15 +94,20 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-low .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-low{color:#d94848}',
   '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:#c47b08}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
-  '[data-provider-usage-panel] .pu-detail{box-sizing:border-box;display:block;width:100%;min-width:0;height:100%;overflow:auto;padding:10px 12px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);scrollbar-width:thin}',
-  '[data-provider-usage-panel] .pu-detail-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}',
+  '[data-provider-usage-panel] .pu-detail{box-sizing:border-box;display:block;width:100%;min-width:0;padding:10px 12px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}',
+  '[data-provider-usage-panel] .pu-detail-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}',
   '[data-provider-usage-panel] .pu-detail-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary)}',
-  '[data-provider-usage-panel] .pu-detail-sub{margin-bottom:6px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
-  '[data-provider-usage-panel] .pu-tip-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px;min-height:22px;font-size:12px}',
-  '[data-provider-usage-panel] .pu-tip-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary)}',
-  '[data-provider-usage-panel] .pu-tip-value{font-variant-numeric:tabular-nums;font-weight:700;color:var(--dsw-alias-label-primary)}',
-  '[data-provider-usage-panel] .pu-tip-reset{grid-column:1/-1;margin:-2px 0 6px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
-  '[data-provider-usage-panel] .pu-tip-empty{color:var(--dsw-alias-label-secondary);font-size:12px}',
+  '[data-provider-usage-panel] .pu-detail-sub{margin:0 0 4px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
+  '[data-provider-usage-panel] .pu-win{display:flex;flex-direction:column;gap:5px;padding:8px 0 2px}',
+  '[data-provider-usage-panel] .pu-win + .pu-win{border-top:1px solid var(--dsw-alias-border-l2)}',
+  '[data-provider-usage-panel] .pu-win-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}',
+  '[data-provider-usage-panel] .pu-tip-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:12px}',
+  '[data-provider-usage-panel] .pu-tip-value{font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;color:var(--dsw-alias-label-primary)}',
+  '[data-provider-usage-panel] .pu-bar{display:block;width:100%;height:6px;border:0;border-radius:99px;background:var(--dsw-alias-bg-module-platform);accent-color:var(--dsw-alias-state-business-primary)}',
+  '[data-provider-usage-panel] .pu-bar.pu-warn{accent-color:#c47b08}',
+  '[data-provider-usage-panel] .pu-bar.pu-low{accent-color:#d94848}',
+  '[data-provider-usage-panel] .pu-tip-reset{color:var(--dsw-alias-label-tertiary);font-size:11px}',
+  '[data-provider-usage-panel] .pu-tip-empty{padding:8px 0;color:var(--dsw-alias-label-secondary);font-size:12px}',
   '[data-provider-usage-panel] .pu-empty{padding:22px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px;line-height:18px}',
   '[data-provider-usage-panel] .pu-empty-btn{margin-top:8px;padding:4px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-state-business-primary);font-size:11px;cursor:pointer}',
   '[data-provider-usage-panel] .pu-popover{position:absolute;z-index:20;right:4px;bottom:44px;left:4px;max-height:min(520px,calc(100vh - 100px));overflow:hidden;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-shadow-lv2,0 10px 30px rgba(0,0,0,0.18))}',
@@ -198,12 +204,14 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
         : summary.windows.map(quotaWindow => {
           const reset = localReset(quotaWindow.resetsAt)
           const tone = usageTone(quotaWindow.remainingPercent)
+          const remaining = quotaWindow.remainingPercent
           return (
-            <div key={quotaWindow.id}>
-              <div className="pu-tip-row">
+            <div key={quotaWindow.id} className="pu-win">
+              <div className="pu-win-top">
                 <span className="pu-tip-label">{quotaWindow.label}</span>
                 <span className={'pu-tip-value' + (tone === undefined ? '' : ' pu-' + tone)}>{windowValueText(quotaWindow)}</span>
               </div>
+              {remaining === undefined ? null : <progress className={'pu-bar' + (tone === undefined ? '' : ' pu-' + tone)} max={100} value={remaining} />}
               {reset === undefined ? null : <div className="pu-tip-reset">重置 {reset}</div>}
             </div>
           )
@@ -293,7 +301,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           </button>
         </span>
       </div>
-      <div className="pu-stage">{detail === undefined ? body : <UsageDetail summary={detail} onBack={() => { setDetailKey(undefined) }} onRefresh={() => { props.onRefresh(detail.providerKey) }} />}</div>
+      <div className={'pu-stage' + (detail === undefined ? '' : ' pu-stage-open')}>{detail === undefined ? body : <UsageDetail summary={detail} onBack={() => { setDetailKey(undefined) }} onRefresh={() => { props.onRefresh(detail.providerKey) }} />}</div>
       {filterOpen
         ? (
           <section
