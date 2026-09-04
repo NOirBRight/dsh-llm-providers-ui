@@ -46,7 +46,7 @@ export interface ProviderUsageConfig {
 }
 export declare const USAGE_POLL_MS: number;
 export declare const USAGE_MIN_REFETCH_MS: number;
-export declare const USAGE_READ_TIMEOUT_MS = 8000;
+export declare const USAGE_READ_TIMEOUT_MS = 16000;
 export interface ProviderUsageStore {
     getSnapshot(): ProviderUsageStoreSnapshot;
     subscribe(listener: () => void): () => void;

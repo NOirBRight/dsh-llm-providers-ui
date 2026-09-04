@@ -214,9 +214,6 @@ function decodeCodexAuthStatus(value: unknown): ProviderUsageRead {
   if (response === undefined || !secretFree(response)) return { status: 'error', message: 'malformed usage response' }
   if (response.status === 'signed-out' || response.status === 'signing-in' || response.status === 'reauth-required') return { status: 'logged-out' }
   if (response.status !== 'signed-in') return { status: 'error', message: 'Codex usage unavailable' }
-  if (response.quotaError !== undefined) return nonEmptyString(response.quotaError)
-    ? { status: 'error', message: response.quotaError }
-    : { status: 'error', message: 'malformed usage response' }
   const usage = record(response.usage)
   if (usage === undefined || !Array.isArray(usage.rateLimits)) return { status: 'error', message: 'malformed usage response' }
   const windows: UsageWindowSummary[] = []
@@ -264,12 +261,13 @@ async function waitForCodexUsage(signal: AbortSignal): Promise<void> {
 }
 
 async function readCodexUsage(rpc: ClientConnectionRpc, signal: AbortSignal): Promise<ProviderUsageRead> {
-  const deadline = Date.now() + 1_500
+  const deadline = Date.now() + CODEX_USAGE_WAIT_MS
   let last: ProviderUsageRead = { status: 'error', message: 'Codex usage unavailable' }
   while (!signal.aborted) {
     const result = await rpc.call('/codex', 'auth/status', {}, signal)
     last = result.ok ? decodeCodexAuthStatus(result.value) : { status: 'error', message: result.error.message }
-    if (last.status !== 'ready' || last.windows.length > 0 || Date.now() >= deadline) return last
+    const quotaSettled = result.ok && record(result.value)?.quotaError !== undefined
+    if (last.status !== 'ready' || last.windows.length > 0 || quotaSettled || Date.now() >= deadline) return last
     await waitForCodexUsage(signal)
   }
   return last
@@ -315,7 +313,8 @@ export interface ProviderUsageConfig {
 
 export const USAGE_POLL_MS = 15 * 60 * 1000
 export const USAGE_MIN_REFETCH_MS = 5 * 60 * 1000
-export const USAGE_READ_TIMEOUT_MS = 8_000
+export const USAGE_READ_TIMEOUT_MS = 16_000
+const CODEX_USAGE_WAIT_MS = 15_000
 const USAGE_MAX_IN_FLIGHT = 3
 
 export interface ProviderUsageStore {
