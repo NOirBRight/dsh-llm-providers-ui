@@ -10,8 +10,9 @@ export type ProviderItemKey = (typeof PROVIDER_ITEM_ORDER)[number];
 export declare const PROVIDER_ROUTES: Record<ProviderItemKey, string>;
 export interface ProviderOrderSettings {
     order: string[];
+    hiddenUsageProviders: string[];
 }
-/** Decode the llm-providers settings section. Unknown input becomes an empty order. */
+/** Decode the llm-providers settings section. Unknown input becomes an empty order with nothing hidden. */
 export declare function decodeProviderOrder(value: unknown): ProviderOrderSettings;
 /**
  * Merge a saved key list with the keys that are actually installed.
@@ -23,6 +24,8 @@ export declare function applySavedOrder(registered: readonly string[], saved?: r
 export interface CatalogGroup {
     id: string;
 }
+/** Map an llm route id to its settings.provider.item key when known. */
+export declare function providerKeyForRoute(route: string): ProviderItemKey | undefined;
 /** Map a settings.provider.item key to its llm route id when known. */
 export declare function providerRoute(key: string): string | undefined;
 /**

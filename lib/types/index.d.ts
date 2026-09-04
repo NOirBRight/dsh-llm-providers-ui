@@ -9,10 +9,12 @@ import type { Context } from '@deepseek-ai/cordis';
 export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_SETTINGS_NS, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, decodeProviderOrder, providerRoute, sortCatalogGroups, } from './order.js';
 export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from './order.js';
 export declare const name = "dsh-llm-providers-ui";
+/** This owner can mount before the optional Settings service is available. */
 export declare const inject: string[];
 /** Schema of the shared provider-order settings section. */
 export interface OrderConfig {
     order: string[];
+    hiddenUsageProviders: string[];
 }
 export declare const OrderConfig: z<OrderConfig>;
 /** Host configuration for the providers-ui owner (currently no fields). */

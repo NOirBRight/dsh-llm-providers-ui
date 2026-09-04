@@ -142,7 +142,7 @@ class FakeLocale extends Service {
 
 type ScopeStatus = 'loading' | 'ready' | 'unavailable'
 
-function makeSettingsScope(initialStatus: ScopeStatus = 'ready') {
+function makeSettingsScope(initialStatus: ScopeStatus = 'ready', mode: 'host' | 'memory' = 'host') {
   let order: string[] = []
   let status = initialStatus
   const listeners = new Set<() => void>()
@@ -151,6 +151,7 @@ function makeSettingsScope(initialStatus: ScopeStatus = 'ready') {
       value: status === 'ready' ? { order } : undefined,
       writable: status === 'ready',
       status,
+      mode,
     }),
     subscribe: (listener: () => void) => {
       listeners.add(listener)
@@ -170,7 +171,10 @@ function makeSettingsScope(initialStatus: ScopeStatus = 'ready') {
   }
 }
 
-async function makeContext(initialStatus: ScopeStatus = 'ready'): Promise<{
+async function makeContext(
+  initialStatus: ScopeStatus = 'ready',
+  mode: 'host' | 'memory' = 'host',
+): Promise<{
   ctx: Context,
   slots: FakeSlots,
   locale: FakeLocale,
@@ -179,7 +183,7 @@ async function makeContext(initialStatus: ScopeStatus = 'ready'): Promise<{
   const ctx = new Context()
   await ctx.plugin(FakeSlots).await()
   await ctx.plugin(FakeLocale).await()
-  const settingsScope = makeSettingsScope(initialStatus)
+  const settingsScope = makeSettingsScope(initialStatus, mode)
   ctx.provide('settingsScope', settingsScope)
   return {
     ctx,
@@ -276,6 +280,24 @@ describe('providers-ui Web ownership', () => {
     await ctx.fiber.dispose()
   })
 
+  it('keeps the page on remote process-local settings (memory mode)', async () => {
+    const { ctx, slots } = await makeContext('unavailable', 'memory')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    slots.declare('settings.section')
+    const provider = installProvider(ctx, 'llm-cursor')
+    const owner = installOwner(ctx)
+    await provider.await()
+    await owner.await()
+    await new Promise<void>(resolve => setTimeout(resolve, 0))
+    expect(slots.count('settings.section')).toBe(1)
+    expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(1)
+    expect(warn).not.toHaveBeenCalled()
+    await owner.dispose()
+    await provider.dispose()
+    warn.mockRestore()
+    await ctx.fiber.dispose()
+  })
+
   it('unmounts and remounts the page across Host unload and reload', async () => {
     const { ctx, slots, settingsScope } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -287,8 +309,7 @@ describe('providers-ui Web ownership', () => {
     expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(1)
 
     settingsScope.setStatus('unavailable')
-    expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn.mock.calls[0]?.[0]).toContain('settings owner')
+    expect(warn.mock.calls.some(call => String(call[0]).includes('settings owner'))).toBe(true)
     expect(slots.count('settings.section')).toBe(0)
     expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(0)
 

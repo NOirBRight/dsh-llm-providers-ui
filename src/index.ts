@@ -8,8 +8,9 @@
 import z from '@deepseek-ai/schemastery'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-settings'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type SettingsProvider from '@deepseek-ai/dsh-settings'
 import { PROVIDERS_SETTINGS_NS } from './order.js'
+import { allowDshRuntime } from './compatibility.ts'
 
 export {
   PROVIDERS_SECTION_ID,
@@ -26,16 +27,17 @@ export {
 export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from './order.js'
 
 export const name = 'dsh-llm-providers-ui'
-export const inject = ['settings']
-
-const NS = settingsNamespace(PROVIDERS_SETTINGS_NS)
+/** This owner can mount before the optional Settings service is available. */
+export const inject: string[] = []
 
 /** Schema of the shared provider-order settings section. */
 export interface OrderConfig {
   order: string[]
+  hiddenUsageProviders: string[]
 }
 export const OrderConfig: z<OrderConfig> = z.object({
   order: z.array(String).default([]),
+  hiddenUsageProviders: z.array(String).default([]),
 })
 
 /** Host configuration for the providers-ui owner (currently no fields). */
@@ -51,5 +53,20 @@ export const Config: z<Config> = z.object({})
  * @param ctx - Host Cordis context.
  */
 export function apply(ctx: Context, _config: Config = {}): void {
-  ctx.settings.register(NS, OrderConfig, { base: { order: [] } })
+  if (!allowDshRuntime(ctx.logger, 'dsh-llm-providers-ui', ['@deepseek-ai/dsh-settings'])) return
+
+  const install = (settings: SettingsProvider): void => {
+    settings.installSection(ctx, PROVIDERS_SETTINGS_NS, OrderConfig, { order: [], hiddenUsageProviders: [] }, {
+      setSource: () => undefined,
+      onChange: () => undefined,
+    })
+  }
+  const settings = ctx.get('settings')
+  if (settings !== undefined) {
+    install(settings)
+  } else {
+    // Keep the host usable without the optional service and attach when a
+    // settings provider is mounted later in the composition.
+    ctx.inject(['settings'], (settingsCtx) => install(settingsCtx.settings))
+  }
 }
