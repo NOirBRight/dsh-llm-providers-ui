@@ -250,6 +250,51 @@ describe('Provider Usage readers', () => {
     vi.useRealTimers()
   })
 
+  it('keeps last-good windows when a later read is unsupported', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 40, limit: 100, unit: 'percent' }] } } }
+      return { ok: true, value: { status: 'unsupported' } }
+    })
+    const store = createProviderUsageStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
+    store.refresh()
+    await flush()
+    expect(store.getSnapshot().providers[0]?.status).not.toBe('unsupported')
+    expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
+    store.dispose()
+  })
+
+  it('hydrates last-good usage from localStorage before the first read', async () => {
+    const memory = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => { memory.set(key, value) },
+      removeItem: (key: string) => { memory.delete(key) },
+    })
+    localStorage.setItem('dsh-llm-providers-ui:usage-cache', JSON.stringify([{
+      providerKey: 'llm-cursor',
+      name: 'Cursor',
+      status: 'ready',
+      fetchedAt: '2026-09-04T00:00:00.000Z',
+      windows: [{ id: 'weekly', label: 'Week', shortLabel: 'W', remainingPercent: 62, valueText: '62%' }],
+    }]))
+    const rpc = rpcFor(async (_channel, _payload, signal) => {
+      await new Promise((_, reject) => {
+        signal?.addEventListener('abort', () => { reject(new DOMException('Aborted', 'AbortError')) })
+      })
+    })
+    const store = createProviderUsageStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(62)
+    expect(store.getSnapshot().providers[0]?.status).toBe('ready')
+    store.dispose()
+    vi.unstubAllGlobals()
+  })
+
   it('keeps cached numbers and marks refreshing while a reread is in flight', async () => {
     let release: (() => void) | undefined
     let reads = 0

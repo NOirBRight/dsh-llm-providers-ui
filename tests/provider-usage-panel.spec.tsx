@@ -165,6 +165,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.textContent).not.toContain('UTC')
     expect(container.querySelector('.pu-rows')).toBeNull()
     expect(container.querySelector('.pu-detail')).not.toBeNull()
+    expect(staticHtml()).toContain('.pu-detail{box-sizing:border-box;display:block;width:100%')
     click(container.querySelector('[aria-label="返回全部 Provider"]'))
     expect(container.querySelector('.pu-rows')).not.toBeNull()
     expect(container.querySelector('[aria-label="Codex 38%"]')).not.toBeNull()
