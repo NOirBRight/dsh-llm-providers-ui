@@ -104,6 +104,7 @@ function typeSearch(container: HTMLElement, value: string): void {
 describe('ProviderUsagePanel six-provider grid', () => {
   it('renders all six providers in one grid with a 6 / 6 title count', () => {
     const html = staticHtml()
+    expect(html).not.toContain('class="pu-scroll pu-scroll-more"')
     for (const name of ['Codex', 'Cursor', 'Grok', 'Ollama Cloud', 'CommandCode', 'OpenCode Go']) {
       expect(html).toContain(name)
     }
@@ -124,7 +125,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
     expect(container.querySelector('.pu-scroll')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('max-height:148px;overflow:auto')
+    expect(html).toContain('class="pu-scroll pu-scroll-more"')
     expect(html).toContain('@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(2,minmax(0,1fr))}')
   })
 
@@ -159,7 +160,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
 
   it('renders a three-column mini grid without meters', () => {
     const html = staticHtml()
-    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px')
+    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px')
     expect(html).toContain('class="pu-logo"')
     expect(html).toContain('CommandCode')
     expect(html).not.toContain('pu-meter')

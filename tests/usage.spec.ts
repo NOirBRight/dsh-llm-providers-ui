@@ -16,6 +16,19 @@ async function flush(): Promise<void> {
 }
 
 describe('Provider Usage readers', () => {
+  it('retries Cursor unsupported by forcing a refresh read', async () => {
+    let reads = 0
+    const rpc = rpcFor(async (_channel, payload) => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'unsupported' } }
+      expect(payload).toEqual({ refresh: true })
+      return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+    })
+    const result = await cursorReader.read(rpc, false, new AbortController().signal)
+    expect(reads).toBe(2)
+    expect(result).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+  })
+
   it('normalizes Cursor windows and passes refresh without exposing raw data', async () => {
     let request: { channel: string, payload: unknown, signal?: AbortSignal } | undefined
     const signal = new AbortController().signal

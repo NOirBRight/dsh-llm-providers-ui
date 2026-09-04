@@ -76,17 +76,18 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}',
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
-  '[data-provider-usage-panel] .pu-scroll{max-height:148px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
-  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}',
-  '[data-provider-usage-panel] .pu-row{display:flex;align-items:center;gap:7px;min-width:0;min-height:48px;padding:7px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit}',
+  '[data-provider-usage-panel] .pu-scroll{padding:1px;margin:-1px}',
+  '[data-provider-usage-panel] .pu-scroll-more{max-height:132px;overflow:auto;scrollbar-width:thin}',
+  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}',
+  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:6px;min-width:0;min-height:40px;padding:5px 6px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-active{border-color:var(--dsw-alias-state-business-primary);box-shadow:0 0 0 1px var(--dsw-alias-state-business-primary)}',
-  '[data-provider-usage-panel] .pu-logo{display:block;flex:none;width:16px;height:16px;color:var(--dsw-alias-label-primary)}',
-  '[data-provider-usage-panel] .pu-copy{display:flex;flex-direction:column;gap:1px;min-width:0}',
-  '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:16px;height:16px;border-radius:5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
-  '[data-provider-usage-panel] .pu-name{min-width:0;color:var(--dsw-alias-label-primary);font-size:10.5px;font-weight:620;line-height:13px;overflow-wrap:anywhere}',
+  '[data-provider-usage-panel] .pu-logo{display:block;flex:none;width:14px;height:14px;color:var(--dsw-alias-label-primary)}',
+  '[data-provider-usage-panel] .pu-copy{display:flex;flex-direction:column;gap:0;min-width:0}',
+  '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:14px;height:14px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
+  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:10px;font-weight:620;line-height:12px}',
   '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
-  '[data-provider-usage-panel] .pu-primary{color:inherit;font-size:13px;font-weight:730;line-height:16px;font-variant-numeric:tabular-nums}',
+  '[data-provider-usage-panel] .pu-primary{color:inherit;font-size:12px;font-weight:730;line-height:14px;font-variant-numeric:tabular-nums}',
   '[data-provider-usage-panel] .pu-low .pu-primary{color:#d94848}',
   '[data-provider-usage-panel] .pu-warn .pu-primary{color:#c47b08}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
@@ -106,7 +107,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-filter-all:disabled{cursor:default;opacity:.55}',
   '[data-provider-usage-panel] .pu-filter-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
   '[data-provider-usage-panel] .pu-no-match{padding:16px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px}',
-  '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(2,minmax(0,1fr))}[data-provider-usage-panel] .pu-scroll{max-height:196px}[data-provider-usage-panel] .pu-name{font-size:11px;line-height:14px}}',
+  '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(2,minmax(0,1fr))}[data-provider-usage-panel] .pu-scroll-more{max-height:140px}[data-provider-usage-panel] .pu-name{font-size:11px;line-height:13px}}',
 ].join('\n')
 
 function compactUtcTimestamp(value: string | undefined): string | undefined {
@@ -220,7 +221,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           </button>
         </span>
       </div>
-      <div className="pu-scroll">{body}</div>
+      <div className={'pu-scroll' + (visible.length > 6 ? ' pu-scroll-more' : '')}>{body}</div>
       {filterOpen
         ? (
           <section
