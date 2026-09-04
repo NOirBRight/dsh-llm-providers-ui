@@ -304,6 +304,12 @@ describe('ProviderUsagePanel callbacks', () => {
     expect(onShowAll).toHaveBeenCalledTimes(1)
   })
 
+  it('shows usage-order handles in the visibility list', () => {
+    const container = mount({ onReorder: vi.fn() })
+    openPopover(container)
+    expect(container.querySelectorAll('[data-sortable-handle]').length).toBe(SIX.length)
+  })
+
   it('closes the visibility popover with Escape', () => {
     const container = mount()
     openPopover(container)

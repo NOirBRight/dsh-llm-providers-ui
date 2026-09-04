@@ -82,6 +82,7 @@ interface OrderConfig {
 ```
 
 使用隐藏列表而不是可见列表，使以后新增 Provider 默认出现。保存字符串 key；渲染时再与当前已检测 Provider 取交集。
+Usage 卡片顺序保存在独立的 `usageOrder`，只影响侧栏 Usage，不改 Provider 设置卡和模型列表；在「侧栏显示」里拖动手柄调整。
 
 ## 3. 布局与扩展数量
 

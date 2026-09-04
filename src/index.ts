@@ -34,10 +34,12 @@ export const inject: string[] = []
 export interface OrderConfig {
   order: string[]
   hiddenUsageProviders: string[]
+  usageOrder: string[]
 }
 export const OrderConfig: z<OrderConfig> = z.object({
   order: z.array(String).default([]),
   hiddenUsageProviders: z.array(String).default([]),
+  usageOrder: z.array(String).default([]),
 })
 
 /** Host configuration for the providers-ui owner (currently no fields). */
@@ -56,7 +58,7 @@ export function apply(ctx: Context, _config: Config = {}): void {
   if (!allowDshRuntime(ctx.logger, 'dsh-llm-providers-ui', ['@deepseek-ai/dsh-settings'])) return
 
   const install = (settings: SettingsProvider): void => {
-    settings.installSection(ctx, PROVIDERS_SETTINGS_NS, OrderConfig, { order: [], hiddenUsageProviders: [] }, {
+    settings.installSection(ctx, PROVIDERS_SETTINGS_NS, OrderConfig, { order: [], hiddenUsageProviders: [], usageOrder: [] }, {
       setSource: () => undefined,
       onChange: () => undefined,
     })

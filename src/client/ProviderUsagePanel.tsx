@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { ProviderMark } from './provider-marks.js'
+import { SortableList } from './SortableList.js'
 import { pickPrimaryWindow, type ProviderUsageStatus, type ProviderUsageSummary, type UsageWindowSummary } from './usage.js'
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 
@@ -36,6 +37,7 @@ export interface ProviderUsagePanelProps {
   onRefresh: (providerKey?: string) => void
   onToggleVisibility: (providerKey: string, visible: boolean) => void
   onShowAll: () => void
+  onReorder?: (keys: readonly string[]) => void
 }
 
 const STATUS_TEXT: Record<ProviderUsageStatus, string> = {
@@ -107,6 +109,8 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-search:focus{border-color:var(--dsw-alias-state-business-primary)}',
   '[data-provider-usage-panel] .pu-filter-list{max-height:330px;overflow:auto;padding:2px 8px 8px}',
   '[data-provider-usage-panel] .pu-filter-item{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 5px;border-radius:7px;font-size:12px;color:var(--dsw-alias-label-primary);cursor:pointer}',
+  '[data-provider-usage-panel] .pu-filter-list [data-sortable-row="true"]{border:0;background:transparent;border-radius:7px}',
+  '[data-provider-usage-panel] .pu-filter-list [data-sortable-handle]{width:22px;min-height:34px;border-right:0;color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-filter-item:hover{background:var(--dsw-alias-bg-module-platform)}',
   '[data-provider-usage-panel] .pu-filter-all{width:100%;border:0;border-bottom:1px solid var(--dsw-alias-border-l2);background:transparent;text-align:left;font-weight:500}',
   '[data-provider-usage-panel] .pu-filter-all:disabled{cursor:default;opacity:.55}',
@@ -322,19 +326,39 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
               >
                 {'显示全部 ' + String(props.providers.length) + ' 个'}
               </button>
-              {matches.map(summary => (
-                <label key={summary.providerKey} className="pu-filter-item">
-                  <input
-                    type="checkbox"
-                    aria-label={'在侧栏显示 ' + summary.name}
-                    checked={!hidden.has(summary.providerKey)}
-                    onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
+              {matches.length === 0 ? <p className="pu-no-match">没有匹配的 Provider</p> : query.trim() === '' && props.onReorder !== undefined && matches.length > 1
+                ? (
+                  <SortableList
+                    items={[...matches]}
+                    getId={summary => summary.providerKey}
+                    dragLabel={summary => '调整顺序: ' + summary.name}
+                    onReorder={next => { props.onReorder?.(next.map(summary => summary.providerKey)) }}
+                    renderItem={summary => (
+                      <label className="pu-filter-item">
+                        <input
+                          type="checkbox"
+                          aria-label={'在侧栏显示 ' + summary.name}
+                          checked={!hidden.has(summary.providerKey)}
+                          onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
+                        />
+                        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
+                        <span className="pu-filter-name">{summary.name}</span>
+                      </label>
+                    )}
                   />
-                  <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
-                  <span className="pu-filter-name">{summary.name}</span>
-                </label>
-              ))}
-              {matches.length === 0 ? <p className="pu-no-match">没有匹配的 Provider</p> : null}
+                )
+                : matches.map(summary => (
+                  <label key={summary.providerKey} className="pu-filter-item">
+                    <input
+                      type="checkbox"
+                      aria-label={'在侧栏显示 ' + summary.name}
+                      checked={!hidden.has(summary.providerKey)}
+                      onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
+                    />
+                    <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
+                    <span className="pu-filter-name">{summary.name}</span>
+                  </label>
+                ))}
             </div>
           </section>
         )

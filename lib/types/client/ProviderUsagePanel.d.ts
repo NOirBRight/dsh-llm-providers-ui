@@ -15,6 +15,7 @@ export interface ProviderUsagePanelProps {
     onRefresh: (providerKey?: string) => void;
     onToggleVisibility: (providerKey: string, visible: boolean) => void;
     onShowAll: () => void;
+    onReorder?: (keys: readonly string[]) => void;
 }
 /** Controlled sidebar Provider Usage panel (two-column minis, tap for details). */
 export declare function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode;

@@ -35,7 +35,7 @@ interface DragGhost {
 const listStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8 }
 const rowStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '44px minmax(0, 1fr)',
+  gridTemplateColumns: '30px minmax(0, 1fr)',
   alignItems: 'stretch',
   overflow: 'hidden',
   border: '1px solid var(--dsw-alias-border-l2)',
@@ -47,8 +47,8 @@ const handleStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: 44,
-  minHeight: 44,
+  width: 30,
+  minHeight: 42,
   alignSelf: 'stretch',
   border: 0,
   borderRight: '1px solid var(--dsw-alias-border-l2)',
@@ -56,11 +56,10 @@ const handleStyle: CSSProperties = {
   flex: 'none',
   touchAction: 'none',
   userSelect: 'none',
-  background: 'color-mix(in srgb, var(--dsw-alias-label-primary) 5%, transparent)',
+  background: 'transparent',
   color: 'var(--dsw-alias-label-tertiary)',
   position: 'relative',
-  zIndex: 5,
-  pointerEvents: 'auto',
+  zIndex: 2,
 }
 const cardRowStyle: CSSProperties = {
   ...rowStyle,
@@ -197,9 +196,14 @@ export function SortableList<T>({
     })
   }, [renderedItems])
 
-  const beginDrag = (row: HTMLElement, pointerId: number, clientX: number, clientY: number, id: string): void => {
-    if (dragGhostRef.current !== null) return
-    try { row.setPointerCapture(pointerId) } catch { /* embedded webviews may drop capture */ }
+  const startDrag = (event: ReactPointerEvent<HTMLElement>, id: string): void => {
+    if (disabled || dragGhostRef.current !== null) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    const row = event.currentTarget.closest('[data-sortable-row="true"]')
+    if (!(row instanceof HTMLElement)) return
+    event.preventDefault()
+    if (typeof event.currentTarget.focus === 'function') event.currentTarget.focus()
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* embedded webviews may drop capture */ }
     const rect = row.getBoundingClientRect()
     const nextGhost = {
       id,
@@ -207,8 +211,8 @@ export function SortableList<T>({
       y: rect.top,
       width: rect.width,
       height: rect.height,
-      offsetX: clientX - rect.left,
-      offsetY: clientY - rect.top,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
     }
     dragGhostRef.current = nextGhost
     const initial = [...items]
@@ -216,14 +220,6 @@ export function SortableList<T>({
     setPreviewItems(initial)
     setDragGhost(nextGhost)
     setDraggedId(id)
-  }
-
-  const startDrag = (event: ReactPointerEvent<HTMLElement>, id: string): void => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return
-    const row = event.currentTarget.closest('[data-sortable-row="true"]')
-    if (!(row instanceof HTMLElement)) return
-    event.preventDefault()
-    beginDrag(row, event.pointerId, event.clientX, event.clientY, id)
   }
 
   const finishDrag = (commit: boolean): void => {
@@ -305,39 +301,9 @@ export function SortableList<T>({
                 : 'none',
             }}
             onPointerDown={(event) => {
-              if (event.pointerType === 'mouse' && event.button !== 0) return
-              const row = event.currentTarget
               const target = event.target
-              if (target instanceof Element && target.closest('input, select, textarea, a') !== null) return
-              const fromHandle = event.clientX - row.getBoundingClientRect().left <= 44
-                || (target instanceof Element && target.closest('[data-sortable-handle]') !== null)
-              if (fromHandle) {
-                startDrag(event, id)
-                return
-              }
-              const originX = event.clientX
-              const originY = event.clientY
-              const pointerId = event.pointerId
-              const onMove = (move: PointerEvent): void => {
-                if (move.pointerId !== pointerId) return
-                const dx = move.clientX - originX
-                const dy = move.clientY - originY
-                if (dx * dx + dy * dy < 64) return
-                window.removeEventListener('pointermove', onMove)
-                window.removeEventListener('pointerup', onUp)
-                window.removeEventListener('pointercancel', onUp)
-                move.preventDefault()
-                beginDrag(row, pointerId, move.clientX, move.clientY, id)
-              }
-              const onUp = (up: PointerEvent): void => {
-                if (up.pointerId !== pointerId) return
-                window.removeEventListener('pointermove', onMove)
-                window.removeEventListener('pointerup', onUp)
-                window.removeEventListener('pointercancel', onUp)
-              }
-              window.addEventListener('pointermove', onMove, { passive: false })
-              window.addEventListener('pointerup', onUp)
-              window.addEventListener('pointercancel', onUp)
+              if (target instanceof Element && target.closest('a, input, select, textarea, label, button:not([data-sortable-handle])') !== null) return
+              startDrag(event, id)
             }}
           >
             <button
@@ -347,6 +313,7 @@ export function SortableList<T>({
               aria-label={dragLabel(item, index)}
               aria-grabbed={dragging}
               title={dragLabel(item, index)}
+              disabled={disabled}
               onDragStart={(event) => { event.preventDefault() }}
               onPointerDown={(event) => { startDrag(event, id) }}
             >

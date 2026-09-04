@@ -146,7 +146,7 @@ function installSectionTransaction(
         const snapshot = orderScope.getSnapshot()
         return {
           keys: snapshot.value?.order ?? [],
-          disabled: snapshot.mode === 'memory' ? false : snapshot.status !== 'ready' || !snapshot.writable,
+          disabled: snapshot.status !== 'ready' || !snapshot.writable,
         }
       },
       keys => { void orderScope.set('order', keys) },

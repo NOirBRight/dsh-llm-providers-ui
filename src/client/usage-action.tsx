@@ -25,6 +25,7 @@ interface ProviderUsageActionFace {
   usage: ProviderUsageStore
   toggleVisibility: (providerKey: string, visible: boolean) => void
   showAll: () => void
+  reorder: (keys: readonly string[]) => void
 }
 
 type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & ProviderUsageActionFace
@@ -53,6 +54,7 @@ function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
       onRefresh={key => { key === undefined ? props.usage.refresh() : props.usage.refresh([key]) }}
       onToggleVisibility={props.toggleVisibility}
       onShowAll={props.showAll}
+      onReorder={keys => { props.reorder(keys) }}
     />
   )
 }
@@ -82,18 +84,22 @@ export function installProviderUsage(
     const settings = orderScope.getSnapshot()
     const keys = providerKeys(ctx)
     const order = settings.value?.order ?? []
+    const usageOrder = settings.value?.usageOrder ?? []
     const hidden = settings.value?.hiddenUsageProviders ?? []
-    const config = JSON.stringify([keys, order, hidden])
+    const config = JSON.stringify([keys, order, usageOrder, hidden])
     if (config === lastConfig) return
     lastConfig = config
-    usage.configure({ registeredKeys: keys, savedOrder: order, hiddenKeys: hidden })
+    usage.configure({ registeredKeys: keys, savedOrder: usageOrder.length > 0 ? usageOrder : order, hiddenKeys: hidden })
   }
-  const writeHidden = (hidden: readonly string[]): void => {
+  const writeList = (field: 'hiddenUsageProviders' | 'usageOrder', value: readonly string[]): void => {
     const settings = orderScope.getSnapshot()
     if (settings.status !== 'ready' || !settings.writable) return
-    void orderScope.set('hiddenUsageProviders', [...new Set(hidden)]).catch(error => {
-      console.warn('[dsh-llm-providers-ui] failed to save Provider Usage visibility', error)
+    void orderScope.set(field, [...value]).catch(error => {
+      console.warn('[dsh-llm-providers-ui] failed to save Provider Usage ' + field, error)
     })
+  }
+  const writeHidden = (hidden: readonly string[]): void => {
+    writeList('hiddenUsageProviders', [...new Set(hidden)])
   }
   const toggleVisibility = (providerKey: string, visible: boolean): void => {
     const hidden = new Set(orderScope.getSnapshot().value?.hiddenUsageProviders ?? [])
@@ -102,12 +108,13 @@ export function installProviderUsage(
     writeHidden([...hidden])
   }
   const showAll = (): void => { writeHidden([]) }
+  const reorder = (keys: readonly string[]): void => { writeList('usageOrder', keys) }
   reconcile()
   const action = ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'llm-providers-usage',
     order: 0,
-    inject: (): ProviderUsageActionFace => ({ usage, toggleVisibility, showAll }),
+    inject: (): ProviderUsageActionFace => ({ usage, toggleVisibility, showAll, reorder }),
   }, ProviderUsageAction))
   const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, reconcile)
   const stopSettings = orderScope.subscribe(reconcile)
