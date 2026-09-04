@@ -34,6 +34,8 @@ export interface ProviderUsageReader {
     name: string;
     read(rpc: ClientConnectionRpc, refresh: boolean, signal: AbortSignal): Promise<ProviderUsageRead>;
 }
+/** Headline window: longest percentage period, else the first text-only window. */
+export declare function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined;
 export declare const PROVIDER_USAGE_READERS: readonly ProviderUsageReader[];
 export interface ProviderUsageStoreSnapshot {
     providers: readonly ProviderUsageSummary[];

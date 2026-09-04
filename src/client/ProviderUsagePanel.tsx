@@ -4,25 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { ProviderMark } from './provider-marks.js'
-import type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
+import { pickPrimaryWindow, type ProviderUsageStatus, type ProviderUsageSummary, type UsageWindowSummary } from './usage.js'
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
-
-const PERIOD_RANK: Readonly<Record<string, number>> = { M: 6, W: 5, D: 4, CURS: 3, S: 1, A: 0, L: 0, CR: -1 }
-
-function periodRank(shortLabel: string): number {
-  const normalized = shortLabel.toUpperCase()
-  return PERIOD_RANK[normalized] ?? (/^\d+H$/.test(normalized) ? 2 : 0)
-}
-
-/** Headline window: longest percentage period, else the first text-only window. */
-function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined {
-  let best: UsageWindowSummary | undefined
-  for (const quotaWindow of windows) {
-    if (quotaWindow.remainingPercent === undefined) continue
-    if (best === undefined || periodRank(quotaWindow.shortLabel) > periodRank(best.shortLabel)) best = quotaWindow
-  }
-  return best ?? windows[0]
-}
 
 function windowValueText(quotaWindow: UsageWindowSummary): string {
   return quotaWindow.remainingPercent === undefined ? quotaWindow.valueText : String(Math.round(quotaWindow.remainingPercent)) + '%'
@@ -81,14 +64,15 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-stage{width:100%;min-width:0;height:132px;overflow:hidden;padding:1px;margin:-1px}',
   '[data-provider-usage-panel] .pu-stage-open{height:auto;overflow:visible}',
   '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
-  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;position:relative;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 22px 5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer}',
+  '[data-provider-usage-panel] .pu-cell{position:relative;min-width:0}',
+  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 22px 5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-active{border-color:var(--dsw-alias-state-business-primary);box-shadow:0 0 0 1px var(--dsw-alias-state-business-primary)}',
   '[data-provider-usage-panel] .pu-mark{display:grid;place-items:center;flex:none;width:18px;height:18px;overflow:hidden}',
   '[data-provider-usage-panel] .pu-logo{display:block;width:18px;height:18px;color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-copy{display:flex;flex-direction:column;gap:0;min-width:0}',
   '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:14px;height:14px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
-  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:10px;font-weight:620;line-height:12px}',
+  '[data-provider-usage-panel] .pu-name{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--dsw-alias-label-primary);font-size:10px;font-weight:620;line-height:12px;white-space:normal}',
   '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
   '[data-provider-usage-panel] .pu-primary{color:inherit;font-size:12px;font-weight:730;line-height:14px;font-variant-numeric:tabular-nums}',
   '[data-provider-usage-panel] .pu-low .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-low{color:#d94848}',
@@ -151,32 +135,33 @@ function RefreshIcon(): ReactNode {
   return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>
 }
 
-function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean, selected: boolean, onSelect: () => void, onRefresh: () => void }): ReactNode {
+function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean, onSelect: () => void, onRefresh: () => void }): ReactNode {
   const summary = props.summary
   const hasData = summary.status === 'ready' || summary.status === 'stale'
   const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
   const headline = headlineOf(summary)
   const tone = usageTone(primary?.remainingPercent)
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className={'pu-row' + (tone === undefined ? '' : ' pu-' + tone) + (props.active ? ' pu-active' : '')}
-      aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
-      aria-expanded={props.selected}
-      onClick={props.onSelect}
-      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); props.onSelect() } }}
-    >
-      <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
-      <span className="pu-copy">
-        <span className="pu-name">{summary.name}{summary.status === 'stale' ? ' · 已过期' : ''}</span>
-        <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
-      </span>
+    <div className="pu-cell">
+      <div
+        role="button"
+        tabIndex={0}
+        className={'pu-row' + (tone === undefined ? '' : ' pu-' + tone) + (props.active ? ' pu-active' : '')}
+        aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
+        onClick={props.onSelect}
+        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); props.onSelect() } }}
+      >
+        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
+        <span className="pu-copy">
+          <span className="pu-name">{summary.name}{summary.status === 'stale' ? ' · 已过期' : ''}</span>
+          <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
+        </span>
+      </div>
       <button
         type="button"
         className={'pu-icon-btn pu-row-refresh' + (summary.refreshing === true ? ' pu-spinning' : '')}
         aria-label={'刷新 ' + summary.name}
-        onClick={event => { event.stopPropagation(); props.onRefresh() }}
+        onClick={props.onRefresh}
       >
         {summary.refreshing === true ? <span className="pu-mini-spin" /> : <RefreshIcon />}
       </button>
@@ -270,7 +255,6 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             key={summary.providerKey}
             summary={summary}
             active={summary.providerKey === props.currentProviderKey}
-            selected={false}
             onSelect={() => { setFilterOpen(false); setDetailKey(summary.providerKey) }}
             onRefresh={() => { props.onRefresh(summary.providerKey) }}
           />

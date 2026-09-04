@@ -16,7 +16,7 @@
 
 - 面板位于 Sessions 列表和 Settings 之间。
 - 桌面侧边栏每行显示 2 个 Provider；6 个 Provider 共 3 行，不滚动。
-- 移动端每行显示 1 个 Provider。
+- 移动端同样每行 2 个 Provider。
 - Provider 超过当前可见容量时，只滚动 Provider Usage 面板，不影响 Settings 固定位置。
 - Sessions 区域保持原有数据、搜索和排序，仅因面板占位而缩短可视高度并内部滚动。
 - 当前会话正在使用的 Provider 使用轻量蓝色描边标识。
@@ -25,8 +25,8 @@
 
 每个单元固定两层信息：
 
-1. Provider 品牌 logo 和完整名称（可换行）。
-2. 周期最长窗口的剩余值；空数据为 —。次窗口只放 compact title。
+1. Provider 品牌 logo 和名称（最多两行）。
+2. 周期最长窗口的剩余整数百分比；空数据为 —。点卡片进入详情页看全部窗口、进度条和本地重置时间。右上角可单票刷新。
 
 示例：
 
@@ -58,7 +58,7 @@ S 90% · W 66%
 | Other | Oth |
 | 2h / 5h 等短标签 | 保持原样 |
 
-仅在存在重置时间时提供单窗口 Tooltip，格式为 `W · 53% · 9/7 00:00 UTC 重置`；不提供整卡聚合 Tooltip，不显示原始 ISO 时间。
+不使用原生 title Tooltip。详情页用系统本地时间显示重置时刻，不展示原始 ISO。
 
 ### 2.2 颜色
 
@@ -75,7 +75,7 @@ S 90% · W 66%
 - 显示已检测 Provider 的复选框。
 - 提供“显示全部”。
 - Provider 较多时提供搜索。
-- 标题显示 `已显示数 / 可查询数`。
+- 标题栏固定为 Provider Usage、筛选和刷新；不显示 6/6 计数。
 - 只影响侧边栏 Provider Usage，不影响设置页卡片、模型目录或模型选择器。
 - 默认显示所有可查询 Provider。
 - 新检测到的 Provider 默认显示，除非用户明确隐藏。
@@ -99,14 +99,14 @@ interface OrderConfig {
 - 两列等宽微格，PC 与移动端相同。
 - 单元高度约 40px。
 - 6 个 Provider 在 3 行内完整显示。
-- Provider Usage 内容区最大高度约 120px。
+- 列表内容区固定约 132px；详情页按窗口数撑开，一页显示完，不内部滚动。
 
 ### 刷新
 
 - 挂载时读一次可见 Provider。
 - 之后每 15 分钟轮询可见 Provider。
 - 5 分钟内的成功快照不因配置重入或轮询重复请求；工具栏刷新强制重读。
-- 快照只留在内存，不写额度数字。
+- 成功快照写入 localStorage/sessionStorage（secret-free 数字），刷新失败或 reload 时先显示上次成功值。
 - 设置页暂不接入；若接入则先读快照，超过 5 分钟再单票重读。
 
 ### 移动端
@@ -184,7 +184,7 @@ interface ProviderUsageSummary {
 
 - 面板挂载时读取所有“可见且已检测”的 Provider。
 - 点击刷新按钮重新读取所有可见 Provider。
-- 第一版不轮询。
+- 可见 Provider 每 15 分钟轮询；5 分钟内的成功快照不因配置重入重复请求。
 - 每个 Provider 独立失败，一个失败不能清空或阻止其他 Provider。
 - 有旧数据时读取失败进入 `stale`，保留旧值并标记过期。
 - 无旧数据时分别展示未登录、不支持或失败状态。
@@ -200,13 +200,13 @@ interface ProviderUsageSummary {
 - 自动切换 Provider 或模型。
 - 基于额度的推荐、排序或综合健康分数。
 - TTFT、Tokens/s、错误率等实时负载。
-- 历史曲线或数据库持久化。
+- 历史曲线或数据库持久化（侧栏 last-good 快照除外）。
 - 对现有 StatsLine、composer 或 model picker 的修改。
 - 修改各 Provider 插件的设置卡片。
 
 ## 8. 可访问性
 
-- Provider 指标卡使用带 accessible name 的 `role="group"`；名称包含 Provider 和主额度值。无操作的指标卡不伪装成 button。
+- Provider 指标卡是可点的 `role="button"`，accessible name 包含 Provider 和主额度值。单票刷新是卡内独立 button。
 - 筛选按钮、刷新按钮和复选框有明确的 accessible name。
 - Tooltip 不是唯一信息来源；窗口短标签和值在正文中可见。
 - 颜色不作为唯一状态提示。
@@ -215,7 +215,7 @@ interface ProviderUsageSummary {
 ## 9. 验收标准
 
 1. 276px 桌面侧边栏中，6 个 Provider 以两列微格显示且无需滚动。
-2. Provider 名称完整显示，卡片带统一尺寸品牌 logo。
+2. Provider 名称最多两行显示，卡片带统一尺寸品牌 logo 和右上角刷新。
 3. 点击卡片打开额度详情卡；重置时间为本地时区。移动端同样可点。
 4. 12 和 20 Provider 场景使用面板内部滚动，不分页，Settings 保持固定。
 5. 用户可搜索、全选和单独隐藏 Provider；刷新后选择仍保留。
@@ -223,7 +223,7 @@ interface ProviderUsageSummary {
 7. 一个 Provider 请求失败不影响其他 Provider。
 8. 侧边栏折叠时不显示额度面板，重新展开后恢复。
 9. 无任何 Provider 可显示时给出空状态和打开筛选的入口。
-10. DSH 核心和现有 Provider 插件无需修改。
+10. DSH 核心无需修改。Codex `auth/status` 须等用量刷新完成后再返回（`dsh-llm-codex`）。
 
 ## 10. 验证场景
 

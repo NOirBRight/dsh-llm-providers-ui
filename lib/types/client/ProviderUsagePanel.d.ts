@@ -1,6 +1,6 @@
 /** Sidebar Provider Usage panel, prototype B (two-column minis). Controlled and UI-only: no RPC, no persistence. */
 import type { ReactNode } from 'react';
-import type { ProviderUsageSummary } from './usage.js';
+import { type ProviderUsageSummary } from './usage.js';
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js';
 /** Controlled props: normalized summaries in display order plus visibility callbacks. */
 export interface ProviderUsagePanelProps {

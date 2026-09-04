@@ -94,6 +94,23 @@ function shortLabel(value: string): string {
   return SHORT_LABELS.find(([pattern]) => pattern.test(normalized))?.[1] ?? value.slice(0, 4)
 }
 
+const PERIOD_RANK: Readonly<Record<string, number>> = { M: 6, W: 5, D: 4, CURS: 3, S: 1, A: 0, L: 0, CR: -1 }
+
+function periodRank(shortLabelValue: string): number {
+  const normalized = shortLabelValue.toUpperCase()
+  return PERIOD_RANK[normalized] ?? (/^\d+H$/.test(normalized) ? 2 : 0)
+}
+
+/** Headline window: longest percentage period, else the first text-only window. */
+export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined {
+  let best: UsageWindowSummary | undefined
+  for (const quotaWindow of windows) {
+    if (quotaWindow.remainingPercent === undefined) continue
+    if (best === undefined || periodRank(quotaWindow.shortLabel) > periodRank(best.shortLabel)) best = quotaWindow
+  }
+  return best ?? windows[0]
+}
+
 function windowLabel(id: string, period: unknown): string {
   return nonEmptyString(period) ? period : id
 }
@@ -423,7 +440,7 @@ function writeUsageCache(current: Map<string, ProviderUsageSummary>): void {
 
 function keepUsage(old: ProviderUsageSummary | undefined, next: ProviderUsageSummary): ProviderUsageSummary {
   if (next.status === 'logged-out') return next
-  if (!hasUsageData(next) && hasUsageData(old)) return { ...old, status: 'ready' }
+  if (!hasUsageData(next) && hasUsageData(old)) return { ...old, status: 'stale' }
   return next
 }
 
@@ -483,7 +500,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
     const failOpen = (): void => {
       if (disposed || active.get(key) !== controller) return
       const old = current.get(key)
-      current.set(key, hasUsageData(old) ? { ...old, status: 'stale' } : { providerKey: key, name: reader.name, status: 'error', windows: [] })
+      current.set(key, keepUsage(old, { providerKey: key, name: reader.name, status: 'error', windows: [] }))
       active.delete(key)
       publish()
       pump()

@@ -264,8 +264,9 @@ describe('Provider Usage readers', () => {
     expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
     store.refresh()
     await flush()
-    expect(store.getSnapshot().providers[0]?.status).not.toBe('unsupported')
+    await flush()
     expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
+    expect(store.getSnapshot().providers[0]?.status).toBe('stale')
     store.dispose()
   })
 
