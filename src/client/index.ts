@@ -31,6 +31,21 @@ export const Config: z<Config> = z.object({})
 
 type Disposer = () => void
 
+/** Snapshot fields this page reads to decide whether to mount. */
+interface PageSnapshot {
+  status: string
+  mode?: string
+}
+
+/**
+ * Whether the Providers settings page should be visible.
+ * `ready` is the loopback Host document. Remote Web uses process-local
+ * (`memory`) settings and reports `unavailable` even when the Host owner is loaded.
+ */
+function pageVisible(snapshot: PageSnapshot): boolean {
+  return snapshot.status === 'ready' || snapshot.mode === 'memory'
+}
+
 /**
  * Warn once while the Host owner has not published the settings namespace.
  * @param orderScope - client scope bound to the Host-owned namespace.
@@ -39,8 +54,9 @@ type Disposer = () => void
 function installMissingOwnerDiagnostic(orderScope: SettingsScope<ProviderOrderSettings>): Disposer {
   let warned = false
   const check = (): void => {
-    const status = orderScope.getSnapshot().status
-    if (warned || status === 'ready' || status === 'loading') return
+    const snapshot = orderScope.getSnapshot()
+    if (warned || pageVisible(snapshot)) return
+    if (snapshot.status === 'loading') return
     warned = true
     console.warn('[dsh-llm-providers-ui] llm-providers settings owner is unavailable; omitting the Providers page until the Host owner is loaded.')
   }
@@ -67,7 +83,7 @@ function installMissingSectionDiagnostic(
   let warned = false
   const check = (): void => {
     if (warned
-      || orderScope.getSnapshot().status !== 'ready'
+      || !pageVisible(orderScope.getSnapshot())
       || ctx.slots.spec('settings.section') !== undefined) return
     warned = true
     console.warn('[dsh-llm-providers-ui] settings.section is missing; the Providers page cannot mount until the Web settings shell declares it.')
@@ -85,7 +101,7 @@ function installMissingSectionDiagnostic(
 }
 
 /**
- * Mount the page transaction only while the Host-owned settings scope is ready.
+ * Mount the page while Host settings are ready, or while remote Web uses process-local memory settings.
  * @param ctx - Web Cordis context with official slot and settings services.
  * @param orderScope - client scope used to gate the page transaction.
  * @param t - locale lookup for the page label.
@@ -107,7 +123,7 @@ function installSectionTransaction(
     disposeReverse([section, nav], 'dsh-llm-providers-ui: page unmount failed')
   }
   const mount = (): void => {
-    if (stopSection !== undefined || orderScope.getSnapshot().status !== 'ready') return
+    if (stopSection !== undefined || !pageVisible(orderScope.getSnapshot())) return
     const section = ctx.slots.inject('settings.section', () => ctx.slots.register({
       name: 'settings.section',
       id: PROVIDERS_SECTION_ID,
@@ -135,16 +151,15 @@ function installSectionTransaction(
       },
       keys => { void orderScope.set('order', keys) },
     )))
+    stopSection = section
     try {
-      const nav = installProvidersNavIcon()
-      stopSection = section
-      stopNav = nav
+      stopNav = installProvidersNavIcon()
     } catch (error) {
-      disposeAfterSetup(error, [section], 'dsh-llm-providers-ui: page setup rollback failed')
+      console.warn('[dsh-llm-providers-ui] navigation icon failed; keeping the Providers settings page', error)
     }
   }
   const reconcile = (): void => {
-    if (orderScope.getSnapshot().status === 'ready') mount()
+    if (pageVisible(orderScope.getSnapshot())) mount()
     else unmount()
   }
   let stopScope: Disposer | undefined
@@ -180,7 +195,11 @@ export function apply(ctx: ClientContext, _config: Config = {}): void {
       disposers.push(installMissingOwnerDiagnostic(orderScope))
       disposers.push(installMissingSectionDiagnostic(ctx, orderScope))
       disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav')))
-      disposers.push(installProviderUsage(ctx, orderScope))
+      try {
+        disposers.push(installProviderUsage(ctx, orderScope))
+      } catch (error) {
+        console.warn('[dsh-llm-providers-ui] Provider Usage widget failed; keeping the Providers settings page', error)
+      }
     } catch (error) {
       disposeAfterSetup(error, disposers, 'dsh-llm-providers-ui: setup failed and cleanup failed')
     }
