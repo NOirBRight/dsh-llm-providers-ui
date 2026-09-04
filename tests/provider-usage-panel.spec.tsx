@@ -188,9 +188,9 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.textContent).toContain('$8.42')
   })
 
-  it('highlights only the current provider', () => {
+  it('does not highlight the current provider', () => {
     const container = mount({ currentProviderKey: 'codex' })
-    expect(container.querySelectorAll('.pu-active').length).toBe(1)
+    expect(container.querySelectorAll('.pu-active').length).toBe(0)
     expect(staticHtml({ currentProviderKey: 'codex' })).toContain('aria-label="Codex 38%"')
   })
 

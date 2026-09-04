@@ -56,10 +56,11 @@ const handleStyle: CSSProperties = {
   flex: 'none',
   touchAction: 'none',
   userSelect: 'none',
-  background: 'transparent',
+  background: 'color-mix(in srgb, var(--dsw-alias-label-primary) 5%, transparent)',
   color: 'var(--dsw-alias-label-tertiary)',
   position: 'relative',
-  zIndex: 2,
+  zIndex: 5,
+  pointerEvents: 'auto',
 }
 const cardRowStyle: CSSProperties = {
   ...rowStyle,
@@ -301,8 +302,10 @@ export function SortableList<T>({
                 : 'none',
             }}
             onPointerDown={(event) => {
-              const target = event.target
-              if (target instanceof Element && target.closest('a, input, select, textarea, label, button:not([data-sortable-handle])') !== null) return
+              const row = event.currentTarget
+              const fromHandle = event.clientX - row.getBoundingClientRect().left <= 44
+                || (event.target instanceof Element && event.target.closest('[data-sortable-handle]') !== null)
+              if (!fromHandle && event.target instanceof Element && event.target.closest('a, input, select, textarea, label, button') !== null) return
               startDrag(event, id)
             }}
           >

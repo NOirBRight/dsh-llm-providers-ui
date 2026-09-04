@@ -19,7 +19,7 @@
 - 移动端同样每行 2 个 Provider。
 - Provider 超过当前可见容量时，只滚动 Provider Usage 面板，不影响 Settings 固定位置。
 - Sessions 区域保持原有数据、搜索和排序，仅因面板占位而缩短可视高度并内部滚动。
-- 当前会话正在使用的 Provider 使用轻量蓝色描边标识。
+- 当前会话正在使用的 Provider 不高亮，避免侧栏喧宾夺主。
 
 ### 2.1 Provider 单元
 
