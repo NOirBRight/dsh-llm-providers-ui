@@ -149,7 +149,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
         { id: 'five-hour', label: '5h', shortLabel: '5h', remainingPercent: 0, valueText: '0%' },
       ],
     }]
-    expect(staticHtml({ providers })).toContain('aria-label="Cursor 62.7%"')
+    expect(staticHtml({ providers })).toContain('aria-label="Cursor 63%"')
   })
 
   it('puts compact window details on the card title instead of nested ISO tooltips', () => {

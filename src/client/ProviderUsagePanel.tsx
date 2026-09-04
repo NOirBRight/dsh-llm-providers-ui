@@ -25,14 +25,14 @@ function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowS
 }
 
 function windowValueText(quotaWindow: UsageWindowSummary): string {
-  return quotaWindow.remainingPercent === undefined ? quotaWindow.valueText : String(quotaWindow.remainingPercent) + '%'
+  return quotaWindow.remainingPercent === undefined ? quotaWindow.valueText : String(Math.round(quotaWindow.remainingPercent)) + '%'
 }
 
 type UsageTone = 'low' | 'warn'
 
 function usageTone(remainingPercent: number | undefined): UsageTone | undefined {
-  if (remainingPercent !== undefined && remainingPercent <= 15) return 'low'
-  if (remainingPercent !== undefined && remainingPercent <= 35) return 'warn'
+  if (remainingPercent !== undefined && remainingPercent <= 20) return 'low'
+  if (remainingPercent !== undefined && remainingPercent <= 40) return 'warn'
   return undefined
 }
 

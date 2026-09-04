@@ -67,7 +67,7 @@ function displayNumber(value: number): string {
 }
 
 function percentage(value: number): number {
-  return Math.round(Math.max(0, Math.min(100, value)) * 10) / 10
+  return Math.round(Math.max(0, Math.min(100, value)))
 }
 
 function percentageText(value: number): string {
