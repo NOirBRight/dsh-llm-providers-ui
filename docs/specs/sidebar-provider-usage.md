@@ -147,7 +147,7 @@ interface ProviderUsageSummary {
 
 主窗口的选择规则：
 
-1. 在有 `remainingPercent` 的窗口中选择周期最长者：Month > Week > Day > Provider 专属订阅周期 > 小时窗口 > Session > Agent/Local。
+1. 在有 `remainingPercent` 的窗口中选择周期最长者：Month > Week > Day > 已知 Cursor 总周期（`Curs`）> `Nh` 小时窗口 > Session > Agent/Local。
 2. 没有百分比但有 Credits/Unlimited 文本时，显示该文本，不推导百分比。
 3. 不跨 Provider 比较不同单位，不生成综合排名或推荐。
 
@@ -197,7 +197,7 @@ interface ProviderUsageSummary {
 
 ## 8. 可访问性
 
-- Provider 单元使用可聚焦的 button；名称包含 Provider 和主额度值。
+- Provider 指标卡使用带 accessible name 的 `role="group"`；名称包含 Provider 和主额度值。无操作的指标卡不伪装成 button。
 - 筛选按钮、刷新按钮和复选框有明确的 accessible name。
 - Tooltip 不是唯一信息来源；窗口短标签和值在正文中可见。
 - 颜色不作为唯一状态提示。

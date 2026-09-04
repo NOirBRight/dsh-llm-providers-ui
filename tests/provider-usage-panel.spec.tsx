@@ -125,7 +125,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelector('.pu-scroll')).not.toBeNull()
     const html = staticHtml({ providers })
     expect(html).toContain('max-height:280px;overflow:auto')
-    expect(html).toContain('@media (max-width:640px)')
+    expect(html).toContain('@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:1fr}')
   })
 
   it('uses the longest-period quota as the headline and still shows every window', () => {
