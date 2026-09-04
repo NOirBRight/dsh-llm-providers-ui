@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 
 function Svg(props: { viewBox: string, children: ReactNode }): ReactNode {
   return (
-    <svg className="pu-logo" viewBox={props.viewBox} aria-hidden>
+    <svg className="pu-logo" viewBox={props.viewBox} preserveAspectRatio="xMidYMid meet" aria-hidden>
       {props.children}
     </svg>
   )

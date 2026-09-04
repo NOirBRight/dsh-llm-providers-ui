@@ -96,9 +96,9 @@ interface OrderConfig {
 ### 桌面
 
 - 目标侧边栏宽度：约 276px。
-- 三列等宽微格。
-- 单元高度约 44px。
-- 6 个 Provider 在 2 行内完整显示。
+- 两列等宽微格，PC 与移动端相同。
+- 单元高度约 40px。
+- 6 个 Provider 在 3 行内完整显示。
 - Provider Usage 内容区最大高度约 120px。
 
 ### 刷新
@@ -214,9 +214,9 @@ interface ProviderUsageSummary {
 
 ## 9. 验收标准
 
-1. 276px 桌面侧边栏中，6 个 Provider 以三列微格显示且无需滚动。
-2. Provider 名称可换行完整显示，卡片带品牌 logo。
-3. 不超过 640px 的移动视口中，每行显示两个 Provider。
+1. 276px 桌面侧边栏中，6 个 Provider 以两列微格显示且无需滚动。
+2. Provider 名称完整显示，卡片带统一尺寸品牌 logo。
+3. 点击卡片打开额度详情卡；重置时间为本地时区。移动端同样可点。
 4. 12 和 20 Provider 场景使用面板内部滚动，不分页，Settings 保持固定。
 5. 用户可搜索、全选和单独隐藏 Provider；刷新后选择仍保留。
 6. 新检测 Provider 默认显示；隐藏设置不改变模型列表。

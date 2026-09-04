@@ -1,4 +1,4 @@
-/** Sidebar Provider Usage panel, prototype B (three-column minis). Controlled and UI-only: no RPC, no persistence. */
+/** Sidebar Provider Usage panel, prototype B (two-column minis). Controlled and UI-only: no RPC, no persistence. */
 
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -77,20 +77,30 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
   '[data-provider-usage-panel] .pu-scroll{padding:1px;margin:-1px}',
-  '[data-provider-usage-panel] .pu-scroll-more{max-height:132px;overflow:auto;scrollbar-width:thin}',
-  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}',
-  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:6px;min-width:0;min-height:40px;padding:5px 6px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit}',
+  '[data-provider-usage-panel] .pu-scroll-more{max-height:168px;overflow:auto;scrollbar-width:thin}',
+  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
+  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-active{border-color:var(--dsw-alias-state-business-primary);box-shadow:0 0 0 1px var(--dsw-alias-state-business-primary)}',
-  '[data-provider-usage-panel] .pu-logo{display:block;flex:none;width:14px;height:14px;color:var(--dsw-alias-label-primary)}',
+  '[data-provider-usage-panel] .pu-mark{display:grid;place-items:center;flex:none;width:18px;height:18px;overflow:hidden}',
+  '[data-provider-usage-panel] .pu-logo{display:block;width:18px;height:18px;color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-copy{display:flex;flex-direction:column;gap:0;min-width:0}',
   '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:14px;height:14px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
   '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:10px;font-weight:620;line-height:12px}',
   '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
   '[data-provider-usage-panel] .pu-primary{color:inherit;font-size:12px;font-weight:730;line-height:14px;font-variant-numeric:tabular-nums}',
-  '[data-provider-usage-panel] .pu-low .pu-primary{color:#d94848}',
-  '[data-provider-usage-panel] .pu-warn .pu-primary{color:#c47b08}',
+  '[data-provider-usage-panel] .pu-low .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-low{color:#d94848}',
+  '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:#c47b08}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
+  '[data-provider-usage-panel] .pu-tip{position:absolute;z-index:15;right:6px;bottom:8px;left:6px;padding:10px 12px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-shadow-lv2,0 10px 28px rgba(0,0,0,.16))}',
+  '[data-provider-usage-panel] .pu-tip-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}',
+  '[data-provider-usage-panel] .pu-tip-name{font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary)}',
+  '[data-provider-usage-panel] .pu-tip-sub{color:var(--dsw-alias-label-tertiary);font-size:11px}',
+  '[data-provider-usage-panel] .pu-tip-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px;min-height:22px;font-size:12px}',
+  '[data-provider-usage-panel] .pu-tip-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary)}',
+  '[data-provider-usage-panel] .pu-tip-value{font-variant-numeric:tabular-nums;font-weight:700;color:var(--dsw-alias-label-primary)}',
+  '[data-provider-usage-panel] .pu-tip-reset{grid-column:1/-1;margin:-2px 0 6px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
+  '[data-provider-usage-panel] .pu-tip-empty{color:var(--dsw-alias-label-secondary);font-size:12px}',
   '[data-provider-usage-panel] .pu-empty{padding:22px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px;line-height:18px}',
   '[data-provider-usage-panel] .pu-empty-btn{margin-top:8px;padding:4px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-state-business-primary);font-size:11px;cursor:pointer}',
   '[data-provider-usage-panel] .pu-popover{position:absolute;z-index:20;right:4px;bottom:44px;left:4px;max-height:min(520px,calc(100vh - 100px));overflow:hidden;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-shadow-lv2,0 10px 30px rgba(0,0,0,0.18))}',
@@ -107,64 +117,95 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-filter-all:disabled{cursor:default;opacity:.55}',
   '[data-provider-usage-panel] .pu-filter-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
   '[data-provider-usage-panel] .pu-no-match{padding:16px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px}',
-  '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(2,minmax(0,1fr))}[data-provider-usage-panel] .pu-scroll-more{max-height:140px}[data-provider-usage-panel] .pu-name{font-size:11px;line-height:13px}}',
+  '@media (max-width:640px){[data-provider-usage-panel] .pu-name{font-size:11px;line-height:13px}[data-provider-usage-panel] .pu-tip{bottom:6px}}',
 ].join('\n')
 
-function compactUtcTimestamp(value: string | undefined): string | undefined {
+function localReset(value: string | undefined): string | undefined {
   if (value === undefined) return undefined
   const date = new Date(value)
   if (Number.isNaN(date.valueOf())) return undefined
-  const pad = (part: number): string => String(part).padStart(2, '0')
-  return String(date.getUTCMonth() + 1) + '/' + String(date.getUTCDate())
-    + ' ' + pad(date.getUTCHours()) + ':' + pad(date.getUTCMinutes()) + ' UTC'
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-function cardTitle(windows: readonly UsageWindowSummary[]): string | undefined {
-  if (windows.length === 0) return undefined
-  return windows.map(quotaWindow => {
-    const reset = compactUtcTimestamp(quotaWindow.resetsAt)
-    return quotaWindow.shortLabel + ' · ' + windowValueText(quotaWindow) + (reset === undefined ? '' : ' · ' + reset + ' 重置')
-  }).join(' · ')
+function headlineOf(summary: ProviderUsageSummary): string {
+  const hasData = summary.status === 'ready' || summary.status === 'stale'
+  const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
+  if (primary === undefined) return summary.status === 'ready' ? '—' : STATUS_TEXT[summary.status]
+  return windowValueText(primary)
 }
 
-/** One compact three-column mini. Empty quota renders an em dash. */
-function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean }): ReactNode {
+/** One compact two-column mini. Tap/click opens the detail card. */
+function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean, selected: boolean, onSelect: () => void }): ReactNode {
   const summary = props.summary
   const hasData = summary.status === 'ready' || summary.status === 'stale'
   const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
-  const headline = primary === undefined
-    ? (summary.status === 'ready' ? '—' : STATUS_TEXT[summary.status])
-    : windowValueText(primary)
+  const headline = headlineOf(summary)
   const tone = usageTone(primary?.remainingPercent)
-  const title = cardTitle(summary.windows)
   return (
-    <div
-      role="group"
+    <button
+      type="button"
       className={'pu-row' + (tone === undefined ? '' : ' pu-' + tone) + (props.active ? ' pu-active' : '')}
       aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
-      {...title === undefined ? {} : { title }}
+      aria-expanded={props.selected}
+      onClick={props.onSelect}
     >
-      <ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} />
+      <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
       <span className="pu-copy">
         <span className="pu-name">{summary.name}{summary.status === 'stale' ? ' · 已过期' : ''}</span>
         <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
       </span>
+    </button>
+  )
+}
+
+function UsageTip(props: { summary: ProviderUsageSummary }): ReactNode {
+  const summary = props.summary
+  return (
+    <div className="pu-tip" role="dialog" aria-label={summary.name + ' 额度详情'}>
+      <div className="pu-tip-head">
+        <span className="pu-tip-name">{summary.name}</span>
+        <span className="pu-tip-sub">剩余额度</span>
+      </div>
+      {summary.windows.length === 0
+        ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
+        : summary.windows.map(quotaWindow => {
+          const reset = localReset(quotaWindow.resetsAt)
+          const tone = usageTone(quotaWindow.remainingPercent)
+          return (
+            <div key={quotaWindow.id}>
+              <div className="pu-tip-row">
+                <span className="pu-tip-label">{quotaWindow.label}</span>
+                <span className={'pu-tip-value' + (tone === undefined ? '' : ' pu-' + tone)}>{windowValueText(quotaWindow)}</span>
+              </div>
+              {reset === undefined ? null : <div className="pu-tip-reset">重置 {reset}</div>}
+            </div>
+          )
+        })}
     </div>
   )
 }
 
-/** Controlled sidebar Provider Usage panel (desktop and mobile: three-column minis). */
+/** Controlled sidebar Provider Usage panel (two-column minis, tap for details). */
 export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
   const hidden = new Set(props.hiddenKeys ?? [])
   const visible = props.providers.filter(summary => !hidden.has(summary.providerKey))
   const [filterOpen, setFilterOpen] = useState(false)
+  const [detailKey, setDetailKey] = useState<string | undefined>()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement | null>(null)
+  const detail = visible.find(summary => summary.providerKey === detailKey)
 
   useEffect(() => {
     if (filterOpen) searchRef.current?.focus()
     else setQuery('')
   }, [filterOpen])
+
+  useEffect(() => {
+    if (detailKey === undefined) return
+    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') setDetailKey(undefined) }
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('keydown', onKey) }
+  }, [detailKey])
 
   const normalizedQuery = query.trim().toLowerCase()
   const matches = normalizedQuery === ''
@@ -185,7 +226,13 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
     body = (
       <div className="pu-rows">
         {visible.map(summary => (
-          <ProviderRow key={summary.providerKey} summary={summary} active={summary.providerKey === props.currentProviderKey} />
+          <ProviderRow
+            key={summary.providerKey}
+            summary={summary}
+            active={summary.providerKey === props.currentProviderKey}
+            selected={summary.providerKey === detailKey}
+            onSelect={() => { setFilterOpen(false); setDetailKey(current => current === summary.providerKey ? undefined : summary.providerKey) }}
+          />
         ))}
       </div>
     )
@@ -206,7 +253,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             aria-label="选择侧栏显示的 Provider"
             aria-expanded={filterOpen}
             title="选择显示的 Provider"
-            onClick={() => { setFilterOpen(open => !open) }}
+            onClick={() => { setDetailKey(undefined); setFilterOpen(open => !open) }}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h8M15 5h2M9 10h8M3 10h2M3 15h6M13 15h4" /><circle cx="13" cy="5" r="2" /><circle cx="7" cy="10" r="2" /><circle cx="11" cy="15" r="2" /></svg>
           </button>
@@ -222,13 +269,14 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
         </span>
       </div>
       <div className={'pu-scroll' + (visible.length > 6 ? ' pu-scroll-more' : '')}>{body}</div>
+      {detail === undefined ? null : <UsageTip summary={detail} />}
       {filterOpen
         ? (
           <section
             className="pu-popover"
             role="dialog"
             aria-label="侧栏显示"
-            onKeyDown={event => { if (event.key === 'Escape') setFilterOpen(false) }}
+            onKeyDown={event => { if (event.key === 'Escape') { setFilterOpen(false); setDetailKey(undefined) } }}
           >
             <div className="pu-popover-head">
               <div>
@@ -263,7 +311,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
                     checked={!hidden.has(summary.providerKey)}
                     onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
                   />
-                  <ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} />
+                  <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
                   <span className="pu-filter-name">{summary.name}</span>
                 </label>
               ))}

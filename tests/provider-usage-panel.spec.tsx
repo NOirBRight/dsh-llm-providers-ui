@@ -126,7 +126,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelector('.pu-scroll')).not.toBeNull()
     const html = staticHtml({ providers })
     expect(html).toContain('class="pu-scroll pu-scroll-more"')
-    expect(html).toContain('@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(2,minmax(0,1fr))}')
+    expect(html).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
   })
 
   it('uses the longest-period quota as the headline and still shows every window', () => {
@@ -136,7 +136,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).toContain('aria-label="OpenCode Go 93%"')
     expect(html).toContain('Ollama Cloud')
     expect(html).toContain('aria-label="Ollama Cloud 44%"')
-    expect(html).toContain('title="S · 90% · W · 66% · M · 44%"')
+    expect(html).not.toContain('title="S · 90% · W · 66% · M · 44%"')
   })
 
   it('prefers a provider-specific subscription cycle over a short hourly window', () => {
@@ -152,25 +152,29 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(staticHtml({ providers })).toContain('aria-label="Cursor 63%"')
   })
 
-  it('puts compact window details on the card title instead of nested ISO tooltips', () => {
+  it('opens a local-time detail card instead of a native title tooltip', () => {
     const container = mount()
-    expect(container.querySelector('[aria-label="Codex 38%"]')?.getAttribute('title')).toBe('5h · 72% · 9/5 00:00 UTC 重置 · W · 38%')
-    expect(container.querySelector('.pu-window')).toBeNull()
+    const row = container.querySelector('[aria-label="Codex 38%"]')
+    expect(row?.getAttribute('title')).toBeNull()
+    click(row)
+    expect(container.textContent).toContain('剩余额度')
+    expect(container.textContent).toContain('5h')
+    expect(container.textContent).not.toContain('UTC')
   })
 
-  it('renders a three-column mini grid without meters', () => {
+  it('renders a two-column mini grid without meters', () => {
     const html = staticHtml()
-    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px')
+    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px')
     expect(html).toContain('class="pu-logo"')
     expect(html).toContain('CommandCode')
     expect(html).not.toContain('pu-meter')
-    expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('DIV')
+    expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('BUTTON')
   })
 
   it('shows Credits text as-is instead of deriving a percent', () => {
-    const html = staticHtml()
-    expect(html).toContain('aria-label="CommandCode 70%"')
-    expect(html).toContain('title="Cr · $8.42 · M · 70%"')
+    const container = mount()
+    click(container.querySelector('[aria-label="CommandCode 70%"]'))
+    expect(container.textContent).toContain('$8.42')
   })
 
   it('highlights only the current provider', () => {
@@ -183,7 +187,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     const container = mount()
     expect(container.querySelectorAll('.pu-row.pu-low')).toHaveLength(0)
     expect(staticHtml()).toContain('aria-label="OpenCode Go 93%"')
-    expect(staticHtml()).toContain('title="S · 15% · W · 52% · M · 93%"')
+    expect(staticHtml()).not.toContain('title="S · 15% · W · 52% · M · 93%"')
   })
 })
 
