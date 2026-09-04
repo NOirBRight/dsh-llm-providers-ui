@@ -55,6 +55,7 @@ export interface ProviderUsageStore {
     refresh(keys?: readonly string[]): void;
     dispose(): void;
 }
+export declare function clearProviderUsageCache(): void;
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
 export declare function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsageStore;
 export {};

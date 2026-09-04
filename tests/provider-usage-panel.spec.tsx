@@ -165,6 +165,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.textContent).not.toContain('UTC')
     expect(container.querySelector('.pu-rows')).toBeNull()
     expect(container.querySelector('.pu-detail')).not.toBeNull()
+    expect(staticHtml()).toContain('[data-provider-usage-panel]{display:flex;flex-direction:column;position:relative;width:100%')
     expect(staticHtml()).toContain('.pu-detail{box-sizing:border-box;display:block;width:100%')
     click(container.querySelector('[aria-label="返回全部 Provider"]'))
     expect(container.querySelector('.pu-rows')).not.toBeNull()
@@ -177,7 +178,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).toContain('class="pu-logo"')
     expect(html).toContain('CommandCode')
     expect(html).not.toContain('pu-meter')
-    expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('BUTTON')
+    expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('DIV')
   })
 
   it('shows Credits text as-is instead of deriving a percent', () => {
@@ -249,6 +250,14 @@ describe('ProviderUsagePanel states', () => {
 })
 
 describe('ProviderUsagePanel callbacks', () => {
+  it('refreshes one provider from the card without opening detail', () => {
+    const onRefresh = vi.fn()
+    const container = mount({ onRefresh })
+    click(container.querySelector('[aria-label="刷新 Codex"]'))
+    expect(onRefresh).toHaveBeenCalledWith('codex')
+    expect(container.querySelector('.pu-detail')).toBeNull()
+  })
+
   it('calls onRefresh from the refresh button', () => {
     const onRefresh = vi.fn()
     const container = mount({ onRefresh })

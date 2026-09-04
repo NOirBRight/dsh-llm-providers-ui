@@ -50,7 +50,7 @@ export interface ProviderUsagePanelProps {
   currentProviderKey?: string
   /** Spins the refresh icon while a parent-driven refresh is in flight. */
   refreshing?: boolean
-  onRefresh: () => void
+  onRefresh: (providerKey?: string) => void
   onToggleVisibility: (providerKey: string, visible: boolean) => void
   onShowAll: () => void
 }
@@ -65,11 +65,13 @@ const STATUS_TEXT: Record<ProviderUsageStatus, string> = {
 }
 
 const panelCss = [
-  '[data-provider-usage-panel]{display:flex;flex-direction:column;position:relative;min-width:0;padding:6px 6px 8px;background:transparent}',
+  '[data-provider-usage-panel]{display:flex;flex-direction:column;position:relative;width:100%;min-width:0;padding:6px 6px 8px;background:transparent}',
   '[data-provider-usage-panel] .pu-head{display:flex;align-items:center;height:32px;padding:0 2px 7px}',
   '[data-provider-usage-panel] .pu-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:680;letter-spacing:.01em;color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-actions{display:flex;gap:2px;margin-left:auto}',
-  '[data-provider-usage-panel] .pu-mini-spin{display:inline-block;width:9px;height:9px;margin-left:5px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:middle;animation:pu-spin .55s linear infinite}',
+  '[data-provider-usage-panel] .pu-mini-spin{display:inline-block;width:9px;height:9px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:middle;animation:pu-spin .55s linear infinite}',
+  '[data-provider-usage-panel] .pu-row-refresh{position:absolute;top:3px;right:3px;width:18px;height:18px}',
+  '[data-provider-usage-panel] .pu-detail-head .pu-icon-btn:last-child{margin-left:auto}',
   '[data-provider-usage-panel] .pu-icon-btn{display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}',
   '[data-provider-usage-panel] .pu-icon-btn:hover{background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary)}',
   '[data-provider-usage-panel] .pu-icon-btn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}',
@@ -78,7 +80,7 @@ const panelCss = [
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
   '[data-provider-usage-panel] .pu-stage{width:100%;min-width:0;height:132px;overflow:hidden;padding:1px;margin:-1px}',
   '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
-  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer}',
+  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;position:relative;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 22px 5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-active{border-color:var(--dsw-alias-state-business-primary);box-shadow:0 0 0 1px var(--dsw-alias-state-business-primary)}',
   '[data-provider-usage-panel] .pu-mark{display:grid;place-items:center;flex:none;width:18px;height:18px;overflow:hidden}',
@@ -134,30 +136,44 @@ function headlineOf(summary: ProviderUsageSummary): string {
 }
 
 /** One compact two-column mini. Tap/click opens the detail card. */
-function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean, selected: boolean, onSelect: () => void }): ReactNode {
+function RefreshIcon(): ReactNode {
+  return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>
+}
+
+function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean, selected: boolean, onSelect: () => void, onRefresh: () => void }): ReactNode {
   const summary = props.summary
   const hasData = summary.status === 'ready' || summary.status === 'stale'
   const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
   const headline = headlineOf(summary)
   const tone = usageTone(primary?.remainingPercent)
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={'pu-row' + (tone === undefined ? '' : ' pu-' + tone) + (props.active ? ' pu-active' : '')}
       aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
       aria-expanded={props.selected}
       onClick={props.onSelect}
+      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); props.onSelect() } }}
     >
       <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
       <span className="pu-copy">
         <span className="pu-name">{summary.name}{summary.status === 'stale' ? ' · 已过期' : ''}</span>
-        <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}{summary.refreshing === true ? <span className="pu-mini-spin" aria-hidden /> : null}</b>
+        <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
       </span>
-    </button>
+      <button
+        type="button"
+        className={'pu-icon-btn pu-row-refresh' + (summary.refreshing === true ? ' pu-spinning' : '')}
+        aria-label={'刷新 ' + summary.name}
+        onClick={event => { event.stopPropagation(); props.onRefresh() }}
+      >
+        {summary.refreshing === true ? <span className="pu-mini-spin" /> : <RefreshIcon />}
+      </button>
+    </div>
   )
 }
 
-function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void }): ReactNode {
+function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void, onRefresh: () => void }): ReactNode {
   const summary = props.summary
   return (
     <div className="pu-detail" aria-label={summary.name + ' 额度详情'}>
@@ -167,7 +183,14 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void 
         </button>
         <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
         <span className="pu-detail-name">{summary.name}</span>
-        {summary.refreshing === true ? <span className="pu-mini-spin" aria-hidden /> : null}
+        <button
+          type="button"
+          className={'pu-icon-btn' + (summary.refreshing === true ? ' pu-spinning' : '')}
+          aria-label={'刷新 ' + summary.name}
+          onClick={props.onRefresh}
+        >
+          {summary.refreshing === true ? <span className="pu-mini-spin" /> : <RefreshIcon />}
+        </button>
       </div>
       <div className="pu-detail-sub">剩余额度</div>
       {summary.windows.length === 0
@@ -236,6 +259,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             active={summary.providerKey === props.currentProviderKey}
             selected={false}
             onSelect={() => { setFilterOpen(false); setDetailKey(summary.providerKey) }}
+            onRefresh={() => { props.onRefresh(summary.providerKey) }}
           />
         ))}
       </div>
@@ -263,13 +287,13 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             className={'pu-icon-btn' + (props.refreshing === true ? ' pu-spinning' : '')}
             aria-label="刷新用量"
             title="刷新全部"
-            onClick={props.onRefresh}
+            onClick={() => { props.onRefresh() }}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>
           </button>
         </span>
       </div>
-      <div className="pu-stage">{detail === undefined ? body : <UsageDetail summary={detail} onBack={() => { setDetailKey(undefined) }} />}</div>
+      <div className="pu-stage">{detail === undefined ? body : <UsageDetail summary={detail} onBack={() => { setDetailKey(undefined) }} onRefresh={() => { props.onRefresh(detail.providerKey) }} />}</div>
       {filterOpen
         ? (
           <section

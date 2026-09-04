@@ -12,7 +12,7 @@ export interface ProviderUsagePanelProps {
     currentProviderKey?: string;
     /** Spins the refresh icon while a parent-driven refresh is in flight. */
     refreshing?: boolean;
-    onRefresh: () => void;
+    onRefresh: (providerKey?: string) => void;
     onToggleVisibility: (providerKey: string, visible: boolean) => void;
     onShowAll: () => void;
 }

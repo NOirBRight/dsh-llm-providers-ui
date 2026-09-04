@@ -50,7 +50,7 @@ function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
       hiddenKeys={usage.hiddenKeys}
       {...activeProviderKey === undefined ? {} : { currentProviderKey: activeProviderKey }}
       refreshing={usage.refreshing}
-      onRefresh={props.usage.refresh}
+      onRefresh={key => { key === undefined ? props.usage.refresh() : props.usage.refresh([key]) }}
       onToggleVisibility={props.toggleVisibility}
       onShowAll={props.showAll}
     />

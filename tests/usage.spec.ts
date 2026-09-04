@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
-import { PROVIDER_USAGE_READERS, USAGE_POLL_MS, USAGE_READ_TIMEOUT_MS, createProviderUsageStore } from '../src/client/usage.ts'
+import { PROVIDER_USAGE_READERS, USAGE_POLL_MS, USAGE_READ_TIMEOUT_MS, clearProviderUsageCache, createProviderUsageStore } from '../src/client/usage.ts'
 
 const cursorReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-cursor')!
 const codexReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-codex')!
@@ -16,6 +16,7 @@ async function flush(): Promise<void> {
 }
 
 describe('Provider Usage readers', () => {
+  beforeEach(() => { clearProviderUsageCache() })
   it('retries Cursor unsupported by forcing a refresh read', async () => {
     let reads = 0
     const rpc = rpcFor(async (_channel, payload) => {

@@ -267,8 +267,7 @@ async function readCodexUsage(rpc: ClientConnectionRpc, signal: AbortSignal): Pr
   while (!signal.aborted) {
     const result = await rpc.call('/codex', 'auth/status', {}, signal)
     last = result.ok ? decodeCodexAuthStatus(result.value) : { status: 'error', message: result.error.message }
-    const quotaSettled = result.ok && record(result.value)?.quotaError !== undefined
-    if (last.status !== 'ready' || last.windows.length > 0 || quotaSettled || Date.now() >= deadline) return last
+    if (last.status !== 'ready' || last.windows.length > 0 || Date.now() >= deadline) return last
     await waitForCodexUsage(signal)
   }
   return last
@@ -365,30 +364,61 @@ function cachedSummary(value: unknown): ProviderUsageSummary | undefined {
   }
 }
 
-function readUsageCache(): Map<string, ProviderUsageSummary> {
-  const cached = new Map<string, ProviderUsageSummary>()
+let memoryUsageCache = new Map<string, ProviderUsageSummary>()
+
+function storageGet(): string | null {
   try {
-    const raw = globalThis.localStorage?.getItem(USAGE_CACHE_KEY)
-    if (raw === null || raw === undefined) return cached
+    return globalThis.localStorage?.getItem(USAGE_CACHE_KEY) ?? globalThis.sessionStorage?.getItem(USAGE_CACHE_KEY) ?? null
+  } catch { return null }
+}
+
+function storageSet(value: string): void {
+  try { globalThis.localStorage?.setItem(USAGE_CACHE_KEY, value) } catch { /* quota */ }
+  try { globalThis.sessionStorage?.setItem(USAGE_CACHE_KEY, value) } catch { /* quota */ }
+}
+
+function parseUsageCache(raw: string | null): Map<string, ProviderUsageSummary> {
+  const cached = new Map<string, ProviderUsageSummary>()
+  if (raw === null) return cached
+  try {
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return cached
     for (const value of parsed) {
       const item = cachedSummary(value)
       if (item !== undefined) cached.set(item.providerKey, item)
     }
-  } catch { /* private mode / quota */ }
+  } catch { /* malformed */ }
   return cached
 }
 
+function readUsageCache(): Map<string, ProviderUsageSummary> {
+  const fromStorage = parseUsageCache(storageGet())
+  if (fromStorage.size > 0) {
+    memoryUsageCache = new Map(fromStorage)
+    return fromStorage
+  }
+  return new Map(memoryUsageCache)
+}
+
+export function clearProviderUsageCache(): void {
+  memoryUsageCache = new Map()
+  try { globalThis.localStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
+  try { globalThis.sessionStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
+}
+
 function writeUsageCache(current: Map<string, ProviderUsageSummary>): void {
-  const payload = [...current.values()].filter(hasUsageData).map(item => ({
+  const merged = parseUsageCache(storageGet())
+  for (const [key, item] of memoryUsageCache) merged.set(key, item)
+  for (const item of current.values()) if (hasUsageData(item)) merged.set(item.providerKey, {
     providerKey: item.providerKey,
     name: item.name,
     status: 'ready',
     windows: item.windows,
     ...(item.fetchedAt === undefined ? {} : { fetchedAt: item.fetchedAt }),
-  }))
-  try { globalThis.localStorage?.setItem(USAGE_CACHE_KEY, JSON.stringify(payload)) } catch { /* quota */ }
+  })
+  if (merged.size === 0) return
+  memoryUsageCache = merged
+  storageSet(JSON.stringify([...merged.values()]))
 }
 
 function keepUsage(old: ProviderUsageSummary | undefined, next: ProviderUsageSummary): ProviderUsageSummary {
