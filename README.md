@@ -57,14 +57,14 @@ Latest installation (the URL never contains a version):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.6.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
 ~~~
 
 Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.6/dsh-llm-providers-ui-0.1.6.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.7/dsh-llm-providers-ui-0.1.7.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -72,7 +72,7 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to the latest Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.6.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor

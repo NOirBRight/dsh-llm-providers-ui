@@ -1,4 +1,10 @@
 # Changelog
+## [0.1.7] - 2026-09-05
+
+### Changed
+
+- Quieter Provider Usage tiles; independent usageOrder (drag in the sidebar filter); hover-only per-card refresh on fine pointers.
+
 ## [0.1.6] - 2026-09-04
 
 ### Added

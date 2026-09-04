@@ -1,7 +1,7 @@
 {
   "name": "dsh-llm-providers-ui",
   "description": "Shared LLM Providers settings shell, card order, and picker sort for DeepSeek Harness plugins",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publishConfig": {
     "access": "public"
   },
