@@ -4,10 +4,9 @@ import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { PROVIDERS_ITEM_SLOT, providerKeyForRoute, type ProviderOrderSettings } from '../order.js'
+import { PROVIDERS_ITEM_SLOT, type ProviderOrderSettings } from '../order.js'
 import { ProviderUsagePanel } from './ProviderUsagePanel.js'
 import { createProviderUsageStore, type ProviderUsageStore } from './usage.js'
 import { disposeReverse } from './cleanup.js'
@@ -15,9 +14,6 @@ import { disposeReverse } from './cleanup.js'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     'sidebar.footer.action': { kind: 'list', scope: 'root', owner: { wide: boolean } }
-  }
-  interface GlobalStandardProps {
-    useSessions: UseSessions
   }
 }
 
@@ -30,26 +26,13 @@ interface ProviderUsageActionFace {
 
 type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & ProviderUsageActionFace
 
-type SessionListState = ReturnType<ProviderUsageActionProps['useSessions']>
-
-function currentProviderKey(state: SessionListState): string | undefined {
-  const currentSessionId = state.current
-  if (currentSessionId === undefined) return undefined
-  const session = state.byId[currentSessionId]
-  const selection = session?.projectionValues?.modelSelection
-  const provider = selection?.next?.provider
-  return provider === undefined ? undefined : providerKeyForRoute(provider)
-}
-
 function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
   const usage = useSyncExternalStore(props.usage.subscribe, props.usage.getSnapshot, props.usage.getSnapshot)
-  const activeProviderKey = props.useSessions(currentProviderKey)
   if (!props.wide) return null
   return (
     <ProviderUsagePanel
       providers={usage.providers}
       hiddenKeys={usage.hiddenKeys}
-      {...activeProviderKey === undefined ? {} : { currentProviderKey: activeProviderKey }}
       refreshing={usage.refreshing}
       onRefresh={key => { key === undefined ? props.usage.refresh() : props.usage.refresh([key]) }}
       onToggleVisibility={props.toggleVisibility}
@@ -83,13 +66,12 @@ export function installProviderUsage(
   const reconcile = (): void => {
     const settings = orderScope.getSnapshot()
     const keys = providerKeys(ctx)
-    const order = settings.value?.order ?? []
     const usageOrder = settings.value?.usageOrder ?? []
     const hidden = settings.value?.hiddenUsageProviders ?? []
-    const config = JSON.stringify([keys, order, usageOrder, hidden])
+    const config = JSON.stringify([keys, usageOrder, hidden])
     if (config === lastConfig) return
     lastConfig = config
-    usage.configure({ registeredKeys: keys, savedOrder: usageOrder.length > 0 ? usageOrder : order, hiddenKeys: hidden })
+    usage.configure({ registeredKeys: keys, savedOrder: usageOrder, hiddenKeys: hidden })
   }
   const writeList = (field: 'hiddenUsageProviders' | 'usageOrder', value: readonly string[]): void => {
     const settings = orderScope.getSnapshot()

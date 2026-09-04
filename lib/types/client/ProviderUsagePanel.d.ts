@@ -8,8 +8,6 @@ export interface ProviderUsagePanelProps {
     providers: readonly ProviderUsageSummary[];
     /** Hidden provider keys (e.g. from llm-providers settings). Defaults to visible-all. */
     hiddenKeys?: readonly string[];
-    /** Provider key of the current session; gets the active highlight. */
-    currentProviderKey?: string;
     /** Spins the refresh icon while a parent-driven refresh is in flight. */
     refreshing?: boolean;
     onRefresh: (providerKey?: string) => void;

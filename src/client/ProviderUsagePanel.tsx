@@ -24,14 +24,27 @@ function providerInitial(name: string): string {
   return name.trim().charAt(0)
 }
 
+function FilterRow(props: { summary: ProviderUsageSummary, hidden: boolean, onToggle: (visible: boolean) => void }): ReactNode {
+  return (
+    <label className="pu-filter-item">
+      <input
+        type="checkbox"
+        aria-label={'在侧栏显示 ' + props.summary.name}
+        checked={!props.hidden}
+        onChange={event => { props.onToggle(event.target.checked) }}
+      />
+      <span className="pu-mark"><ProviderMark providerKey={props.summary.providerKey} fallback={providerInitial(props.summary.name)} /></span>
+      <span className="pu-filter-name">{props.summary.name}</span>
+    </label>
+  )
+}
+
 /** Controlled props: normalized summaries in display order plus visibility callbacks. */
 export interface ProviderUsagePanelProps {
   /** All queryable providers in display order; hiddenKeys filters the grid. */
   providers: readonly ProviderUsageSummary[]
   /** Hidden provider keys (e.g. from llm-providers settings). Defaults to visible-all. */
   hiddenKeys?: readonly string[]
-  /** Provider key of the current session; gets the active highlight. */
-  currentProviderKey?: string
   /** Spins the refresh icon while a parent-driven refresh is in flight. */
   refreshing?: boolean
   onRefresh: (providerKey?: string) => void
@@ -55,8 +68,8 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550;letter-spacing:.01em;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-actions{display:flex;gap:2px;margin-left:auto}',
   '[data-provider-usage-panel] .pu-mini-spin{display:inline-block;width:9px;height:9px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:middle;animation:pu-spin .55s linear infinite}',
-  '[data-provider-usage-panel] .pu-row-refresh{position:absolute;top:0;right:0;width:24px;height:24px;opacity:0;pointer-events:none}',
-  '[data-provider-usage-panel] .pu-cell:hover .pu-row-refresh,[data-provider-usage-panel] .pu-row-refresh:focus-visible,[data-provider-usage-panel] .pu-row-refresh.pu-spinning{opacity:1;pointer-events:auto}',
+  '[data-provider-usage-panel] .pu-row-refresh{position:absolute;top:0;right:0;width:24px;height:24px}',
+  '@media (hover:hover) and (pointer:fine){[data-provider-usage-panel] .pu-row-refresh{opacity:0;pointer-events:none}[data-provider-usage-panel] .pu-cell:hover .pu-row-refresh,[data-provider-usage-panel] .pu-row-refresh:focus-visible,[data-provider-usage-panel] .pu-row-refresh.pu-spinning{opacity:1;pointer-events:auto}}',
   '[data-provider-usage-panel] .pu-detail-head .pu-icon-btn:last-child{margin-left:auto}',
   '[data-provider-usage-panel] .pu-icon-btn{display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}',
   '[data-provider-usage-panel] .pu-icon-btn:hover{background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary)}',
@@ -268,7 +281,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
   }
 
   return (
-    <section data-provider-usage-panel data-pu-skin="quiet-mid" aria-label="Provider Usage">
+    <section data-provider-usage-panel aria-label="Provider Usage">
       <style>{panelCss}</style>
       <div className="pu-head">
         <span className="pu-title">Provider Usage</span>
@@ -278,7 +291,6 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             className="pu-icon-btn"
             aria-label="选择侧栏显示的 Provider"
             aria-expanded={filterOpen}
-            title="选择显示的 Provider"
             onClick={() => { setFilterOpen(open => !open) }}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h8M15 5h2M9 10h8M3 10h2M3 15h6M13 15h4" /><circle cx="13" cy="5" r="2" /><circle cx="7" cy="10" r="2" /><circle cx="11" cy="15" r="2" /></svg>
@@ -287,7 +299,6 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             type="button"
             className={'pu-icon-btn' + (props.refreshing === true ? ' pu-spinning' : '')}
             aria-label="刷新用量"
-            title="刷新全部"
             onClick={() => { props.onRefresh() }}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>
@@ -336,30 +347,12 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
                     dragLabel={summary => '调整顺序: ' + summary.name}
                     onReorder={next => { props.onReorder?.(next.map(summary => summary.providerKey)) }}
                     renderItem={summary => (
-                      <label className="pu-filter-item">
-                        <input
-                          type="checkbox"
-                          aria-label={'在侧栏显示 ' + summary.name}
-                          checked={!hidden.has(summary.providerKey)}
-                          onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
-                        />
-                        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
-                        <span className="pu-filter-name">{summary.name}</span>
-                      </label>
+                      <FilterRow summary={summary} hidden={hidden.has(summary.providerKey)} onToggle={visible => { props.onToggleVisibility(summary.providerKey, visible) }} />
                     )}
                   />
                 )
                 : matches.map(summary => (
-                  <label key={summary.providerKey} className="pu-filter-item">
-                    <input
-                      type="checkbox"
-                      aria-label={'在侧栏显示 ' + summary.name}
-                      checked={!hidden.has(summary.providerKey)}
-                      onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
-                    />
-                    <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
-                    <span className="pu-filter-name">{summary.name}</span>
-                  </label>
+                  <FilterRow key={summary.providerKey} summary={summary} hidden={hidden.has(summary.providerKey)} onToggle={visible => { props.onToggleVisibility(summary.providerKey, visible) }} />
                 ))}
             </div>
           </section>
