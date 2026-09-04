@@ -124,8 +124,8 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
     expect(container.querySelector('.pu-scroll')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('max-height:120px;overflow:auto')
-    expect(html).toContain('@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(3,minmax(0,1fr))}')
+    expect(html).toContain('max-height:148px;overflow:auto')
+    expect(html).toContain('@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(2,minmax(0,1fr))}')
   })
 
   it('uses the longest-period quota as the headline and still shows every window', () => {
@@ -133,6 +133,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).toContain('aria-label="Cursor 61%"')
     expect(html).toContain('aria-label="Grok 80%"')
     expect(html).toContain('aria-label="OpenCode Go 93%"')
+    expect(html).toContain('Ollama Cloud')
     expect(html).toContain('aria-label="Ollama Cloud 44%"')
     expect(html).toContain('title="S · 90% · W · 66% · M · 44%"')
   })
@@ -158,7 +159,9 @@ describe('ProviderUsagePanel six-provider grid', () => {
 
   it('renders a three-column mini grid without meters', () => {
     const html = staticHtml()
-    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px')
+    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px')
+    expect(html).toContain('class="pu-logo"')
+    expect(html).toContain('CommandCode')
     expect(html).not.toContain('pu-meter')
     expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('DIV')
   })

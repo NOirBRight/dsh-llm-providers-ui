@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { ProviderMark } from './provider-marks.js'
 import type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 
@@ -75,16 +76,17 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}',
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
-  '[data-provider-usage-panel] .pu-scroll{max-height:120px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
-  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}',
-  '[data-provider-usage-panel] .pu-row{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;height:44px;padding:5px 6px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit}',
+  '[data-provider-usage-panel] .pu-scroll{max-height:148px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
+  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}',
+  '[data-provider-usage-panel] .pu-row{display:flex;align-items:center;gap:7px;min-width:0;min-height:48px;padding:7px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-active{border-color:var(--dsw-alias-state-business-primary);box-shadow:0 0 0 1px var(--dsw-alias-state-business-primary)}',
-  '[data-provider-usage-panel] .pu-top{display:flex;align-items:center;gap:5px;min-width:0}',
+  '[data-provider-usage-panel] .pu-logo{display:block;flex:none;width:16px;height:16px;color:var(--dsw-alias-label-primary)}',
+  '[data-provider-usage-panel] .pu-copy{display:flex;flex-direction:column;gap:1px;min-width:0}',
   '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:16px;height:16px;border-radius:5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
-  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-tertiary);font-size:9px}',
+  '[data-provider-usage-panel] .pu-name{min-width:0;color:var(--dsw-alias-label-primary);font-size:10.5px;font-weight:620;line-height:13px;overflow-wrap:anywhere}',
   '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
-  '[data-provider-usage-panel] .pu-primary{overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-label-primary);font-size:13px;font-weight:730;line-height:16px;font-variant-numeric:tabular-nums}',
+  '[data-provider-usage-panel] .pu-primary{color:inherit;font-size:13px;font-weight:730;line-height:16px;font-variant-numeric:tabular-nums}',
   '[data-provider-usage-panel] .pu-low .pu-primary{color:#d94848}',
   '[data-provider-usage-panel] .pu-warn .pu-primary{color:#c47b08}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
@@ -104,7 +106,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-filter-all:disabled{cursor:default;opacity:.55}',
   '[data-provider-usage-panel] .pu-filter-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
   '[data-provider-usage-panel] .pu-no-match{padding:16px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px}',
-  '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(3,minmax(0,1fr))}[data-provider-usage-panel] .pu-row{height:44px}}',
+  '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(2,minmax(0,1fr))}[data-provider-usage-panel] .pu-scroll{max-height:196px}[data-provider-usage-panel] .pu-name{font-size:11px;line-height:14px}}',
 ].join('\n')
 
 function compactUtcTimestamp(value: string | undefined): string | undefined {
@@ -141,12 +143,11 @@ function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean }):
       aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
       {...title === undefined ? {} : { title }}
     >
-      <span className="pu-top">
-        <span className="pu-icon" aria-hidden>{providerInitial(summary.name)}</span>
-        <span className="pu-name">{summary.name}</span>
-        {summary.status === 'stale' ? <span className="pu-stale">已过期</span> : null}
+      <ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} />
+      <span className="pu-copy">
+        <span className="pu-name">{summary.name}{summary.status === 'stale' ? ' · 已过期' : ''}</span>
+        <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
       </span>
-      <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
     </div>
   )
 }
@@ -261,7 +262,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
                     checked={!hidden.has(summary.providerKey)}
                     onChange={event => { props.onToggleVisibility(summary.providerKey, event.target.checked) }}
                   />
-                  <span className="pu-icon" aria-hidden>{providerInitial(summary.name)}</span>
+                  <ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} />
                   <span className="pu-filter-name">{summary.name}</span>
                 </label>
               ))}

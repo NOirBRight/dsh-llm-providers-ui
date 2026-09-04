@@ -25,7 +25,7 @@
 
 每个单元固定两层信息：
 
-1. Provider 图标和名称。
+1. Provider 品牌 logo 和完整名称（可换行）。
 2. 周期最长窗口的剩余值；空数据为 —。次窗口只放 compact title。
 
 示例：
@@ -110,7 +110,7 @@ interface OrderConfig {
 
 ### 移动端
 
-- 视口宽度不超过 640px 时侧栏仍约 280px，保持三列。
+- 视口宽度不超过 640px 时侧栏仍约 280px，改为两列以免截断名称。
 - 不改为全宽抽屉。
 - Provider 多于可见高度时在面板内部滚动。
 - 侧边栏折叠为 56px rail 时不渲染 Provider Usage 面板。
@@ -213,9 +213,9 @@ interface ProviderUsageSummary {
 
 ## 9. 验收标准
 
-1. 276px 桌面侧边栏中，6 个 Provider 以 2×3 显示且无需滚动。
-2. 含 3 个窗口的 Provider 能完整显示三个短标签和值，不出现省略号。
-3. 不超过 640px 的移动视口中，每行只显示一个 Provider。
+1. 276px 桌面侧边栏中，6 个 Provider 以三列微格显示且无需滚动。
+2. Provider 名称可换行完整显示，卡片带品牌 logo。
+3. 不超过 640px 的移动视口中，每行显示两个 Provider。
 4. 12 和 20 Provider 场景使用面板内部滚动，不分页，Settings 保持固定。
 5. 用户可搜索、全选和单独隐藏 Provider；刷新后选择仍保留。
 6. 新检测 Provider 默认显示；隐藏设置不改变模型列表。
