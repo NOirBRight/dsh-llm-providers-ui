@@ -125,7 +125,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
     expect(container.querySelector('.pu-stage')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('pu-stage')
+    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:132px;overflow:auto')
     expect(html).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
   })
 
