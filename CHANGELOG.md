@@ -1,4 +1,10 @@
 # Changelog
+## [0.1.6] - 2026-09-04
+
+### Added
+
+- Sidebar Provider Usage: two-column remaining-quota minis, two-layer local-time detail with progress bars, 15-minute poll, last-good cache, per-card refresh, and visibility filters.
+
 ## [0.1.5] - 2026-09-03
 
 ### Changed

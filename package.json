@@ -1,7 +1,7 @@
 {
   "name": "dsh-llm-providers-ui",
   "description": "Shared LLM Providers settings shell, card order, and picker sort for DeepSeek Harness plugins",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publishConfig": {
     "access": "public"
   },
@@ -112,5 +112,16 @@
     "typescript": "^5.9.3",
     "unrun": "0.3.1",
     "vitest": "^4.1.8"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-client-connection": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-sidebar": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-session": {
+      "optional": true
+    }
   }
 }
