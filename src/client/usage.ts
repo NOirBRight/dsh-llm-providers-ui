@@ -303,22 +303,39 @@ async function readUsage(
   return result.ok ? usageResult(result.value, decode) : { status: 'error', message: result.error.message }
 }
 
-// RC1 Codex exposes secret-free quota through auth/status rather than usage/read.
-const readerDefinitions: readonly ProviderUsageReader[] = [
-  { providerKey: 'llm-codex', name: 'Codex', read: (rpc, _refresh, signal) => readCodexUsage(rpc, signal) },
-  { providerKey: 'llm-cursor', name: 'Cursor', read: async (rpc, refresh, signal) => {
+/** Create the Codex quota reader declared by the Codex client plugin. */
+export function createCodexUsageReader(): ProviderUsageReader {
+  return { providerKey: 'llm-codex', name: 'Codex', read: (rpc, _refresh, signal) => readCodexUsage(rpc, signal) }
+}
+
+/** Create the Cursor quota reader declared by the Cursor client plugin. */
+export function createCursorUsageReader(): ProviderUsageReader {
+  return { providerKey: 'llm-cursor', name: 'Cursor', read: async (rpc, refresh, signal) => {
     const first = await readUsage(rpc, '/cursor', refresh ? { refresh: true } : {}, signal, decodePercentUsage)
     if (first.status !== 'unsupported') return first
     return readUsage(rpc, '/cursor', { refresh: true }, signal, decodePercentUsage)
-  } },
-  { providerKey: 'llm-grok', name: 'Grok', read: (rpc, _refresh, signal) => readUsage(rpc, '/grok', {}, signal, decodePercentUsage) },
-  { providerKey: 'llm-ollama', name: 'Ollama Cloud', read: (rpc, _refresh, signal) => readUsage(rpc, '/ollama-cloud', {}, signal, value => decodeFractionUsage(['session', 'weekly'], value)) },
-  { providerKey: 'llm-commandcode', name: 'CommandCode', read: (rpc, _refresh, signal) => readUsage(rpc, '/commandcode', {}, signal, decodeCommandCodeUsage) },
-  { providerKey: 'llm-opencode-go', name: 'OpenCode Go', read: (rpc, _refresh, signal) => readUsage(rpc, '/opencode-go', {}, signal, value => decodeFractionUsage(['session', 'weekly', 'monthly'], value)) },
-]
+  } }
+}
 
-export const PROVIDER_USAGE_READERS: readonly ProviderUsageReader[] = readerDefinitions
-const readerByKey = new Map(readerDefinitions.map(reader => [reader.providerKey, reader]))
+/** Create the Grok quota reader declared by the Grok client plugin. */
+export function createGrokUsageReader(): ProviderUsageReader {
+  return { providerKey: 'llm-grok', name: 'Grok', read: (rpc, _refresh, signal) => readUsage(rpc, '/grok', {}, signal, decodePercentUsage) }
+}
+
+/** Create the Ollama Cloud quota reader declared by the Ollama client plugin. */
+export function createOllamaUsageReader(): ProviderUsageReader {
+  return { providerKey: 'llm-ollama', name: 'Ollama Cloud', read: (rpc, _refresh, signal) => readUsage(rpc, '/ollama-cloud', {}, signal, value => decodeFractionUsage(['session', 'weekly'], value)) }
+}
+
+/** Create the CommandCode quota reader declared by the CommandCode client plugin. */
+export function createCommandCodeUsageReader(): ProviderUsageReader {
+  return { providerKey: 'llm-commandcode', name: 'CommandCode', read: (rpc, _refresh, signal) => readUsage(rpc, '/commandcode', {}, signal, decodeCommandCodeUsage) }
+}
+
+/** Create the OpenCode Go quota reader declared by the OpenCode Go client plugin. */
+export function createOpenCodeGoUsageReader(): ProviderUsageReader {
+  return { providerKey: 'llm-opencode-go', name: 'OpenCode Go', read: (rpc, _refresh, signal) => readUsage(rpc, '/opencode-go', {}, signal, value => decodeFractionUsage(['session', 'weekly', 'monthly'], value)) }
+}
 
 export interface ProviderUsageStoreSnapshot {
   providers: readonly ProviderUsageSummary[]
@@ -451,7 +468,10 @@ function isFresh(summary: ProviderUsageSummary | undefined, now: number): boolea
 }
 
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
-export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsageStore {
+export function createProviderUsageStore(
+  rpc: ClientConnectionRpc,
+  readerForKey: (key: string) => ProviderUsageReader | undefined,
+): ProviderUsageStore {
   let snapshot: ProviderUsageStoreSnapshot = { providers: [], hiddenKeys: [], refreshing: false }
   let configuredKeys: string[] = []
   const current = readUsageCache()
@@ -489,7 +509,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
     pump()
   }
   const startRead = (key: string, refresh: boolean): void => {
-    const reader = readerByKey.get(key)
+    const reader = readerForKey(key)
     if (reader === undefined || active.has(key) || disposed) return
     const previous = current.get(key)
     if (previous === undefined) {
@@ -541,7 +561,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
     getSnapshot: () => snapshot,
     subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener) } },
     configure: config => {
-      const ordered = applySavedOrder(config.registeredKeys, config.savedOrder).filter(key => readerByKey.has(key))
+      const ordered = applySavedOrder(config.registeredKeys, config.savedOrder).filter(key => readerForKey(key) !== undefined)
       configuredKeys = [...new Set(ordered)]
       snapshot = { ...snapshot, hiddenKeys: [...new Set(config.hiddenKeys)] }
       for (const [key, controller] of active) if (!configuredKeys.includes(key) || snapshot.hiddenKeys.includes(key)) { controller.abort(); active.delete(key) }
@@ -551,7 +571,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       }
       for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) { current.delete(key) }
       for (const key of configuredKeys) if (!current.has(key)) {
-        const reader = readerByKey.get(key)
+        const reader = readerForKey(key)
         if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
       }
       sync(false)

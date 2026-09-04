@@ -9,6 +9,7 @@ import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { PROVIDERS_ITEM_SLOT, type ProviderOrderSettings } from '../order.js'
 import { ProviderUsagePanel } from './ProviderUsagePanel.js'
 import { createProviderUsageStore, type ProviderUsageStore } from './usage.js'
+import type { ProviderDirectory } from './directory.js'
 import { disposeReverse } from './cleanup.js'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -52,6 +53,7 @@ function providerKeys(ctx: ClientContext): string[] {
 export function installProviderUsage(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
+  directory: ProviderDirectory,
 ): () => void {
   let connection: ConnectionHandle
   try {
@@ -61,14 +63,15 @@ export function installProviderUsage(
   } catch {
     return () => {}
   }
-  const usage = createProviderUsageStore(connection.rpc)
+  const usage = createProviderUsageStore(connection.rpc, key => directory.reader(key))
+  let directoryGeneration = 0
   let lastConfig = ''
   const reconcile = (): void => {
     const settings = orderScope.getSnapshot()
     const keys = providerKeys(ctx)
     const usageOrder = settings.value?.usageOrder ?? []
     const hidden = settings.value?.hiddenUsageProviders ?? []
-    const config = JSON.stringify([keys, usageOrder, hidden])
+    const config = JSON.stringify([keys, usageOrder, hidden, directoryGeneration])
     if (config === lastConfig) return
     lastConfig = config
     usage.configure({ registeredKeys: keys, savedOrder: usageOrder, hiddenKeys: hidden })
@@ -100,7 +103,11 @@ export function installProviderUsage(
   }, ProviderUsageAction))
   const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, reconcile)
   const stopSettings = orderScope.subscribe(reconcile)
+  const stopDirectory = directory.subscribe(() => {
+    directoryGeneration += 1
+    reconcile()
+  })
   return () => {
-    disposeReverse([stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
+    disposeReverse([stopDirectory, stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
   }
 }

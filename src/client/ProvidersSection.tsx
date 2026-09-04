@@ -11,6 +11,7 @@ import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-setti
 import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
 import { SortableList } from './SortableList.js'
+import type { ProviderRole } from './directory.js'
 
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps =
@@ -35,6 +36,8 @@ export interface ProvidersSectionProps {
   disabled?: boolean
   /** Shell close affordance from the official settings.section owner props. */
   close?: SettingsSectionOwnerProps['close']
+  /** Resolve the shell-owned badge for a Provider card. */
+  roleOf?: (key: string) => ProviderRole
 }
 
 const pageStyle: CSSProperties = {
@@ -48,6 +51,13 @@ const subtitleStyle: CSSProperties = {
 }
 const listStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 12 }
 const emptyStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: '20px' }
+const cardStyle: CSSProperties = { position: 'relative' }
+const badgeStyle: CSSProperties = {
+  position: 'absolute', top: 12, right: 12, zIndex: 1,
+  border: '1px solid var(--dsw-alias-border-secondary)', borderRadius: 999,
+  background: 'var(--dsw-alias-background-secondary)', color: 'var(--dsw-alias-label-secondary)',
+  padding: '1px 6px', fontSize: 11, fontWeight: 600, lineHeight: '16px', letterSpacing: '0.02em',
+}
 
 /** Bind the shared page to live keyed-slot and settings snapshots. */
 export function bindProvidersSection(
@@ -55,6 +65,7 @@ export function bindProvidersSection(
   subscribe: (listener: () => void) => () => void,
   readOrder: () => { keys: readonly string[], disabled: boolean },
   onReorder: (keys: string[]) => void,
+  roleOf: (key: string) => ProviderRole,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
@@ -68,6 +79,7 @@ export function bindProvidersSection(
         savedOrder={order.keys}
         disabled={order.disabled}
         onReorder={onReorder}
+        roleOf={roleOf}
       />
     )
   }
@@ -80,7 +92,14 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const items = keys.map(key => ({ key }))
   const renderCard = (item: { key: string }): ReactNode => {
     const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {}, { entryKey: item.key })
-    return node == null ? null : <Fragment>{node}</Fragment>
+    if (node == null) return null
+    const role = props.roleOf?.(item.key) ?? 'llm'
+    return (
+      <div data-provider-role={role} style={cardStyle}>
+        <span style={badgeStyle}>{role === 'agent' ? 'Agent' : 'LLM'}</span>
+        {node}
+      </div>
+    )
   }
   const body = keys.length === 0
     ? <p style={emptyStyle}>{t('empty')}</p>

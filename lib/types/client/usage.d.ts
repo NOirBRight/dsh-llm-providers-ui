@@ -36,7 +36,18 @@ export interface ProviderUsageReader {
 }
 /** Headline window: longest percentage period, else the first text-only window. */
 export declare function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined;
-export declare const PROVIDER_USAGE_READERS: readonly ProviderUsageReader[];
+/** Create the Codex quota reader declared by the Codex client plugin. */
+export declare function createCodexUsageReader(): ProviderUsageReader;
+/** Create the Cursor quota reader declared by the Cursor client plugin. */
+export declare function createCursorUsageReader(): ProviderUsageReader;
+/** Create the Grok quota reader declared by the Grok client plugin. */
+export declare function createGrokUsageReader(): ProviderUsageReader;
+/** Create the Ollama Cloud quota reader declared by the Ollama client plugin. */
+export declare function createOllamaUsageReader(): ProviderUsageReader;
+/** Create the CommandCode quota reader declared by the CommandCode client plugin. */
+export declare function createCommandCodeUsageReader(): ProviderUsageReader;
+/** Create the OpenCode Go quota reader declared by the OpenCode Go client plugin. */
+export declare function createOpenCodeGoUsageReader(): ProviderUsageReader;
 export interface ProviderUsageStoreSnapshot {
     providers: readonly ProviderUsageSummary[];
     hiddenKeys: readonly string[];
@@ -59,6 +70,6 @@ export interface ProviderUsageStore {
 }
 export declare function clearProviderUsageCache(): void;
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
-export declare function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsageStore;
+export declare function createProviderUsageStore(rpc: ClientConnectionRpc, readerForKey: (key: string) => ProviderUsageReader | undefined): ProviderUsageStore;
 export {};
 //# sourceMappingURL=usage.d.ts.map
