@@ -84,7 +84,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   }
   const body = keys.length === 0
     ? <p style={emptyStyle}>{t('empty')}</p>
-    : keys.length < 2 || props.disabled === true
+    : keys.length < 2
       ? <div style={listStyle}>{items.map(item => <Fragment key={item.key}>{renderCard(item)}</Fragment>)}</div>
       : (
         <SortableList
@@ -92,6 +92,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           items={items}
           getId={item => item.key}
           dragLabel={item => t('drag') + ': ' + item.key}
+          disabled={props.disabled === true}
           onReorder={next => { props.onReorder?.(next.map(item => item.key)) }}
           renderItem={item => renderCard(item)}
         />
