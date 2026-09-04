@@ -124,18 +124,48 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
     expect(container.querySelector('.pu-scroll')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('max-height:170px;overflow:auto')
+    expect(html).toContain('max-height:280px;overflow:auto')
     expect(html).toContain('@media (max-width:640px)')
   })
 
-  it('shows every window of a three-window provider without truncation', () => {
+  it('uses the longest-period quota as the headline and still shows every window', () => {
     const html = staticHtml()
-    // Ollama Cloud: S 90% · W 66% · M 44%, headline is the tightest window (44%).
-    expect(html).toContain('aria-label="Ollama Cloud 44%"')
+    expect(html).toContain('aria-label="Cursor 61%"')
+    expect(html).toContain('aria-label="Grok 80%"')
+    expect(html).toContain('aria-label="OpenCode Go 93%"')
     expect(html).toContain('<small>S</small><b>90%</b>')
     expect(html).toContain('<small>W</small><b>66%</b>')
-    expect(html).toContain('<small>M</small><b>44%</b>')
-    expect(html).toContain('title="5h 72% · 重置 2026-09-05T00:00:00Z"')
+    expect(html).toContain('<small class="pu-primary-label">M</small><b class="pu-primary">44%</b>')
+  })
+
+  it('prefers a provider-specific subscription cycle over a short hourly window', () => {
+    const providers: readonly ProviderUsageSummary[] = [{
+      providerKey: 'cursor',
+      name: 'Cursor',
+      status: 'ready',
+      windows: [
+        { id: 'cursor-cycle', label: 'Cursor cycle', shortLabel: 'Curs', remainingPercent: 62.7, valueText: '62.7%' },
+        { id: 'five-hour', label: '5h', shortLabel: '5h', remainingPercent: 0, valueText: '0%' },
+      ],
+    }]
+    expect(staticHtml({ providers })).toContain('aria-label="Cursor 62.7%"')
+  })
+
+  it('removes aggregate tooltips and uses a compact reset tooltip per quota', () => {
+    const container = mount()
+    expect(container.querySelector('.pu-row')?.getAttribute('title')).toBeNull()
+    expect(container.querySelector('.pu-window')?.getAttribute('title')).toBe('5h · 72% · 9/5 00:00 UTC 重置')
+  })
+
+  it('uses semantic metric cards with a period label, meter, and no duplicated headline window', () => {
+    const container = mount()
+    const openCode = container.querySelector('[aria-label="OpenCode Go 93%"]')
+    expect(openCode?.tagName).toBe('DIV')
+    expect(openCode?.querySelector('.pu-primary-label')?.textContent).toBe('M')
+    expect(openCode?.querySelector('.pu-meter-fill')?.getAttribute('style')).toContain('width: 93%')
+    expect(openCode?.querySelectorAll('.pu-window')).toHaveLength(2)
+    expect(openCode?.querySelectorAll('.pu-window-low')).toHaveLength(1)
+    expect(staticHtml()).toContain('.pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px')
   })
 
   it('shows Credits text as-is instead of deriving a percent', () => {
@@ -150,10 +180,11 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(staticHtml({ currentProviderKey: 'codex' })).toContain('aria-label="Codex 38%"')
   })
 
-  it('marks low headlines while keeping the row content visible', () => {
+  it('keeps a low short-window warning visible without replacing the long-period headline', () => {
     const container = mount()
-    expect(container.querySelectorAll('.pu-low').length).toBe(1)
-    expect(staticHtml()).toContain('aria-label="OpenCode Go 15%"')
+    expect(container.querySelectorAll('.pu-row.pu-low')).toHaveLength(0)
+    expect(container.querySelectorAll('.pu-window-low')).toHaveLength(1)
+    expect(staticHtml()).toContain('aria-label="OpenCode Go 93%"')
   })
 })
 

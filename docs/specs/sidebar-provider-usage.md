@@ -19,24 +19,31 @@
 - 移动端每行显示 1 个 Provider。
 - Provider 超过当前可见容量时，只滚动 Provider Usage 面板，不影响 Settings 固定位置。
 - Sessions 区域保持原有数据、搜索和排序，仅因面板占位而缩短可视高度并内部滚动。
-- 当前会话正在使用的 Provider 使用轻量蓝色左边线和浅色背景标识。
+- 当前会话正在使用的 Provider 使用轻量蓝色描边标识。
 
 ### 2.1 Provider 单元
 
-每个单元固定两层信息：
+每个单元固定三层信息：
 
-1. Provider 图标、名称、最紧张窗口的剩余值。
-2. 最多 3 个额度窗口的紧凑摘要。
+1. Provider 图标和名称。
+2. 周期最长窗口的短标签、剩余值和细进度条。
+3. 其余最多 2 个窗口的紧凑摘要；不重复主窗口。
 
 示例：
 
-`Codex       38%`  
-`5h 72% · W 38%`
+```text
+Codex
+W 38%
+5h 72%
+```
 
 三窗口示例：
 
-`Ollama      44%`  
-`S 90% · W 66% · M 44%`
+```text
+Ollama
+M 44%
+S 90% · W 66%
+```
 
 短标签：
 
@@ -51,12 +58,12 @@
 | Local | L |
 | 2h / 5h 等短标签 | 保持原样 |
 
-完整窗口名称和重置时间放在 Tooltip；不在窄单元中显示长文本。
+仅在存在重置时间时提供单窗口 Tooltip，格式为 `W · 53% · 9/7 00:00 UTC 重置`；不提供整卡聚合 Tooltip，不显示原始 ISO 时间。
 
 ### 2.2 颜色
 
 - 默认信息保持中性色。
-- 只有低额度和紧张额度的主值使用红色或琥珀色。
+- 低额度和紧张额度在对应主值或次级窗口中使用红色或琥珀色。
 - Provider 品牌色仅用于低饱和图标底色。
 - 不使用整块红、黄、绿卡片，不把额度强行合成为健康分数。
 
@@ -89,9 +96,9 @@ interface OrderConfig {
 
 - 目标侧边栏宽度：约 276px。
 - 两列等宽。
-- 单元高度约 51px。
+- 单元高度约 68px。
 - 6 个 Provider 在 3 行内完整显示。
-- Provider Usage 内容区最大高度约 170px。
+- Provider Usage 内容区最大高度约 280px。
 
 ### 移动端
 
@@ -138,9 +145,9 @@ interface ProviderUsageSummary {
 }
 ```
 
-最紧张窗口的选择规则：
+主窗口的选择规则：
 
-1. 在有 `remainingPercent` 的窗口中取最小值。
+1. 在有 `remainingPercent` 的窗口中选择周期最长者：Month > Week > Day > Provider 专属订阅周期 > 小时窗口 > Session > Agent/Local。
 2. 没有百分比但有 Credits/Unlimited 文本时，显示该文本，不推导百分比。
 3. 不跨 Provider 比较不同单位，不生成综合排名或推荐。
 
