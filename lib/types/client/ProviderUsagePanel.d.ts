@@ -1,4 +1,4 @@
-/** Sidebar Provider Usage panel, prototype B (two-column digest). Controlled and UI-only: no RPC, no persistence. */
+/** Sidebar Provider Usage panel, prototype B (three-column minis). Controlled and UI-only: no RPC, no persistence. */
 import type { ReactNode } from 'react';
 import type { ProviderUsageSummary } from './usage.js';
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js';
@@ -16,6 +16,6 @@ export interface ProviderUsagePanelProps {
     onToggleVisibility: (providerKey: string, visible: boolean) => void;
     onShowAll: () => void;
 }
-/** Controlled sidebar Provider Usage panel (desktop two columns, mobile one column). */
+/** Controlled sidebar Provider Usage panel (desktop and mobile: three-column minis). */
 export declare function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode;
 //# sourceMappingURL=ProviderUsagePanel.d.ts.map

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
-import { PROVIDER_USAGE_READERS, createProviderUsageStore } from '../src/client/usage.ts'
+import { PROVIDER_USAGE_READERS, USAGE_POLL_MS, createProviderUsageStore } from '../src/client/usage.ts'
 
 const cursorReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-cursor')!
 const codexReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-codex')!
@@ -81,6 +81,25 @@ describe('Provider Usage readers', () => {
     })
   })
 
+  it('waits for Codex auth status to fill in async rate limits', async () => {
+    let reads = 0
+    const signal = new AbortController().signal
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'signed-in', usage: { rateLimits: [] } } }
+      return {
+        ok: true,
+        value: {
+          status: 'signed-in',
+          usage: { rateLimits: [{ id: 'codex', windows: [{ remainingPercent: 41, windowSeconds: 604_800 }] }] },
+        },
+      }
+    })
+    const result = await codexReader.read(rpc, true, signal)
+    expect(reads).toBeGreaterThan(1)
+    expect(result).toMatchObject({ status: 'ready', windows: [{ shortLabel: 'W', remainingPercent: 41 }] })
+  })
+
   it('maps signed-out Codex auth to logged-out', async () => {
     const rpc = rpcFor(async () => ({ ok: true, value: { status: 'signed-out' } }))
     await expect(codexReader.read(rpc, false, new AbortController().signal)).resolves.toEqual({ status: 'logged-out' })
@@ -95,6 +114,11 @@ describe('Provider Usage readers', () => {
 
   it('keeps CommandCode ready when its partial response has no credits', async () => {
     const rpc = rpcFor(async () => ({ ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', failures: ['credits unavailable'] } } }))
+    await expect(commandCodeReader.read(rpc, false, new AbortController().signal)).resolves.toEqual({ status: 'ready', fetchedAt: 'now', windows: [] })
+  })
+
+  it('keeps CommandCode ready when credits is an empty object', async () => {
+    const rpc = rpcFor(async () => ({ ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', credits: {} } } }))
     await expect(commandCodeReader.read(rpc, false, new AbortController().signal)).resolves.toEqual({ status: 'ready', fetchedAt: 'now', windows: [] })
   })
 
@@ -182,5 +206,34 @@ describe('Provider Usage readers', () => {
     await flush()
     expect(store.getSnapshot().providers.find(provider => provider.providerKey === 'llm-grok')).toMatchObject({ status: 'error' })
     store.dispose()
+  })
+
+  it('skips a fresh snapshot until the 5-minute window, then polls', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-04T00:00:00Z'))
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      return { ok: true, value: { status: 'ok', usage: { fetchedAt: new Date().toISOString(), windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+    })
+    const store = createProviderUsageStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: ['llm-cursor'] })
+    await flush()
+    expect(reads).toBe(0)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(reads).toBe(1)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: ['llm-cursor'] })
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(reads).toBe(1)
+    store.refresh()
+    await flush()
+    expect(reads).toBe(2)
+    await vi.advanceTimersByTimeAsync(USAGE_POLL_MS)
+    await flush()
+    expect(reads).toBe(3)
+    store.dispose()
+    vi.useRealTimers()
   })
 })

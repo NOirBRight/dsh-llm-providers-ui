@@ -44,11 +44,13 @@ export interface ProviderUsageConfig {
     savedOrder: readonly string[];
     hiddenKeys: readonly string[];
 }
+export declare const USAGE_POLL_MS: number;
+export declare const USAGE_MIN_REFETCH_MS: number;
 export interface ProviderUsageStore {
     getSnapshot(): ProviderUsageStoreSnapshot;
     subscribe(listener: () => void): () => void;
     configure(config: ProviderUsageConfig): void;
-    refresh(): void;
+    refresh(keys?: readonly string[]): void;
     dispose(): void;
 }
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */

@@ -124,8 +124,8 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
     expect(container.querySelector('.pu-scroll')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('max-height:280px;overflow:auto')
-    expect(html).toContain('@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:1fr}')
+    expect(html).toContain('max-height:120px;overflow:auto')
+    expect(html).toContain('@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(3,minmax(0,1fr))}')
   })
 
   it('uses the longest-period quota as the headline and still shows every window', () => {
@@ -133,9 +133,8 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).toContain('aria-label="Cursor 61%"')
     expect(html).toContain('aria-label="Grok 80%"')
     expect(html).toContain('aria-label="OpenCode Go 93%"')
-    expect(html).toContain('<small>S</small><b>90%</b>')
-    expect(html).toContain('<small>W</small><b>66%</b>')
-    expect(html).toContain('<small class="pu-primary-label">M</small><b class="pu-primary">44%</b>')
+    expect(html).toContain('aria-label="Ollama Cloud 44%"')
+    expect(html).toContain('title="S · 90% · W · 66% · M · 44%"')
   })
 
   it('prefers a provider-specific subscription cycle over a short hourly window', () => {
@@ -151,27 +150,23 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(staticHtml({ providers })).toContain('aria-label="Cursor 62.7%"')
   })
 
-  it('removes aggregate tooltips and uses a compact reset tooltip per quota', () => {
+  it('puts compact window details on the card title instead of nested ISO tooltips', () => {
     const container = mount()
-    expect(container.querySelector('.pu-row')?.getAttribute('title')).toBeNull()
-    expect(container.querySelector('.pu-window')?.getAttribute('title')).toBe('5h · 72% · 9/5 00:00 UTC 重置')
+    expect(container.querySelector('[aria-label="Codex 38%"]')?.getAttribute('title')).toBe('5h · 72% · 9/5 00:00 UTC 重置 · W · 38%')
+    expect(container.querySelector('.pu-window')).toBeNull()
   })
 
-  it('uses semantic metric cards with a period label, meter, and no duplicated headline window', () => {
-    const container = mount()
-    const openCode = container.querySelector('[aria-label="OpenCode Go 93%"]')
-    expect(openCode?.tagName).toBe('DIV')
-    expect(openCode?.querySelector('.pu-primary-label')?.textContent).toBe('M')
-    expect(openCode?.querySelector('.pu-meter-fill')?.getAttribute('style')).toContain('width: 93%')
-    expect(openCode?.querySelectorAll('.pu-window')).toHaveLength(2)
-    expect(openCode?.querySelectorAll('.pu-window-low')).toHaveLength(1)
-    expect(staticHtml()).toContain('.pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px')
+  it('renders a three-column mini grid without meters', () => {
+    const html = staticHtml()
+    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px')
+    expect(html).not.toContain('pu-meter')
+    expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('DIV')
   })
 
   it('shows Credits text as-is instead of deriving a percent', () => {
     const html = staticHtml()
     expect(html).toContain('aria-label="CommandCode 70%"')
-    expect(html).toContain('<small>Cr</small><b>$8.42</b>')
+    expect(html).toContain('title="Cr · $8.42 · M · 70%"')
   })
 
   it('highlights only the current provider', () => {
@@ -183,8 +178,8 @@ describe('ProviderUsagePanel six-provider grid', () => {
   it('keeps a low short-window warning visible without replacing the long-period headline', () => {
     const container = mount()
     expect(container.querySelectorAll('.pu-row.pu-low')).toHaveLength(0)
-    expect(container.querySelectorAll('.pu-window-low')).toHaveLength(1)
     expect(staticHtml()).toContain('aria-label="OpenCode Go 93%"')
+    expect(staticHtml()).toContain('title="S · 15% · W · 52% · M · 93%"')
   })
 })
 

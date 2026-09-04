@@ -1,4 +1,4 @@
-/** Sidebar Provider Usage panel, prototype B (two-column digest). Controlled and UI-only: no RPC, no persistence. */
+/** Sidebar Provider Usage panel, prototype B (three-column minis). Controlled and UI-only: no RPC, no persistence. */
 
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -75,31 +75,19 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}',
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
-  '[data-provider-usage-panel] .pu-scroll{max-height:280px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
-  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}',
-  '[data-provider-usage-panel] .pu-row{display:flex;flex-direction:column;min-width:0;min-height:68px;padding:7px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 1px 2px rgba(0,0,0,.025);color:inherit}',
-  '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary);box-shadow:0 2px 6px rgba(0,0,0,.06)}',
+  '[data-provider-usage-panel] .pu-scroll{max-height:120px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
+  '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}',
+  '[data-provider-usage-panel] .pu-row{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;height:44px;padding:5px 6px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit}',
+  '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-active{border-color:var(--dsw-alias-state-business-primary);box-shadow:0 0 0 1px var(--dsw-alias-state-business-primary)}',
   '[data-provider-usage-panel] .pu-top{display:flex;align-items:center;gap:5px;min-width:0}',
-  '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:18px;height:18px;border-radius:6px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:9px;font-weight:750}',
-  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:10.5px;font-weight:650}',
-  '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;padding:0 4px;border-radius:4px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-tertiary);font-size:8px;line-height:14px;white-space:nowrap}',
-  '[data-provider-usage-panel] .pu-metric{display:flex;align-items:baseline;gap:4px;min-width:0;margin-top:5px;color:var(--dsw-alias-label-primary)}',
-  '[data-provider-usage-panel] .pu-primary-label{padding:1px 4px;border-radius:4px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-tertiary);font-size:8px;font-weight:700;line-height:13px;text-transform:uppercase}',
-  '[data-provider-usage-panel] .pu-primary{overflow:hidden;text-overflow:ellipsis;color:inherit;font-size:16px;font-weight:720;line-height:18px;font-variant-numeric:tabular-nums}',
+  '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:16px;height:16px;border-radius:5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
+  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-tertiary);font-size:9px}',
+  '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
+  '[data-provider-usage-panel] .pu-primary{overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-label-primary);font-size:13px;font-weight:730;line-height:16px;font-variant-numeric:tabular-nums}',
   '[data-provider-usage-panel] .pu-low .pu-primary{color:#d94848}',
   '[data-provider-usage-panel] .pu-warn .pu-primary{color:#c47b08}',
-  '[data-provider-usage-panel] .pu-meter{display:block;height:3px;margin-top:5px;overflow:hidden;border-radius:999px;background:var(--dsw-alias-bg-module-platform)}',
-  '[data-provider-usage-panel] .pu-meter-fill{display:block;height:100%;border-radius:inherit;background:var(--dsw-alias-state-business-primary)}',
-  '[data-provider-usage-panel] .pu-low .pu-meter-fill{background:#d94848}',
-  '[data-provider-usage-panel] .pu-warn .pu-meter-fill{background:#c47b08}',
-  '[data-provider-usage-panel] .pu-windows{display:flex;gap:4px;min-width:0;margin-top:5px;white-space:nowrap}',
-  '[data-provider-usage-panel] .pu-window{display:flex;justify-content:center;gap:3px;min-width:0;flex:1;padding:2px 4px;border-radius:5px;background:var(--dsw-alias-bg-module-platform);font-size:8px;line-height:11px}',
-  '[data-provider-usage-panel] .pu-window small{flex:none;color:var(--dsw-alias-label-tertiary);font-size:inherit;font-weight:650;text-transform:uppercase}',
-  '[data-provider-usage-panel] .pu-window b{overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-label-secondary);font-weight:650;font-variant-numeric:tabular-nums}',
-  '[data-provider-usage-panel] .pu-window-low b{color:#d94848}',
-  '[data-provider-usage-panel] .pu-window-warn b{color:#c47b08}',
-  '[data-provider-usage-panel] .pu-status{display:block;margin-top:9px;color:var(--dsw-alias-label-secondary);font-size:11px;font-weight:600}',
+  '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
   '[data-provider-usage-panel] .pu-empty{padding:22px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px;line-height:18px}',
   '[data-provider-usage-panel] .pu-empty-btn{margin-top:8px;padding:4px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-state-business-primary);font-size:11px;cursor:pointer}',
   '[data-provider-usage-panel] .pu-popover{position:absolute;z-index:20;right:4px;bottom:44px;left:4px;max-height:min(520px,calc(100vh - 100px));overflow:hidden;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-shadow-lv2,0 10px 30px rgba(0,0,0,0.18))}',
@@ -116,7 +104,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-filter-all:disabled{cursor:default;opacity:.55}',
   '[data-provider-usage-panel] .pu-filter-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
   '[data-provider-usage-panel] .pu-no-match{padding:16px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px}',
-  '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:1fr}[data-provider-usage-panel] .pu-row{min-height:62px}[data-provider-usage-panel] .pu-window{font-size:9px}}',
+  '@media (max-width:640px){[data-provider-usage-panel] .pu-rows{grid-template-columns:repeat(3,minmax(0,1fr))}[data-provider-usage-panel] .pu-row{height:44px}}',
 ].join('\n')
 
 function compactUtcTimestamp(value: string | undefined): string | undefined {
@@ -128,74 +116,42 @@ function compactUtcTimestamp(value: string | undefined): string | undefined {
     + ' ' + pad(date.getUTCHours()) + ':' + pad(date.getUTCMinutes()) + ' UTC'
 }
 
-function quotaTooltip(quotaWindow: UsageWindowSummary): string | undefined {
-  const reset = compactUtcTimestamp(quotaWindow.resetsAt)
-  return reset === undefined ? undefined : quotaWindow.shortLabel + ' · ' + windowValueText(quotaWindow) + ' · ' + reset + ' 重置'
+function cardTitle(windows: readonly UsageWindowSummary[]): string | undefined {
+  if (windows.length === 0) return undefined
+  return windows.map(quotaWindow => {
+    const reset = compactUtcTimestamp(quotaWindow.resetsAt)
+    return quotaWindow.shortLabel + ' · ' + windowValueText(quotaWindow) + (reset === undefined ? '' : ' · ' + reset + ' 重置')
+  }).join(' · ')
 }
 
-/** One compact provider metric card. Statuses without data show a single status line. */
+/** One compact three-column mini. Empty quota renders an em dash. */
 function ProviderRow(props: { summary: ProviderUsageSummary, active: boolean }): ReactNode {
   const summary = props.summary
   const hasData = summary.status === 'ready' || summary.status === 'stale'
   const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
-  const headline = primary === undefined ? STATUS_TEXT[summary.status] : windowValueText(primary)
-  const details = summary.windows.filter(quotaWindow => quotaWindow !== primary).slice(0, 2)
+  const headline = primary === undefined
+    ? (summary.status === 'ready' ? '—' : STATUS_TEXT[summary.status])
+    : windowValueText(primary)
   const tone = usageTone(primary?.remainingPercent)
-  const staleUpdated = compactUtcTimestamp(summary.fetchedAt)
+  const title = cardTitle(summary.windows)
   return (
     <div
       role="group"
       className={'pu-row' + (tone === undefined ? '' : ' pu-' + tone) + (props.active ? ' pu-active' : '')}
-      aria-label={summary.name + ' ' + headline}
+      aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
+      {...title === undefined ? {} : { title }}
     >
       <span className="pu-top">
         <span className="pu-icon" aria-hidden>{providerInitial(summary.name)}</span>
         <span className="pu-name">{summary.name}</span>
-        {summary.status === 'stale'
-          ? <span className="pu-stale" title={staleUpdated === undefined ? undefined : '上次更新 ' + staleUpdated}>已过期</span>
-          : null}
+        {summary.status === 'stale' ? <span className="pu-stale">已过期</span> : null}
       </span>
-      {primary === undefined
-        ? <span className="pu-status">{headline}</span>
-        : (
-          <>
-            <span className="pu-metric" title={quotaTooltip(primary)}>
-              <small className="pu-primary-label">{primary.shortLabel}</small>
-              <b className="pu-primary">{headline}</b>
-            </span>
-            {primary.remainingPercent === undefined
-              ? null
-              : (
-                <span className="pu-meter" aria-hidden>
-                  <span className="pu-meter-fill" style={{ width: String(Math.max(0, Math.min(100, primary.remainingPercent))) + '%' }} />
-                </span>
-              )}
-          </>
-        )}
-      {details.length > 0
-        ? (
-          <span className="pu-windows">
-            {details.map(quotaWindow => {
-              const detailTone = usageTone(quotaWindow.remainingPercent)
-              return (
-                <span
-                  key={quotaWindow.id}
-                  className={'pu-window' + (detailTone === undefined ? '' : ' pu-window-' + detailTone)}
-                  title={quotaTooltip(quotaWindow)}
-                >
-                  <small>{quotaWindow.shortLabel}</small>
-                  <b>{windowValueText(quotaWindow)}</b>
-                </span>
-              )
-            })}
-          </span>
-        )
-        : null}
+      <b className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</b>
     </div>
   )
 }
 
-/** Controlled sidebar Provider Usage panel (desktop two columns, mobile one column). */
+/** Controlled sidebar Provider Usage panel (desktop and mobile: three-column minis). */
 export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
   const hidden = new Set(props.hiddenKeys ?? [])
   const visible = props.providers.filter(summary => !hidden.has(summary.providerKey))

@@ -199,7 +199,7 @@ function decodeCommandCodeUsage(usage: RecordValue): { fetchedAt: string, window
       ...(item.resetAt === undefined ? {} : { resetsAt: item.resetAt }),
     }))
   }
-  return windows.length === 0 ? undefined : { fetchedAt: usage.fetchedAt, windows }
+  return { fetchedAt: usage.fetchedAt, windows }
 }
 
 function codexWindowLabel(seconds: number): string {
@@ -254,9 +254,25 @@ function decodeCodexAuthStatus(value: unknown): ProviderUsageRead {
   return { status: 'ready', fetchedAt: new Date().toISOString(), windows }
 }
 
+async function waitForCodexUsage(signal: AbortSignal): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, 150)
+    const onAbort = (): void => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')) }
+    if (signal.aborted) { onAbort(); return }
+    signal.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
 async function readCodexUsage(rpc: ClientConnectionRpc, signal: AbortSignal): Promise<ProviderUsageRead> {
-  const result = await rpc.call('/codex', 'auth/status', {}, signal)
-  return result.ok ? decodeCodexAuthStatus(result.value) : { status: 'error', message: result.error.message }
+  const deadline = Date.now() + 1_500
+  let last: ProviderUsageRead = { status: 'error', message: 'Codex usage unavailable' }
+  while (!signal.aborted) {
+    const result = await rpc.call('/codex', 'auth/status', {}, signal)
+    last = result.ok ? decodeCodexAuthStatus(result.value) : { status: 'error', message: result.error.message }
+    if (last.status !== 'ready' || last.windows.length > 0 || Date.now() >= deadline) return last
+    await waitForCodexUsage(signal)
+  }
+  return last
 }
 
 type UsageDecoder = (usage: RecordValue) => { fetchedAt: string, windows: readonly UsageWindowSummary[] } | undefined
@@ -297,16 +313,25 @@ export interface ProviderUsageConfig {
   hiddenKeys: readonly string[]
 }
 
+export const USAGE_POLL_MS = 15 * 60 * 1000
+export const USAGE_MIN_REFETCH_MS = 5 * 60 * 1000
+
 export interface ProviderUsageStore {
   getSnapshot(): ProviderUsageStoreSnapshot
   subscribe(listener: () => void): () => void
   configure(config: ProviderUsageConfig): void
-  refresh(): void
+  refresh(keys?: readonly string[]): void
   dispose(): void
 }
 
 function hasUsageData(summary: ProviderUsageSummary | undefined): summary is ProviderUsageSummary {
   return summary !== undefined && summary.windows.length > 0 && (summary.status === 'ready' || summary.status === 'stale')
+}
+
+function isFresh(summary: ProviderUsageSummary | undefined, now: number): boolean {
+  if (!hasUsageData(summary) || summary.fetchedAt === undefined) return false
+  const fetched = Date.parse(summary.fetchedAt)
+  return Number.isFinite(fetched) && now - fetched < USAGE_MIN_REFETCH_MS
 }
 
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
@@ -318,6 +343,7 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
   const listeners = new Set<() => void>()
   let disposed = false
   let refreshGeneration = 0
+  let pollTimer: ReturnType<typeof setInterval> | undefined
 
   const notify = (): void => { for (const listener of listeners) listener() }
   const publish = (): void => {
@@ -353,9 +379,18 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
       if (!disposed) publish()
     })
   }
-  const sync = (refresh = false): void => {
-    for (const key of configuredKeys) if (!snapshot.hiddenKeys.includes(key)) read(key, refresh)
+  const visibleKeys = (keys?: readonly string[]): string[] => {
+    const wanted = keys === undefined ? configuredKeys : keys.filter(key => configuredKeys.includes(key))
+    return wanted.filter(key => !snapshot.hiddenKeys.includes(key))
+  }
+  const sync = (force = false, keys?: readonly string[]): void => {
+    const now = Date.now()
+    for (const key of visibleKeys(keys)) if (force || !isFresh(current.get(key), now)) read(key, force)
     publish()
+  }
+  const startPoll = (): void => {
+    if (pollTimer !== undefined) return
+    pollTimer = setInterval(() => { if (!disposed) sync(false) }, USAGE_POLL_MS)
   }
   return {
     getSnapshot: () => snapshot,
@@ -370,19 +405,29 @@ export function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsag
         const reader = readerByKey.get(key)
         if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
       }
-      sync()
+      sync(false)
+      startPoll()
     },
-    refresh: () => {
+    refresh: (keys) => {
       refreshGeneration += 1
-      for (const controller of active.values()) controller.abort()
-      active.clear()
-      for (const key of configuredKeys) if (!snapshot.hiddenKeys.includes(key)) {
+      const targets = visibleKeys(keys)
+      for (const [key, controller] of active) if (targets.includes(key)) { controller.abort(); active.delete(key) }
+      for (const key of targets) {
         const reader = readerByKey.get(key)
         const previous = current.get(key)
         if (reader !== undefined && !hasUsageData(previous)) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
       }
-      sync(true)
+      sync(true, keys)
     },
-    dispose: () => { disposed = true; for (const controller of active.values()) controller.abort(); active.clear(); listeners.clear(); current.clear(); configuredKeys = [] },
+    dispose: () => {
+      disposed = true
+      if (pollTimer !== undefined) clearInterval(pollTimer)
+      pollTimer = undefined
+      for (const controller of active.values()) controller.abort()
+      active.clear()
+      listeners.clear()
+      current.clear()
+      configuredKeys = []
+    },
   }
 }
