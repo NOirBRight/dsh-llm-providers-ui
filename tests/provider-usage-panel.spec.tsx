@@ -188,10 +188,10 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.textContent).toContain('$8.42')
   })
 
-  it('highlights only the current provider', () => {
-    const container = mount({ currentProviderKey: 'codex' })
-    expect(container.querySelectorAll('.pu-active').length).toBe(1)
-    expect(staticHtml({ currentProviderKey: 'codex' })).toContain('aria-label="Codex 38%"')
+  it('does not highlight any provider card', () => {
+    const container = mount()
+    expect(container.querySelectorAll('.pu-active').length).toBe(0)
+    expect(staticHtml()).toContain('aria-label="Codex 38%"')
   })
 
   it('keeps a low short-window warning visible without replacing the long-period headline', () => {
@@ -302,6 +302,12 @@ describe('ProviderUsagePanel callbacks', () => {
     expect(enabled).toHaveProperty('disabled', false)
     click(enabled)
     expect(onShowAll).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows usage-order handles in the visibility list', () => {
+    const container = mount({ onReorder: vi.fn() })
+    openPopover(container)
+    expect(container.querySelectorAll('[data-sortable-handle]').length).toBe(SIX.length)
   })
 
   it('closes the visibility popover with Escape', () => {

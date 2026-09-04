@@ -8,13 +8,12 @@ export interface ProviderUsagePanelProps {
     providers: readonly ProviderUsageSummary[];
     /** Hidden provider keys (e.g. from llm-providers settings). Defaults to visible-all. */
     hiddenKeys?: readonly string[];
-    /** Provider key of the current session; gets the active highlight. */
-    currentProviderKey?: string;
     /** Spins the refresh icon while a parent-driven refresh is in flight. */
     refreshing?: boolean;
     onRefresh: (providerKey?: string) => void;
     onToggleVisibility: (providerKey: string, visible: boolean) => void;
     onShowAll: () => void;
+    onReorder?: (keys: readonly string[]) => void;
 }
 /** Controlled sidebar Provider Usage panel (two-column minis, tap for details). */
 export declare function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode;

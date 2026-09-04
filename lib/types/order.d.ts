@@ -11,6 +11,7 @@ export declare const PROVIDER_ROUTES: Record<ProviderItemKey, string>;
 export interface ProviderOrderSettings {
     order: string[];
     hiddenUsageProviders: string[];
+    usageOrder: string[];
 }
 /** Decode the llm-providers settings section. Unknown input becomes an empty order with nothing hidden. */
 export declare function decodeProviderOrder(value: unknown): ProviderOrderSettings;
