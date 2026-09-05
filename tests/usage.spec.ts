@@ -84,7 +84,7 @@ describe('Provider Usage readers', () => {
     }))
 
     const result = await codexReader.read(rpc, true, signal)
-    expect(rpc.call).toHaveBeenCalledWith('/codex', 'auth/status', {}, signal)
+    expect(rpc.call).toHaveBeenCalledWith('/codex', 'auth/status', { refresh: true }, signal)
     expect(result).toMatchObject({
       status: 'ready',
       windows: [
@@ -97,9 +97,11 @@ describe('Provider Usage readers', () => {
 
   it('waits for Codex auth status to fill in async rate limits', async () => {
     let reads = 0
+    const payloads: unknown[] = []
     const signal = new AbortController().signal
-    const rpc = rpcFor(async () => {
+    const rpc = rpcFor(async (_channel, payload) => {
       reads += 1
+      payloads.push(payload)
       if (reads === 1) return { ok: true, value: { status: 'signed-in', usage: { rateLimits: [] } } }
       return {
         ok: true,
@@ -111,6 +113,7 @@ describe('Provider Usage readers', () => {
     })
     const result = await codexReader.read(rpc, true, signal)
     expect(reads).toBeGreaterThan(1)
+    expect(payloads).toEqual([{ refresh: true }, {}])
     expect(result).toMatchObject({ status: 'ready', windows: [{ shortLabel: 'W', remainingPercent: 41 }] })
   })
 
