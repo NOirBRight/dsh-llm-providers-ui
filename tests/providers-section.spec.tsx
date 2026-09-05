@@ -25,7 +25,20 @@ describe('ProvidersSection', () => {
       renderSlot,
     }))
     expect(html).toContain('data-card="llm-cursor"')
+    expect(html).toContain('data-provider-role="llm"')
+    expect(html).toContain('>LLM</span>')
     expect(html).not.toContain('drag:')
+  })
+
+  it('renders the Agent badge declared for a native-agent card', () => {
+    const html = renderToStaticMarkup(createElement(ProvidersSection, {
+      t: (key: 'title' | 'subtitle' | 'empty' | 'drag') => key,
+      registeredKeys: ['agent-antigravity'],
+      roleOf: () => 'agent',
+      renderSlot,
+    }))
+    expect(html).toContain('data-provider-role="agent"')
+    expect(html).toContain('>Agent</span>')
   })
 
   it('renders a left handle per card when two or more providers are registered', () => {

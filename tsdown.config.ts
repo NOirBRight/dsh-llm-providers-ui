@@ -54,6 +54,20 @@ const client: UserConfig = {
   },
 }
 
+const usageReaders: UserConfig = {
+  name: `${PACKAGE_ID}/usage-readers`,
+  entry: { 'usage-readers': 'lib/types/usage-readers.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [],
+  },
+}
+
 const sortable: UserConfig = {
   name: `${PACKAGE_ID}/sortable`,
   entry: { sortable: 'lib/types/sortable.js' },
@@ -77,6 +91,7 @@ export default ({ env }: Pick<UserConfig, 'env'>): UserConfig[] => {
   if (face === 'host') return [host]
   if (face === 'client') return [client]
   if (face === 'sortable') return [sortable]
+  if (face === 'usage-readers') return [usageReaders]
   if (face !== undefined) throw new Error(`unknown DSH build face: ${String(face)}`)
-  return [host, client, sortable]
+  return [host, client, sortable, usageReaders]
 }
