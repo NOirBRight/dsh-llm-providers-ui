@@ -21,6 +21,7 @@ import { disposeAfterSetup, disposeReverse } from './cleanup.js'
 import { installProvidersNavIcon } from './nav-icon.js'
 import { copy } from './provider-section.js'
 import { installProviderUsage } from './usage-action.js'
+import { ProviderDirectory } from './directory.js'
 
 export const name = 'dsh-llm-providers-ui-client'
 export const inject = ['slots', 'locale', 'settingsScope']
@@ -111,6 +112,7 @@ function installSectionTransaction(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
   t: () => string,
+  directory: ProviderDirectory,
 ): Disposer {
   let stopSection: Disposer | undefined
   let stopNav: Disposer | undefined
@@ -138,8 +140,9 @@ function installSectionTransaction(
       listener => {
         const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, listener)
         const stopSettings = orderScope.subscribe(listener)
+        const stopDirectory = directory.subscribe(listener)
         return () => {
-          disposeReverse([stopSlot, stopSettings], 'dsh-llm-providers-ui: section listener cleanup failed')
+          disposeReverse([stopDirectory, stopSlot, stopSettings], 'dsh-llm-providers-ui: section listener cleanup failed')
         }
       },
       () => {
@@ -150,6 +153,7 @@ function installSectionTransaction(
         }
       },
       keys => { void orderScope.set('order', keys) },
+      key => directory.roleOf(key),
     )))
     stopSection = section
     try {
@@ -182,7 +186,9 @@ function installSectionTransaction(
  */
 export function apply(ctx: ClientContext, _config: Config = {}): void {
   ctx.effect(() => {
-    const disposers: Disposer[] = []
+    const existing = ctx.get('providerDirectory')
+    const directory = existing ?? new ProviderDirectory()
+    const disposers: Disposer[] = existing === undefined ? [ctx.provide('providerDirectory', directory)] : []
     try {
       disposers.push(ctx.locale.register(PROVIDERS_LOCALE_NS, copy))
 
@@ -194,9 +200,9 @@ export function apply(ctx: ClientContext, _config: Config = {}): void {
 
       disposers.push(installMissingOwnerDiagnostic(orderScope))
       disposers.push(installMissingSectionDiagnostic(ctx, orderScope))
-      disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav')))
+      disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav'), directory))
       try {
-        disposers.push(installProviderUsage(ctx, orderScope))
+        disposers.push(installProviderUsage(ctx, orderScope, directory))
       } catch (error) {
         console.warn('[dsh-llm-providers-ui] Provider Usage widget failed; keeping the Providers settings page', error)
       }

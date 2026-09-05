@@ -20,7 +20,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha4')
 const FIXTURE_TARBALL_ROOT = join(FIXTURE_ROOT, 'tarballs')
 const PACKAGE_NAME = 'dsh-llm-providers-ui'
-const PACKAGE_VERSION = '0.1.8'
+const PACKAGE_VERSION = '0.1.9'
 const ROOT_ARCHIVE = join(ROOT, PACKAGE_NAME + '-' + PACKAGE_VERSION + '.tgz')
 const OFFICIAL_ALPHA4 = '0.1.2-alpha.4'
 const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.4'
@@ -57,10 +57,12 @@ const REQUIRED_FILES = [
   'lib/client.js',
   'lib/order.js',
   'lib/sortable.js',
+  'lib/usage-readers.js',
   'lib/types/index.d.ts',
   'lib/types/client/index.d.ts',
   'lib/types/order.d.ts',
   'lib/types/sortable.d.ts',
+  'lib/types/usage-readers.d.ts',
   'lib/types/client/ProvidersSection.d.ts',
   'lib/types/client/provider-section.d.ts',
 ]
@@ -70,6 +72,7 @@ const EXPECTED_EXPORTS = {
   './package.json': './package.json',
   './order': { types: './lib/types/order.d.ts', default: './lib/order.js' },
   './sortable': { types: './lib/types/sortable.d.ts', default: './lib/sortable.js' },
+  './usage-readers': { types: './lib/types/usage-readers.d.ts', default: './lib/usage-readers.js' },
 }
 const BUILTIN_MODULES = new Set([...builtinModules, ...builtinModules.map(name => 'node:' + name)])
 const SOURCE_SEGMENTS = new Set(['src', 'source', 'test', 'tests', '__tests__', 'scripts'])

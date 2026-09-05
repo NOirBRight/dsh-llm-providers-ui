@@ -36,7 +36,8 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 - `dsh-llm-providers-ui`（Host）：`applySavedOrder`、`decodeProviderOrder`、`sortCatalogGroups`、`PROVIDER_ITEM_ORDER` 等。构建产物：`lib/index.js` + `lib/types`。
 - `dsh-llm-providers-ui/order`（纯函数，ESM）：同一套 order helper，供 `dsh-model-switch` 与 provider picker 使用的稳定构建产物。构建产物：`lib/order.js` + `lib/types/order.d.ts`。provider 插件 `alwaysBundle` 该构建产物；不要从 `src` import。
 - `dsh-llm-providers-ui/sortable`（client 工具，ESM）：`SortableList` 拖拽排序实现。构建产物：`lib/sortable.js` + `lib/types/sortable.d.ts`。唯一实现在 `src/client/SortableList.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/SortableList.tsx` import。
-- `dsh-llm-providers-ui/client`（Web）：owner 插件接线。构建产物：`lib/client.js`（ModuleLoader CJS）+ `lib/types/client`。不要 import `./src/*`。
+- `dsh-llm-providers-ui/client`（Web）：owner 插件接线与 `providerDirectory` Cordis service 声明。构建产物：`lib/client.js`（ModuleLoader CJS）+ `lib/types/client`；只导出插件入口。不要 import `./src/*`。
+- `dsh-llm-providers-ui/usage-readers`（纯 ESM）：供 provider client bundle 使用的 `ProviderUsageReader` 类型与各 vendor 的 `create*UsageReader` 工厂。构建产物：`lib/usage-readers.js` + `lib/types/usage-readers.d.ts`。provider 插件应 `alwaysBundle` 此导出。
 
 本包只暴露上面列出的构建后 `lib/` 入口；调用方应 import 这些包导出，而非源码路径。
 
@@ -46,7 +47,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## Consumer contract
 
-provider 插件只 import 自己的设置/模型契约，并以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片。
+provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, usage }`； disposer 负责注销。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
 `dsh-model-switch` 经构建产物 `dsh-llm-providers-ui/order` 复用 `sortCatalogGroups`。
 
 在 npm 发布之前，lab checkout 在开发时可用 `link:../dsh-llm-providers-ui`，但工作区 `package.json` 不得提交 `link:` spec。

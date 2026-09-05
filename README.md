@@ -34,7 +34,8 @@ The 14px globe glyph on the nav row is an isolated temporary adapter (`src/clien
 - `dsh-llm-providers-ui` (Host): `applySavedOrder`, `decodeProviderOrder`, `sortCatalogGroups`, `PROVIDER_ITEM_ORDER`, etc. Built artifact: `lib/index.js` + `lib/types`.
 - `dsh-llm-providers-ui/order` (pure, ESM): same order helpers, stable built utility for `dsh-model-switch` and provider pickers. Built artifact: `lib/order.js` + `lib/types/order.d.ts`. Provider plugins `alwaysBundle` this built export; do not import from `src`.
 - `dsh-llm-providers-ui/sortable` (client utility, ESM): `SortableList` drag-reorder implementation. Built artifact: `lib/sortable.js` + `lib/types/sortable.d.ts`. Single implementation lives in `src/client/SortableList.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/SortableList.tsx`.
-- `dsh-llm-providers-ui/client` (Web): owner plugin wiring. Built artifact: `lib/client.js` (ModuleLoader CJS) + `lib/types/client`. Do not import `./src/*`.
+- `dsh-llm-providers-ui/client` (Web): owner plugin wiring and the `providerDirectory` Cordis service declaration. Built artifact: `lib/client.js` (ModuleLoader CJS) + `lib/types/client`; it exports only the plugin entrypoints. Do not import `./src/*`.
+- `dsh-llm-providers-ui/usage-readers` (pure, ESM): `ProviderUsageReader` types and vendor `create*UsageReader` factories for provider client bundles. Built artifact: `lib/usage-readers.js` + `lib/types/usage-readers.d.ts`. Provider plugins `alwaysBundle` this export.
 
 The package exposes only the built `lib/` entrypoints listed above; consumers should import those package exports rather than source paths.
 
@@ -44,7 +45,7 @@ This package is a bundle that must be installed explicitly. Until DSH's third-pa
 
 ## Consumer contract
 
-Provider plugins import only their own settings/model contracts and register their card under `settings.provider.item` with their `settingsNs` key.
+Provider plugins register their card under `settings.provider.item` with their `settingsNs` key and register `{ key, role, usage }` on `ctx.providerDirectory` inside an effect. The returned disposer owns the registration. Usage-enabled providers import their reader factory from `dsh-llm-providers-ui/usage-readers`. Unregistered cards keep the LLM badge and do not receive a Provider Usage tile.
 `dsh-model-switch` reuses `sortCatalogGroups` via the built `dsh-llm-providers-ui/order` export.
 
 Until this package is published to npm, lab checkouts may use `link:../dsh-llm-providers-ui` in dev, but workspace `package.json` must not commit `link:` specs.
