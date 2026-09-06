@@ -25,4 +25,13 @@ describe('ProviderDirectory', () => {
     expect(notify).toHaveBeenCalledTimes(2)
     stop()
   })
+
+  it('defaults header ownership to legacy and keeps shared registrations', () => {
+    const directory = new ProviderDirectory()
+    expect(directory.headerOf('llm-codex')).toBe('legacy')
+    const unregister = directory.register({ key: 'llm-codex', header: 'shared' })
+    expect(directory.headerOf('llm-codex')).toBe('shared')
+    unregister()
+    expect(directory.headerOf('llm-codex')).toBe('legacy')
+  })
 })

@@ -30,6 +30,10 @@
       "types": "./lib/types/sortable.d.ts",
       "default": "./lib/sortable.js"
     },
+    "./provider-ui": {
+      "types": "./lib/types/provider-ui.d.ts",
+      "default": "./lib/provider-ui.js"
+    },
     "./usage-readers": {
       "types": "./lib/types/usage-readers.d.ts",
       "default": "./lib/usage-readers.js"
@@ -39,6 +43,7 @@
     "lib/index.js",
     "lib/client.js",
     "lib/sortable.js",
+    "lib/provider-ui.js",
     "lib/order.js",
     "lib/usage-readers.js",
     "lib/types/**/*.d.ts",

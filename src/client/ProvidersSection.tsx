@@ -1,6 +1,6 @@
 /** Settings > LLM Providers page shell. Provider cards arrive through settings.provider.item. */
 
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type {
   PropsLocale,
@@ -11,7 +11,8 @@ import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-setti
 import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
 import { SortableList } from './SortableList.js'
-import type { ProviderRole } from './directory.js'
+import type { ProviderHeaderOwnership, ProviderRole } from './directory.js'
+import { providerUiCss } from './provider-ui.js'
 
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps =
@@ -32,12 +33,14 @@ export interface ProvidersSectionProps {
   savedOrder?: readonly string[]
   /** Persist a new card order. */
   onReorder?: (keys: string[]) => void
-  /** Disable dragging while settings are not writable. */
+  /** Disable sorting while settings are not writable. */
   disabled?: boolean
   /** Shell close affordance from the official settings.section owner props. */
   close?: SettingsSectionOwnerProps['close']
   /** Resolve the shell-owned badge for a Provider card. */
   roleOf?: (key: string) => ProviderRole
+  /** Resolve who renders a Provider header. Shared cards own their badge; legacy cards keep the shell fallback. */
+  headerOf?: (key: string) => ProviderHeaderOwnership
 }
 
 const pageStyle: CSSProperties = {
@@ -49,14 +52,28 @@ const titleStyle: CSSProperties = {
 const subtitleStyle: CSSProperties = {
   margin: '4px 0 0', color: 'var(--dsw-alias-label-secondary)', fontSize: 13, lineHeight: '20px',
 }
-const listStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 12 }
+const toolbarStyle: CSSProperties = { display: 'flex', justifyContent: 'flex-end' }
+const sortButtonStyle: CSSProperties = {
+  minHeight: 34, border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 18,
+  padding: '6px 14px', background: 'var(--dsw-alias-bg-layer-1)',
+  color: 'var(--dsw-alias-label-primary)', fontSize: 13, lineHeight: '20px', cursor: 'pointer',
+}
 const emptyStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: '20px' }
-const cardStyle: CSSProperties = { position: 'relative' }
-const badgeStyle: CSSProperties = {
-  position: 'absolute', top: 12, right: 12, zIndex: 1,
-  border: '1px solid var(--dsw-alias-border-secondary)', borderRadius: 999,
-  background: 'var(--dsw-alias-background-secondary)', color: 'var(--dsw-alias-label-secondary)',
-  padding: '1px 6px', fontSize: 11, fontWeight: 600, lineHeight: '16px', letterSpacing: '0.02em',
+const fallbackWrapStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }
+const fallbackBadgeBase: CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', alignSelf: 'flex-start', whiteSpace: 'nowrap',
+  fontSize: 10, fontWeight: 500, lineHeight: '16px', padding: '0 5px', borderRadius: 3,
+  border: '1px solid transparent',
+}
+const fallbackBadgeLlm: CSSProperties = {
+  color: 'var(--dsw-alias-label-secondary)',
+  borderColor: 'var(--dsw-alias-border-secondary)',
+  background: 'transparent',
+}
+const fallbackBadgeAgent: CSSProperties = {
+  color: 'var(--dsw-alias-bg-layer-1)',
+  borderColor: 'var(--dsw-alias-label-primary)',
+  background: 'var(--dsw-alias-label-primary)',
 }
 
 /** Bind the shared page to live keyed-slot and settings snapshots. */
@@ -66,6 +83,7 @@ export function bindProvidersSection(
   readOrder: () => { keys: readonly string[], disabled: boolean },
   onReorder: (keys: string[]) => void,
   roleOf: (key: string) => ProviderRole,
+  headerOf?: (key: string) => ProviderHeaderOwnership,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
@@ -80,48 +98,73 @@ export function bindProvidersSection(
         disabled={order.disabled}
         onReorder={onReorder}
         roleOf={roleOf}
+        {...(headerOf === undefined ? {} : { headerOf })}
       />
     )
   }
 }
 
-/** Render installed provider cards. Two or more cards grow a left drag handle. */
+/**
+ * Render installed provider cards as a plain divider list. Sorting is an
+ * explicit mode: one SortableList stays mounted in both modes with the same
+ * keyed rows, so live slot state (authentication, drafts) survives the mode
+ * toggle and every reorder.
+ */
 export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
-  const t = props.t ?? ((key: 'title' | 'subtitle' | 'empty' | 'drag') => key)
+  const t = props.t ?? ((key: ProviderSectionLocaleKey) => key)
   const keys = applySavedOrder(props.registeredKeys ?? [], props.savedOrder ?? [])
   const items = keys.map(key => ({ key }))
+  const [sorting, setSorting] = useState(false)
+  const showToggle = keys.length > 1 && props.disabled !== true
+  const sortable = sorting && showToggle
   const renderCard = (item: { key: string }): ReactNode => {
     const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {}, { entryKey: item.key })
     if (node == null) return null
     const role = props.roleOf?.(item.key) ?? 'llm'
+    if (props.headerOf?.(item.key) === 'shared') return <div data-provider-slot="" data-provider-role={role}>{node}</div>
     return (
-      <div data-provider-role={role} style={cardStyle}>
-        <span style={badgeStyle}>{role === 'agent' ? 'Agent' : 'LLM'}</span>
+      <div data-provider-slot="" data-provider-role={role} style={fallbackWrapStyle}>
+        <span style={{ ...fallbackBadgeBase, ...(role === 'agent' ? fallbackBadgeAgent : fallbackBadgeLlm) }}>{role === 'agent' ? 'Agent' : 'LLM'}</span>
         {node}
       </div>
     )
   }
   const body = keys.length === 0
     ? <p style={emptyStyle}>{t('empty')}</p>
-    : keys.length < 2 || props.disabled === true
-      ? <div style={listStyle}>{items.map(item => <Fragment key={item.key}>{renderCard(item)}</Fragment>)}</div>
-      : (
+    : (
+      <div data-providers-list="">
         <SortableList
-          chrome="card"
+          chrome="plain"
           items={items}
           getId={item => item.key}
           dragLabel={item => t('drag') + ': ' + item.key}
+          moveButtons
+          moveUpLabel={item => t('moveUp') + ': ' + item.key}
+          moveDownLabel={item => t('moveDown') + ': ' + item.key}
+          sorting={sortable}
+          {...(props.disabled === undefined ? {} : { disabled: props.disabled })}
           onReorder={next => { props.onReorder?.(next.map(item => item.key)) }}
           renderItem={item => renderCard(item)}
         />
-      )
+      </div>
+    )
 
   return (
     <div data-providers-section={PROVIDERS_LOCALE_NS} style={pageStyle}>
+      <style>{providerUiCss}</style>
       <header>
         <h2 style={titleStyle}>{t('title')}</h2>
         <p style={subtitleStyle}>{t('subtitle')}</p>
       </header>
+      {showToggle
+        ? (
+          <div style={toolbarStyle}>
+            <button type="button" style={sortButtonStyle} aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>
+              {sorting ? t('done') : t('sort')}
+            </button>
+          </div>
+        )
+        : null}
       {body}
     </div>
   )

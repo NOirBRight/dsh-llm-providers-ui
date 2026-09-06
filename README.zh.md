@@ -36,6 +36,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 - `dsh-llm-providers-ui`（Host）：`applySavedOrder`、`decodeProviderOrder`、`sortCatalogGroups`、`PROVIDER_ITEM_ORDER` 等。构建产物：`lib/index.js` + `lib/types`。
 - `dsh-llm-providers-ui/order`（纯函数，ESM）：同一套 order helper，供 `dsh-model-switch` 与 provider picker 使用的稳定构建产物。构建产物：`lib/order.js` + `lib/types/order.d.ts`。provider 插件 `alwaysBundle` 该构建产物；不要从 `src` import。
 - `dsh-llm-providers-ui/sortable`（client 工具，ESM）：`SortableList` 拖拽排序实现。构建产物：`lib/sortable.js` + `lib/types/sortable.d.ts`。唯一实现在 `src/client/SortableList.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/SortableList.tsx` import。
+- `dsh-llm-providers-ui/provider-ui`（client 工具，ESM）：共享 `ProviderCardHeader`、`ProviderQuotaMeter`、`normalizeQuotaRemaining` 与 `providerUiCss`。构建产物：`lib/provider-ui.js` + `lib/types/provider-ui.d.ts`。唯一实现在 `src/client/provider-ui.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/provider-ui.tsx` import。
 - `dsh-llm-providers-ui/client`（Web）：owner 插件接线与 `providerDirectory` Cordis service 声明。构建产物：`lib/client.js`（ModuleLoader CJS）+ `lib/types/client`；只导出插件入口。不要 import `./src/*`。
 - `dsh-llm-providers-ui/usage-readers`（纯 ESM）：供 provider client bundle 使用的 `ProviderUsageReader` 类型与各 vendor 的 `create*UsageReader` 工厂。构建产物：`lib/usage-readers.js` + `lib/types/usage-readers.d.ts`。provider 插件应 `alwaysBundle` 此导出。
 
@@ -47,7 +48,8 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## Consumer contract
 
-provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, usage }`； disposer 负责注销。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
+provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, header, usage }`； disposer 负责注销。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
+已迁移的卡片使用 `dsh-llm-providers-ui/provider-ui` 的共享 header（`ProviderCardHeader`，`role`、调用方 `status` 与头条 `quota`；`title`/`mark`/`summary`/`open`/`unsaved` 保持旧 codex 布局），根节点标记 `li[data-provider-card][data-provider-role]`、header 按钮标记 `data-provider-card-header`、正文标记 `data-provider-body`，引入一份 `<style>{providerUiCss}</style>`，并声明 `header: 'shared'` 让外壳去掉兜底 badge。缺失额度不渲染 meter，绝不画成零；`normalizeQuotaRemaining` 保留精度，NaN/Infinity/越界一律视为不可用。
 `dsh-model-switch` 经构建产物 `dsh-llm-providers-ui/order` 复用 `sortCatalogGroups`。
 
 在 npm 发布之前，lab checkout 在开发时可用 `link:../dsh-llm-providers-ui`，但工作区 `package.json` 不得提交 `link:` spec。

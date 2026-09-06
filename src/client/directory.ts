@@ -4,14 +4,19 @@ import type { ProviderUsageReader } from './usage.ts'
 
 export type ProviderRole = 'llm' | 'agent'
 
+/** Who renders the provider card header. Shared cards use the provider-ui header; legacy cards keep the shell fallback badge. */
+export type ProviderHeaderOwnership = 'shared' | 'legacy'
+
 export interface ProviderDeclaration {
   key: string
   role?: ProviderRole
+  header?: ProviderHeaderOwnership
   usage?: ProviderUsageReader
 }
 
 interface ProviderEntry {
   role: ProviderRole
+  header: ProviderHeaderOwnership
   usage?: ProviderUsageReader
 }
 
@@ -28,6 +33,7 @@ export class ProviderDirectory {
   register(declaration: ProviderDeclaration): () => void {
     this.entries.set(declaration.key, {
       role: declaration.role ?? 'llm',
+      header: declaration.header ?? 'legacy',
       ...(declaration.usage === undefined ? {} : { usage: declaration.usage }),
     })
     this.notify()
@@ -44,6 +50,16 @@ export class ProviderDirectory {
    */
   roleOf(key: string): ProviderRole {
     return this.entries.get(key)?.role ?? 'llm'
+  }
+
+  /**
+   * Read who renders a Provider header, defaulting undeclared cards to legacy.
+   * The shell renders its fallback badge only for legacy cards.
+   * @param key - Provider card key.
+   * @returns shared for migrated cards, legacy otherwise.
+   */
+  headerOf(key: string): ProviderHeaderOwnership {
+    return this.entries.get(key)?.header ?? 'legacy'
   }
 
   /**

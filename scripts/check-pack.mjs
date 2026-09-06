@@ -57,11 +57,14 @@ const REQUIRED_FILES = [
   'lib/client.js',
   'lib/order.js',
   'lib/sortable.js',
+  'lib/provider-ui.js',
   'lib/usage-readers.js',
   'lib/types/index.d.ts',
   'lib/types/client/index.d.ts',
   'lib/types/order.d.ts',
   'lib/types/sortable.d.ts',
+  'lib/types/provider-ui.d.ts',
+  'lib/types/client/provider-ui.d.ts',
   'lib/types/usage-readers.d.ts',
   'lib/types/client/ProvidersSection.d.ts',
   'lib/types/client/provider-section.d.ts',
@@ -72,6 +75,7 @@ const EXPECTED_EXPORTS = {
   './package.json': './package.json',
   './order': { types: './lib/types/order.d.ts', default: './lib/order.js' },
   './sortable': { types: './lib/types/sortable.d.ts', default: './lib/sortable.js' },
+  './provider-ui': { types: './lib/types/provider-ui.d.ts', default: './lib/provider-ui.js' },
   './usage-readers': { types: './lib/types/usage-readers.d.ts', default: './lib/usage-readers.js' },
 }
 const BUILTIN_MODULES = new Set([...builtinModules, ...builtinModules.map(name => 'node:' + name)])

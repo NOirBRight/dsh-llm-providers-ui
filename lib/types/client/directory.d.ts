@@ -1,9 +1,12 @@
 /** Open registration service for Provider card roles and quota readers. */
 import type { ProviderUsageReader } from './usage.ts';
 export type ProviderRole = 'llm' | 'agent';
+/** Who renders the provider card header. Shared cards use the provider-ui header; legacy cards keep the shell fallback badge. */
+export type ProviderHeaderOwnership = 'shared' | 'legacy';
 export interface ProviderDeclaration {
     key: string;
     role?: ProviderRole;
+    header?: ProviderHeaderOwnership;
     usage?: ProviderUsageReader;
 }
 /** Lets client plugins publish their Provider card role and optional quota reader. */
@@ -22,6 +25,13 @@ export declare class ProviderDirectory {
      * @returns The published role or LLM for an undeclared card.
      */
     roleOf(key: string): ProviderRole;
+    /**
+     * Read who renders a Provider header, defaulting undeclared cards to legacy.
+     * The shell renders its fallback badge only for legacy cards.
+     * @param key - Provider card key.
+     * @returns shared for migrated cards, legacy otherwise.
+     */
+    headerOf(key: string): ProviderHeaderOwnership;
     /**
      * Read the optional quota reader for a Provider card.
      * @param key - Provider card key.

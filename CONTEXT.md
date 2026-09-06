@@ -5,7 +5,7 @@ The Providers settings page and the sidebar Provider Usage tiles. Installed LLM 
 ## Language
 
 **Provider directory**:
-The open registration port. A plugin declares its card key, role, and quota reader. The shell does not own a per-plugin reader list.
+The open registration port. A plugin declares its card key, role, header ownership (`shared` once it renders the provider-ui header), and quota reader. The shell does not own a per-plugin reader list.
 _Avoid_: Builtin reader table, Provider registry (DSH core)
 
 **Role badge**:
@@ -13,5 +13,5 @@ _Avoid_: Builtin reader table, Provider registry (DSH core)
 _Avoid_: Type, Kind, Runtime badge
 
 **Quota**:
-Vendor remaining percent (windows such as 5h / weekly). Shown on the Provider card and Provider Usage tiles. Not DSH session token fold.
+Vendor remaining percent (windows such as 5h / weekly). Shown on the Provider card and Provider Usage tiles. Missing quota renders no meter, never zero; out-of-range readings are unavailable, never clamped. Not DSH session token fold.
 _Avoid_: tok/s footer, estimated tokens, usage-monitor

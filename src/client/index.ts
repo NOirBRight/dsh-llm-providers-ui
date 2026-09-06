@@ -154,6 +154,7 @@ function installSectionTransaction(
       },
       keys => { void orderScope.set('order', keys) },
       key => directory.roleOf(key),
+      key => directory.headerOf(key),
     )))
     stopSection = section
     try {
