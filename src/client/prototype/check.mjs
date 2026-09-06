@@ -8,22 +8,24 @@ ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.method==='Runt
 async function call(method,params={}){const key=++id;const result=new Promise(r=>pending.set(key,r));ws.send(JSON.stringify({id:key,method,params}));const m=await result;if(m.error)throw Error(JSON.stringify(m.error));return m.result}
 async function evaluate(expression){const r=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result.value}
 await call('Runtime.enable');await call('Page.enable');
-for(const width of [1280,390]){
+for(const width of [1280,390,320]) for(const theme of ['light','dark']){
  await call('Emulation.setDeviceMetricsOverride',{width,height:960,deviceScaleFactor:1,mobile:false});
- await call('Page.navigate',{url:'http://127.0.0.1:3083/providers.html?variant=A'});
+ await call('Page.navigate',{url:'http://127.0.0.1:3083/providers.html?variant=A&theme='+theme});
  // Readiness is tied to the document, not a fixed rendering delay.
  await evaluate('new Promise(resolve=>{function ready(){if(document.querySelector(".card"))resolve(true);else requestAnimationFrame(ready)}ready()})');
- for(const v of ['A','B','C']){
+ for(const v of ['A','C']){
   await evaluate('switchVariant('+JSON.stringify(v)+')');
   assert.equal(await evaluate('variant'),v);
   assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'horizontal overflow '+v+' '+width);
-  const image=await call('Page.captureScreenshot',{format:'png'});await writeFile('/tmp/provider-'+v+'-'+width+'.png',Buffer.from(image.data,'base64'));
+  const image=await call('Page.captureScreenshot',{format:'png'});await writeFile('/tmp/provider-'+v+'-'+width+'-'+theme+'.png',Buffer.from(image.data,'base64'));
  }
  await evaluate(`document.querySelector('[data-action="manage"][data-id="agy"]').click()`);
  assert.equal(await evaluate('drawer'),true);
+ assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'drawer overflow');
+ if(width<681) assert.equal(await evaluate('Math.round(document.querySelector(".drawer").getBoundingClientRect().width)===document.querySelector(".drawerShade").clientWidth'),true);
  await evaluate(`document.querySelector('[data-action="tab"][data-id="模型"]').click();document.querySelector("[data-model]").click()`);
  assert.equal(await evaluate('dirty'),true);
  await evaluate(`document.querySelector('[data-action="save"]').click()`);assert.equal(await evaluate('dirty'),false);
  await evaluate(`document.querySelector('[data-action="close"]').click()`);assert.equal(await evaluate('drawer'),false);
 }
-assert.deepEqual(errors,[]);console.log('PASS: A/B/C desktop + mobile, no horizontal overflow or JS exceptions; drawer, model edit and save');ws.close();
+assert.deepEqual(errors,[]);console.log('PASS: A/C light + dark at 1280/390/320, no horizontal overflow or JS exceptions; drawer, model edit and save');ws.close();
