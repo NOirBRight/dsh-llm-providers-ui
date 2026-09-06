@@ -61,6 +61,28 @@ describe('ProviderQuotaMeter', () => {
     expect(html).toContain('aria-valuenow="99.9"')
     expect(html).toContain('99.9%')
   })
+
+  it('uses one amber semantic fill below 20 with no red tier', () => {
+    const low = renderToStaticMarkup(createElement(ProviderQuotaMeter, { remainingPercent: 5, label: 'Month' }))
+    expect(low).toContain('var(--dsw-alias-state-warn-primary)')
+    const edge = renderToStaticMarkup(createElement(ProviderQuotaMeter, { remainingPercent: 19.9, label: 'Month' }))
+    expect(edge).toContain('var(--dsw-alias-state-warn-primary)')
+    const ok = renderToStaticMarkup(createElement(ProviderQuotaMeter, { remainingPercent: 20, label: 'Month' }))
+    expect(ok).not.toContain('var(--dsw-alias-state-warn-primary)')
+  })
+
+  it('renders header and meter without hardcoded hues', () => {
+    const html = renderToStaticMarkup(createElement(ProviderCardHeader, {
+      title: 'Cursor',
+      mark: createElement('span', {}, 'Cu'),
+      summary: '1 model',
+      open: false,
+      role: 'agent',
+      status: 'signed in',
+      quota: { remainingPercent: 8, label: 'Month' },
+    }))
+    expect(html).not.toMatch(/#[0-9a-f]{6}/iu)
+  })
 })
 
 describe('ProviderCardHeader', () => {

@@ -79,8 +79,8 @@ const meterSegmentsStyle: CSSProperties = {
   position: 'absolute', inset: 0, pointerEvents: 'none',
   background: 'repeating-linear-gradient(to right, transparent 0, transparent calc(10% - 1px), var(--dsw-alias-bg-layer-1) calc(10% - 1px), var(--dsw-alias-bg-layer-1) 10%)',
 }
-const meterWarnFill: CSSProperties = { background: 'color-mix(in srgb, #c47b08 55%, var(--dsw-alias-label-secondary))' }
-const meterLowFill: CSSProperties = { background: 'color-mix(in srgb, #d94848 55%, var(--dsw-alias-label-secondary))' }
+/** Approved A low-quota fill: amber only, no red tier, no hardcoded hue. */
+const meterWarnFill: CSSProperties = { background: 'var(--dsw-alias-state-warn-primary)' }
 const meterDetailStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 11, lineHeight: '16px' }
 const meterMissingStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 12, lineHeight: '18px' }
 
@@ -91,8 +91,7 @@ export function ProviderQuotaMeter(props: ProviderQuotaMeterProps): ReactNode {
   if (remaining === undefined) {
     return <span data-provider-quota-missing="" style={meterMissingStyle}>{props.emptyLabel ?? '\u2014'}</span>
   }
-  const low = remaining <= 5
-  const warn = remaining < 20 && !low
+  const warn = remaining < 20
   const text = String(remaining)
   return (
     <span data-provider-quota="" style={meterWrapStyle} {...(props.id === undefined ? {} : { id: props.id })}>
@@ -109,7 +108,7 @@ export function ProviderQuotaMeter(props: ProviderQuotaMeterProps): ReactNode {
         aria-valuenow={remaining}
         style={meterTrackStyle}
       >
-        <span style={{ ...meterFillBase, ...(low ? meterLowFill : warn ? meterWarnFill : {}), width: text + '%' }}>
+        <span style={{ ...meterFillBase, ...(warn ? meterWarnFill : {}), width: text + '%' }}>
           <span style={meterKnobStyle} />
         </span>
         <span aria-hidden="true" style={meterSegmentsStyle} />
