@@ -48,7 +48,7 @@ const pageStyle: CSSProperties = {
 }
 // Keep the native dialog visible inside the fading sidebar rail; scope layout changes to this page.
 const providerShellCss = `
-div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility:visible!important}
+div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility:visible!important;overflow:visible!important;z-index:1000!important;pointer-events:auto!important}
 @media(max-width:680px){
  [role="dialog"]:has([data-providers-section]){flex-direction:column;width:calc(100% - 16px);max-width:calc(100% - 16px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)}
  [role="dialog"]:has([data-providers-section])>nav{width:100%;min-width:0;flex:none;padding:8px;border-right:0;border-bottom:1px solid var(--dsw-alias-border-l2)}

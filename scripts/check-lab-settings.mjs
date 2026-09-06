@@ -67,6 +67,7 @@ try {
     assert.equal(data.roles.filter(role => role === 'agent').length, 1)
     assert.equal(data.overflow, false, 'Document overflow at ' + width)
     assert.equal(data.cardsOverflow, false, 'Card overflow at ' + width)
+    assert.equal(await evaluate('(()=>{const headers=[...document.querySelectorAll("[data-provider-card-header]")];return headers.filter(h=>{const r=h.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight}).every(h=>{const r=h.getBoundingClientRect();return h.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))})})()'), true, 'Provider headers must not be occluded by the sidebar or conversation')
     await screenshot('lab-providers-' + width + '-' + theme.toLowerCase())
     await evaluate('document.querySelector("[data-provider-card=antigravity] [data-provider-card-header]").click()')
     await wait('document.querySelector("[data-provider-card=antigravity] [data-provider-card-header]").getAttribute("aria-expanded")==="true"')
