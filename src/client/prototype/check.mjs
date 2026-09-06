@@ -11,21 +11,15 @@ await call('Runtime.enable');await call('Page.enable');
 for(const width of [1280,390,320]) for(const theme of ['light','dark']){
  await call('Emulation.setDeviceMetricsOverride',{width,height:960,deviceScaleFactor:1,mobile:false});
  await call('Page.navigate',{url:'http://127.0.0.1:3083/providers.html?variant=A&theme='+theme});
- // Readiness is tied to the document, not a fixed rendering delay.
  await evaluate('new Promise(resolve=>{function ready(){if(document.querySelector(".card"))resolve(true);else requestAnimationFrame(ready)}ready()})');
- for(const v of ['A','C']){
-  await evaluate('switchVariant('+JSON.stringify(v)+')');
-  assert.equal(await evaluate('variant'),v);
-  assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'horizontal overflow '+v+' '+width);
-  const image=await call('Page.captureScreenshot',{format:'png'});await writeFile('/tmp/provider-'+v+'-'+width+'-'+theme+'.png',Buffer.from(image.data,'base64'));
- }
- await evaluate(`document.querySelector('[data-action="manage"][data-id="agy"]').click()`);
- assert.equal(await evaluate('drawer'),true);
- assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'drawer overflow');
- if(width<681) assert.equal(await evaluate('Math.round(document.querySelector(".drawer").getBoundingClientRect().width)===document.querySelector(".drawerShade").clientWidth'),true);
- await evaluate(`document.querySelector('[data-action="tab"][data-id="模型"]').click();document.querySelector("[data-model]").click()`);
- assert.equal(await evaluate('dirty'),true);
- await evaluate(`document.querySelector('[data-action="save"]').click()`);assert.equal(await evaluate('dirty'),false);
- await evaluate(`document.querySelector('[data-action="close"]').click()`);assert.equal(await evaluate('drawer'),false);
+ assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'closed overflow '+width);
+ assert.equal(await evaluate('getComputedStyle(document.querySelector(".agent-card")).borderLeftWidth'),'0px');
+ const image=await call('Page.captureScreenshot',{format:'png'});await writeFile('/tmp/provider-clean-'+width+'-'+theme+'.png',Buffer.from(image.data,'base64'));
+ await evaluate("document.querySelector('[data-action=\"open\"][data-id=\"agy\"]').click()");
+ assert.equal(await evaluate('opened'),'agy');
+ assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'expanded overflow '+width);
+ await evaluate('document.querySelector("[data-model]").click()');assert.equal(await evaluate('dirty'),true);
+ await evaluate("document.querySelector('[data-action=\"save\"]').click()");assert.equal(await evaluate('dirty'),false);
+ await evaluate("document.querySelector('[data-action=\"open\"][data-id=\"agy\"]').click()");assert.equal(await evaluate('opened'),null);
 }
-assert.deepEqual(errors,[]);console.log('PASS: A/C light + dark at 1280/390/320, no horizontal overflow or JS exceptions; drawer, model edit and save');ws.close();
+assert.deepEqual(errors,[]);console.log('PASS: selected A, light/dark, desktop/390/320; no side accents or overflow; expand, model edit and save');ws.close();
