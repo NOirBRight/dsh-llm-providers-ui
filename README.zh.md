@@ -92,6 +92,8 @@ dsh plugin --profile web remove dsh-llm-providers-ui
 
 Release 与完整性随 Alpha.4 迁移 release 一起发布。
 
+Codex 额度读取会明确请求后台刷新；手动刷新与缓存过期轮询的缓存策略统一由界面存储层控制。
+
 ## 实验实例页面检查
 
 在隔离 Chrome 中登录现有 3082 实验实例并开放 CDP 9229 后，运行 `node scripts/check-lab-settings.mjs`。检查覆盖七个真实 Provider、品牌和角色图标，以及 1280／390／320 宽度下的深浅色布局和展开的 Antigravity。检查会恢复原主题，不修改 Provider 认证或配置，截图写入 `/tmp/lab-*.png`；不会启动替代应用服务器。

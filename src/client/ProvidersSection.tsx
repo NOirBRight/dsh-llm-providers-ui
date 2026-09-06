@@ -46,7 +46,7 @@ export interface ProvidersSectionProps {
 const pageStyle: CSSProperties = {
   display: 'flex', flexDirection: 'column', gap: 16, width: '100%',
 }
-// Keep the native dialog visible inside the fading sidebar rail; scope layout changes to this page.
+// ponytail: the native dialog lives inside the sidebar; remove ancestry overrides once the host portals settings.
 const providerShellCss = `
 div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility:visible!important;overflow:visible!important;z-index:1000!important;pointer-events:auto!important}
 @media(max-width:680px){

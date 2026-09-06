@@ -90,6 +90,8 @@ Rollback: rerun the fixed v0.1.3 command (or the previously recorded Alpha.4 tar
 
 Release and integrity will be published with the Alpha.4 migration release.
 
+Codex quota reads explicitly refresh the backend; the UI store controls caching for both manual refresh and expired-cache polling.
+
 ## Live lab UI check
 
 With an isolated Chrome exposing CDP on port 9229 and authenticated to the existing 3082 lab, run `node scripts/check-lab-settings.mjs`. The check covers seven real Provider cards and their brand/role icons at 1280, 390 and 320 pixels in light/dark themes, including expanded Antigravity. It restores the prior theme, does not edit Provider credentials or configuration, and writes screenshots to `/tmp/lab-*.png`. The script does not start a replacement application server.

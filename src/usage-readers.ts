@@ -286,7 +286,8 @@ async function readCodexUsage(rpc: ClientConnectionRpc, signal: AbortSignal): Pr
   const deadline = Date.now() + CODEX_USAGE_WAIT_MS
   let last: ProviderUsageRead = { status: 'error', message: 'Codex usage unavailable' }
   while (!signal.aborted) {
-    const result = await rpc.call('/codex', 'auth/status', {}, signal)
+    // The UI store owns freshness; auth/status otherwise retains nonempty quota indefinitely.
+    const result = await rpc.call('/codex', 'auth/status', { refresh: true }, signal)
     last = result.ok ? decodeCodexAuthStatus(result.value) : { status: 'error', message: result.error.message }
     if (last.status !== 'ready' || last.windows.length > 0 || Date.now() >= deadline) return last
     await waitForCodexUsage(signal)

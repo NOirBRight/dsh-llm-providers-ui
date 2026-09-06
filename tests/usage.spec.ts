@@ -84,6 +84,19 @@ describe('Provider Usage readers', () => {
     })
   })
 
+  it.each([false, true])('refreshes Codex upstream after the UI cache expires or manual refresh=%s', async refresh => {
+    const rpc = rpcFor(async (_channel, payload) => ({
+      ok: true,
+      value: { status: 'signed-in', usage: { rateLimits: [{ id: 'codex', windows: [{
+        remainingPercent: typeof payload === 'object' && payload !== null && 'refresh' in payload && payload.refresh === true ? 71 : 72,
+        windowSeconds: 604_800,
+      }] }] } },
+    }))
+    await expect(codexReader.read(rpc, refresh, new AbortController().signal)).resolves.toMatchObject({
+      status: 'ready', windows: [{ remainingPercent: 71 }],
+    })
+  })
+
   it('reads Codex quota from its secret-free auth status', async () => {
     const signal = new AbortController().signal
     const rpc = rpcFor(async () => ({
@@ -105,7 +118,7 @@ describe('Provider Usage readers', () => {
     }))
 
     const result = await codexReader.read(rpc, true, signal)
-    expect(rpc.call).toHaveBeenCalledWith('/codex', 'auth/status', {}, signal)
+    expect(rpc.call).toHaveBeenCalledWith('/codex', 'auth/status', { refresh: true }, signal)
     expect(result).toMatchObject({
       status: 'ready',
       windows: [

@@ -83,7 +83,7 @@ export declare function ProviderCardHeader(props: ProviderCardHeaderProps): Reac
  * model rows, quota meter responsive rules, and coarse-pointer touch targets.
  * The shell injects it once per page; provider cards may also inject it once
  * for standalone use. Duplicate style tags are harmless: every rule is scoped
- * to a data-provider-* attribute and only narrows unstyled markup.
+ * to a data-provider-* attribute; shared geometry overrides legacy inline layout styles.
  */
 export declare const providerUiCss: string;
 //# sourceMappingURL=provider-ui.d.ts.map
