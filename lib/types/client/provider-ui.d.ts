@@ -60,11 +60,22 @@ export interface ProviderCardHeaderProps {
     /** Headline quota window. Absent quota renders no meter, never a zero bar. */
     quota?: ProviderQuotaState | null;
 }
+/** Props of {@link ProviderRoleBadge}. */
+export interface ProviderRoleBadgeProps {
+    /** Card role for the monochrome badge. Defaults to llm. */
+    role?: ProviderCardRole;
+}
 /**
- * Collapsed header contents: mark, title, monochrome role badge, provider
- * summary, optional caller status, and an optional compact quota meter.
- * Renders a fragment for the caller-owned header button, matching the legacy
- * codex provider-chrome layout so existing call sites keep working.
+ * Monochrome role badge: outlined message glyph for LLM, filled terminal glyph
+ * for Agent. Shared by migrated card headers and the shell legacy fallback.
+ */
+export declare function ProviderRoleBadge(props: ProviderRoleBadgeProps): ReactNode;
+/**
+ * Approved A header geometry in one row: identity (mark beside title, badge,
+ * and count) on the left, headline quota at the right, caller status, and the
+ * chevron. Narrow screens stack identity plus chevron over quota plus status.
+ * Renders a fragment for the caller-owned header button; props keep the legacy
+ * codex provider-chrome signature so existing call sites keep working.
  */
 export declare function ProviderCardHeader(props: ProviderCardHeaderProps): ReactNode;
 /**

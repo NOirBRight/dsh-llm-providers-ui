@@ -5,6 +5,7 @@ import {
   normalizeQuotaRemaining,
   ProviderCardHeader,
   ProviderQuotaMeter,
+  providerUiCss,
 } from '../src/client/provider-ui.tsx'
 
 describe('normalizeQuotaRemaining', () => {
@@ -126,6 +127,46 @@ describe('ProviderCardHeader', () => {
     expect(html.match(/8 models/g)?.length).toBe(1)
   })
 
+
+describe('ProviderCardHeader reference geometry', () => {
+  it('lays identity, quota, status, and chevron left to right', () => {
+    const html = renderToStaticMarkup(createElement(ProviderCardHeader, {
+      title: 'Codex',
+      mark: createElement('span', {}, 'C'),
+      summary: '8 models',
+      open: false,
+      role: 'llm',
+      status: 'signed in',
+      quota: { remainingPercent: 76, label: '5h' },
+    }))
+    const order = ['data-provider-header-identity', 'data-provider-quota-mini', 'data-provider-header-status', 'data-provider-header-chevron']
+      .map(attr => html.indexOf(attr))
+    expect(order.every(index => index >= 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+  })
+
+  it('gives LLM a message glyph and Agent a terminal glyph', () => {
+    const base = { title: 'X', mark: createElement('span', {}, 'X'), summary: 's', open: false } as const
+    expect(renderToStaticMarkup(createElement(ProviderCardHeader, { ...base, role: 'llm' }))).toContain('M5 6h6')
+    expect(renderToStaticMarkup(createElement(ProviderCardHeader, { ...base, role: 'agent' }))).toContain('m5 0h3')
+  })
+
+  it('uses verified border-l2 on the LLM badge, never border-secondary', () => {
+    const html = renderToStaticMarkup(createElement(ProviderCardHeader, {
+      title: 'X', mark: createElement('span', {}, 'X'), summary: 's', open: false, role: 'llm',
+    }))
+    expect(html).toContain('var(--dsw-alias-border-l2)')
+    expect(html).not.toContain('border-secondary')
+  })
+
+  it('sizes the header row on desktop and stacks it on mobile', () => {
+    expect(providerUiCss).toContain('min-height:76px')
+    expect(providerUiCss).toContain('min-height:106px')
+    expect(providerUiCss).toContain('grid-template-columns:minmax(0,1fr) auto')
+    expect(providerUiCss).toContain('[data-provider-quota-mini]{grid-column:1;grid-row:2')
+    expect(providerUiCss).toContain('[data-provider-header-status]{grid-column:2;grid-row:2')
+  })
+})
   it('renders a zero quota meter without treating it as missing', () => {
     const html = renderToStaticMarkup(createElement(ProviderCardHeader, {
       title: 'Cursor',

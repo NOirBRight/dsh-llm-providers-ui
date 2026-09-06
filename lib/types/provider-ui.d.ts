@@ -4,6 +4,6 @@
  * `dsh-llm-providers-ui/provider-ui` (alwaysBundle), never from source.
  * @module dsh-llm-providers-ui/provider-ui
  */
-export { ProviderCardHeader, ProviderQuotaMeter, normalizeQuotaRemaining, providerUiCss } from './client/provider-ui.js';
-export type { ProviderCardHeaderProps, ProviderCardRole, ProviderQuotaMeterProps, ProviderQuotaState } from './client/provider-ui.js';
+export { ProviderCardHeader, ProviderQuotaMeter, ProviderRoleBadge, normalizeQuotaRemaining, providerUiCss } from './client/provider-ui.js';
+export type { ProviderCardHeaderProps, ProviderCardRole, ProviderQuotaMeterProps, ProviderQuotaState, ProviderRoleBadgeProps } from './client/provider-ui.js';
 //# sourceMappingURL=provider-ui.d.ts.map

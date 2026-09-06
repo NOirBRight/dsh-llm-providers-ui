@@ -12,7 +12,7 @@ import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
 import { SortableList } from './SortableList.js'
 import type { ProviderHeaderOwnership, ProviderRole } from './directory.js'
-import { providerUiCss } from './provider-ui.js'
+import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
 
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps =
@@ -49,9 +49,6 @@ const pageStyle: CSSProperties = {
 const titleStyle: CSSProperties = {
   margin: 0, color: 'var(--dsw-alias-label-primary)', fontSize: 16, fontWeight: 500, lineHeight: '24px',
 }
-const subtitleStyle: CSSProperties = {
-  margin: '4px 0 0', color: 'var(--dsw-alias-label-secondary)', fontSize: 13, lineHeight: '20px',
-}
 const toolbarStyle: CSSProperties = { display: 'flex', justifyContent: 'flex-end' }
 const sortButtonStyle: CSSProperties = {
   minHeight: 34, border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 18,
@@ -60,21 +57,7 @@ const sortButtonStyle: CSSProperties = {
 }
 const emptyStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: '20px' }
 const fallbackWrapStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }
-const fallbackBadgeBase: CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', alignSelf: 'flex-start', whiteSpace: 'nowrap',
-  fontSize: 10, fontWeight: 500, lineHeight: '16px', padding: '0 5px', borderRadius: 3,
-  border: '1px solid transparent',
-}
-const fallbackBadgeLlm: CSSProperties = {
-  color: 'var(--dsw-alias-label-secondary)',
-  borderColor: 'var(--dsw-alias-border-secondary)',
-  background: 'transparent',
-}
-const fallbackBadgeAgent: CSSProperties = {
-  color: 'var(--dsw-alias-bg-layer-1)',
-  borderColor: 'var(--dsw-alias-label-primary)',
-  background: 'var(--dsw-alias-label-primary)',
-}
+const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 
 /** Bind the shared page to live keyed-slot and settings snapshots. */
 export function bindProvidersSection(
@@ -124,7 +107,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     if (props.headerOf?.(item.key) === 'shared') return <div data-provider-slot="" data-provider-role={role}>{node}</div>
     return (
       <div data-provider-slot="" data-provider-role={role} style={fallbackWrapStyle}>
-        <span style={{ ...fallbackBadgeBase, ...(role === 'agent' ? fallbackBadgeAgent : fallbackBadgeLlm) }}>{role === 'agent' ? 'Agent' : 'LLM'}</span>
+        <span style={fallbackBadgeAlign}><ProviderRoleBadge {...(role === 'llm' ? {} : { role })} /></span>
         {node}
       </div>
     )
@@ -154,7 +137,6 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       <style>{providerUiCss}</style>
       <header>
         <h2 style={titleStyle}>{t('title')}</h2>
-        <p style={subtitleStyle}>{t('subtitle')}</p>
       </header>
       {showToggle
         ? (

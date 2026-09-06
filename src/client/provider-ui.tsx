@@ -140,10 +140,11 @@ export interface ProviderCardHeaderProps {
   quota?: ProviderQuotaState | null
 }
 
-const headerMainStyle: CSSProperties = { display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column', gap: 4 }
-const headerTitleStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, lineHeight: 1 }
-const headerMarkStyle: CSSProperties = { width: 18, height: 18, flex: 'none', display: 'block', overflow: 'visible' }
-const headerNameStyle: CSSProperties = { lineHeight: '20px' }
+const headerMainStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }
+const headerIdentityStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }
+const headerMarkStyle: CSSProperties = { width: 28, height: 28, flex: 'none', display: 'grid', placeItems: 'center', overflow: 'visible' }
+const headerTitleColStyle: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }
+const headerTitleStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, lineHeight: '20px' }
 const headerBadgeBase: CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
   fontSize: 10, fontWeight: 500, lineHeight: '16px', padding: '0 5px', borderRadius: 3,
@@ -151,7 +152,7 @@ const headerBadgeBase: CSSProperties = {
 }
 const headerBadgeLlm: CSSProperties = {
   color: 'var(--dsw-alias-label-secondary)',
-  borderColor: 'var(--dsw-alias-border-secondary)',
+  borderColor: 'var(--dsw-alias-border-l2)',
   background: 'transparent',
 }
 const headerBadgeAgent: CSSProperties = {
@@ -160,23 +161,49 @@ const headerBadgeAgent: CSSProperties = {
   background: 'var(--dsw-alias-label-primary)',
 }
 const headerSummaryStyle: CSSProperties = {
-  fontSize: 13, lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary)',
+  fontSize: 11, lineHeight: '16px', color: 'var(--dsw-alias-label-tertiary)',
   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
 }
-const headerStatusStyle: CSSProperties = { fontSize: 12, lineHeight: '18px', color: 'var(--dsw-alias-label-secondary)' }
+const headerMiniStyle: CSSProperties = { width: 172, flex: 'none', minWidth: 0 }
+const headerStatusStyle: CSSProperties = {
+  width: 96, flex: 'none', textAlign: 'right', fontSize: 11, lineHeight: '16px',
+  color: 'var(--dsw-alias-label-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+}
 const headerSideStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 10, flex: 'none' }
 const headerUnsavedStyle: CSSProperties = { fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' }
-const headerChevronStyle: CSSProperties = { fontSize: 18, lineHeight: 1 }
-const headerMiniStyle: CSSProperties = { minWidth: 0, maxWidth: 220, paddingTop: 2 }
+const headerChevronStyle: CSSProperties = { width: 15, fontSize: 20, lineHeight: 1, textAlign: 'center', color: 'var(--dsw-alias-label-tertiary)' }
+
+/** Props of {@link ProviderRoleBadge}. */
+export interface ProviderRoleBadgeProps {
+  /** Card role for the monochrome badge. Defaults to llm. */
+  role?: ProviderCardRole
+}
 
 /**
- * Collapsed header contents: mark, title, monochrome role badge, provider
- * summary, optional caller status, and an optional compact quota meter.
- * Renders a fragment for the caller-owned header button, matching the legacy
- * codex provider-chrome layout so existing call sites keep working.
+ * Monochrome role badge: outlined message glyph for LLM, filled terminal glyph
+ * for Agent. Shared by migrated card headers and the shell legacy fallback.
+ */
+export function ProviderRoleBadge(props: ProviderRoleBadgeProps): ReactNode {
+  const agent = (props.role ?? 'llm') === 'agent'
+  return (
+    <span data-provider-role-badge={agent ? 'agent' : 'llm'} style={{ ...headerBadgeBase, ...(agent ? headerBadgeAgent : headerBadgeLlm) }}>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.4} aria-hidden="true">
+        {agent
+          ? <><rect x="1.5" y="2" width="13" height="12" rx="2" /><path d="m4 5 3 3-3 3m5 0h3" /></>
+          : <><rect x="2" y="2" width="12" height="9" rx="3" /><path d="m5 11-1 3 5-3M5 6h6" /></>}
+      </svg>
+      {agent ? 'Agent' : 'LLM'}
+    </span>
+  )
+}
+/**
+ * Approved A header geometry in one row: identity (mark beside title, badge,
+ * and count) on the left, headline quota at the right, caller status, and the
+ * chevron. Narrow screens stack identity plus chevron over quota plus status.
+ * Renders a fragment for the caller-owned header button; props keep the legacy
+ * codex provider-chrome signature so existing call sites keep working.
  */
 export function ProviderCardHeader(props: ProviderCardHeaderProps): ReactNode {
-  const role: ProviderCardRole = props.role ?? 'llm'
   const quota: ProviderQuotaMeterProps | undefined = props.quota === undefined || props.quota === null ? undefined : {
     ...(props.quota.remainingPercent === undefined ? {} : { remainingPercent: props.quota.remainingPercent }),
     ...(props.quota.remainingFraction === undefined ? {} : { remainingFraction: props.quota.remainingFraction }),
@@ -184,32 +211,32 @@ export function ProviderCardHeader(props: ProviderCardHeaderProps): ReactNode {
     ...(props.quota.detail === undefined ? {} : { detail: props.quota.detail }),
   }
   return (
-    <>
-      <span data-provider-header-main="" style={headerMainStyle}>
-        <span style={headerTitleStyle}>
-          <span style={headerMarkStyle}>{props.mark}</span>
-          <span style={headerNameStyle}>{props.title}</span>
-          <span data-provider-role-badge={role} style={{ ...headerBadgeBase, ...(role === 'agent' ? headerBadgeAgent : headerBadgeLlm) }}>
-            {role === 'agent' ? 'Agent' : 'LLM'}
+    <span data-provider-header-main="" style={headerMainStyle}>
+      <span data-provider-header-identity="" style={headerIdentityStyle}>
+        <span data-provider-header-mark="" style={headerMarkStyle}>{props.mark}</span>
+        <span style={headerTitleColStyle}>
+          <span style={headerTitleStyle}>
+            <span>{props.title}</span>
+            <ProviderRoleBadge {...(props.role === undefined ? {} : { role: props.role })} />
           </span>
+          <span data-provider-header-summary="" style={headerSummaryStyle}>{props.summary}</span>
         </span>
-        <span data-provider-header-summary="" style={headerSummaryStyle}>{props.summary}</span>
-        {props.status === undefined ? null : <span data-provider-header-status="" style={headerStatusStyle}>{props.status}</span>}
-        {quota === undefined
-          ? null
-          : (
-            <span data-provider-quota-mini="" style={headerMiniStyle}>
-              <ProviderQuotaMeter {...quota} />
-            </span>
-          )}
       </span>
-      <span style={headerSideStyle}>
+      {quota === undefined
+        ? null
+        : (
+          <span data-provider-quota-mini="" style={headerMiniStyle}>
+            <ProviderQuotaMeter {...quota} />
+          </span>
+        )}
+      {props.status === undefined ? null : <span data-provider-header-status="" style={headerStatusStyle}>{props.status}</span>}
+      <span data-provider-header-side="" style={headerSideStyle}>
         {props.unsaved === true && props.unsavedLabel !== undefined
           ? <span style={headerUnsavedStyle}>{props.unsavedLabel}</span>
           : null}
         <span data-provider-header-chevron="" aria-hidden="true" style={{ ...headerChevronStyle, transform: props.open ? 'rotate(180deg)' : 'none' }}>\u2304</span>
       </span>
-    </>
+    </span>
   )
 }
 
@@ -222,13 +249,14 @@ export function ProviderCardHeader(props: ProviderCardHeaderProps): ReactNode {
  */
 export const providerUiCss = [
   '[data-provider-card]{margin:0;border:0;border-radius:0;background:none;box-shadow:none;overflow:visible}',
-  '[data-provider-card-header]{box-sizing:border-box;width:100%;min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:0;padding:12px 14px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;text-align:left;cursor:pointer}',
+  '[data-provider-card-header]{box-sizing:border-box;width:100%;min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:0;padding:12px 14px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;text-align:left;cursor:pointer}',
+  '[data-provider-role-badge] svg{width:12px;height:12px}',
   '[data-provider-card-header]:hover{background:color-mix(in srgb, var(--dsw-alias-label-primary) 4%, transparent)}',
   '[data-provider-body]{display:flex;flex-direction:column;gap:18px;border-top:1px solid var(--dsw-alias-border-l2);padding:16px 14px 18px}',
   '[data-provider-model]{display:flex;align-items:center;gap:9px;min-height:40px}',
   '[data-provider-quota-mini]{display:block}',
   '[data-providers-list]{display:flex;flex-direction:column}',
   '[data-providers-list] [data-sortable-row]+[data-sortable-row]{border-top:1px solid var(--dsw-alias-border-l2)}',
-  '@media (max-width:680px){[data-provider-card-header]{min-height:76px;padding:14px 4px}[data-provider-quota-mini]{max-width:none}[data-provider-model]{min-height:48px}[data-provider-model] input{width:17px;height:17px}[data-providers-section] button,[data-provider-card] button{min-height:44px}}',
+  '@media (max-width:680px){[data-provider-card-header]{min-height:106px;padding:17px 4px}[data-provider-header-main]{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 9px;align-items:center}[data-provider-header-identity]{grid-column:1;grid-row:1;gap:9px}[data-provider-header-mark]{width:25px;height:25px}[data-provider-role-badge]{margin-left:4px;font-size:9px}[data-provider-role-badge] svg{width:11px;height:11px}[data-provider-header-side]{grid-column:2;grid-row:1}[data-provider-header-side] [data-provider-header-chevron]{width:18px}[data-provider-quota-mini]{grid-column:1;grid-row:2;width:auto;max-width:none;text-align:left;padding-left:34px}[data-provider-header-status]{grid-column:2;grid-row:2;width:auto}[data-provider-model]{min-height:48px}[data-provider-model] input{width:17px;height:17px}[data-providers-section] button,[data-provider-card] button{min-height:44px}}',
   '@media (pointer:coarse){[data-sortable-handle],[data-sortable-move]{min-width:44px;min-height:44px}}',
 ].join('\n')
