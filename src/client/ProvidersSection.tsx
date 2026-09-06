@@ -46,6 +46,19 @@ export interface ProvidersSectionProps {
 const pageStyle: CSSProperties = {
   display: 'flex', flexDirection: 'column', gap: 16, width: '100%',
 }
+// Keep the native dialog visible inside the fading sidebar rail; scope layout changes to this page.
+const providerShellCss = `
+div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility:visible!important}
+@media(max-width:680px){
+ [role="dialog"]:has([data-providers-section]){flex-direction:column;width:calc(100% - 16px);max-width:calc(100% - 16px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)}
+ [role="dialog"]:has([data-providers-section])>nav{width:100%;min-width:0;flex:none;padding:8px;border-right:0;border-bottom:1px solid var(--dsw-alias-border-l2)}
+ [role="dialog"]:has([data-providers-section])>nav>div:first-child{display:none}
+ [role="dialog"]:has([data-providers-section])>nav>div:last-child{display:flex;flex-direction:row;gap:4px;overflow-x:auto}
+ [role="dialog"]:has([data-providers-section])>nav button{flex:none;white-space:nowrap;min-height:44px;padding:8px 10px}
+ [role="dialog"]:has([data-providers-section])>div{width:100%;min-width:0;min-height:0;flex:1}
+}
+`
+
 const titleStyle: CSSProperties = {
   margin: 0, color: 'var(--dsw-alias-label-primary)', fontSize: 16, fontWeight: 500, lineHeight: '24px',
 }
@@ -134,7 +147,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
 
   return (
     <div data-providers-section={PROVIDERS_LOCALE_NS} style={pageStyle}>
-      <style>{providerUiCss}</style>
+      <style>{providerUiCss + providerShellCss}</style>
       <header>
         <h2 style={titleStyle}>{t('title')}</h2>
       </header>

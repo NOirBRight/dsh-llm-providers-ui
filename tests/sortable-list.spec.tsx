@@ -71,6 +71,8 @@ describe('SortableList keyboard and move-button sorting', () => {
     const host = mount(list(onReorder, { sorting: false }))
     expect(host.querySelector('[data-sortable-handle]:not([hidden])')).toBeNull()
     expect(host.querySelector('[data-sortable-move]:not([hidden])')).toBeNull()
+    for (const button of host.querySelectorAll('[data-sortable-handle], [data-sortable-move]')) expect(getComputedStyle(button).display).toBe('none')
+    expect((host.querySelector('[data-sortable-row]') as HTMLElement).style.gridTemplateColumns).toBe('minmax(0,1fr)')
     expect(host.textContent).toContain('a')
   })
 

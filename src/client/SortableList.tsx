@@ -362,8 +362,9 @@ export function SortableList<T>({
             data-sortable-row="true"
             style={{
               ...(plain
-                ? { ...plainRowStyle, gridTemplateColumns: (showHandle ? '30px ' : '') + 'minmax(0,1fr)' + (moveButtons ? ' auto auto' : '') }
+                ? plainRowStyle
                 : card ? cardRowStyle : rowStyle),
+              gridTemplateColumns: (showHandle ? '44px ' : '') + 'minmax(0,1fr)' + (moveButtons && showHandle ? ' auto auto' : ''),
               visibility: dragging ? 'hidden' : 'visible',
               pointerEvents: dragging ? 'none' : 'auto',
               borderColor: dragging ? 'transparent' : 'var(--dsw-alias-border-l2)',
@@ -380,7 +381,7 @@ export function SortableList<T>({
             <button
               type="button"
               data-sortable-handle=""
-              style={{ ...handleStyle, ...(plain ? { borderRight: 0 } : {}), cursor: disabled ? 'default' : draggedId === null ? 'grab' : 'grabbing' }}
+              style={{ ...handleStyle, display: showHandle ? 'flex' : 'none', ...(plain ? { borderRight: 0 } : {}), cursor: disabled ? 'default' : draggedId === null ? 'grab' : 'grabbing' }}
               aria-label={dragLabel(item, index)}
               aria-grabbed={dragging}
               title={dragLabel(item, index)}
@@ -399,26 +400,26 @@ export function SortableList<T>({
                   <button
                     type="button"
                     data-sortable-move="up"
-                    style={moveButtonStyle}
+                    style={{ ...moveButtonStyle, display: showHandle ? 'inline-flex' : 'none' }}
                     aria-label={upLabel(item, index)}
                     title={upLabel(item, index)}
                     disabled={!interactive || index === 0}
                     hidden={!showHandle}
                     onClick={() => { moveBy(id, -1) }}
                   >
-                    \u2191
+                    ↑
                   </button>
                   <button
                     type="button"
                     data-sortable-move="down"
-                    style={moveButtonStyle}
+                    style={{ ...moveButtonStyle, display: showHandle ? 'inline-flex' : 'none' }}
                     aria-label={downLabel(item, index)}
                     title={downLabel(item, index)}
                     disabled={!interactive || index === renderedItems.length - 1}
                     hidden={!showHandle}
                     onClick={() => { moveBy(id, 1) }}
                   >
-                    \u2193
+                    ↓
                   </button>
                 </>
               )
