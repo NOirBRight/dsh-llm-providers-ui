@@ -56,8 +56,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.json && tsdown",
     "pack:check": "node scripts/check-pack.mjs",
+    "consumer:check": "tsc -p fixtures/consumer-typecheck/tsconfig.json --noEmit",
     "prototype:sidebar-usage": "python3 -m http.server 4178 --directory prototypes",
-    "check": "pnpm run test && pnpm run typecheck && pnpm run build && pnpm run pack:check"
+    "check": "pnpm run test && pnpm run typecheck && pnpm run build && pnpm run consumer:check && pnpm run pack:check"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"

@@ -13,6 +13,7 @@ export interface ProviderDeclaration {
 export declare class ProviderDirectory {
     private readonly entries;
     private readonly listeners;
+    private readonly invalidationListeners;
     /**
      * Publish a Provider declaration.
      * @param declaration - Card key, role, and optional quota reader.
@@ -44,6 +45,20 @@ export declare class ProviderDirectory {
      * @returns A disposer that stops notifications.
      */
     subscribe(listener: () => void): () => void;
+    /**
+     * Signal that cached quota for a key is no longer valid. Providers call
+     * this immediately after sign-out or account switch; the shell purges the
+     * sidebar cache and refetches, so the previous account's quota never lingers
+     * as a stale tile. Transient read errors still show stale data by design.
+     * @param key - Provider card key whose quota cache must drop.
+     */
+    invalidateUsage(key: string): void;
+    /**
+     * Subscribe to quota-invalidation signals.
+     * @param listener - Called with the key whose cache must drop.
+     * @returns A disposer that stops notifications.
+     */
+    onInvalidateUsage(listener: (key: string) => void): () => void;
     private notify;
 }
 declare module '@deepseek-ai/cordis' {

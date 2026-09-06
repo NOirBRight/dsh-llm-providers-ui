@@ -50,6 +50,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, header, usage }`； disposer 负责注销。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
 已迁移的卡片使用 `dsh-llm-providers-ui/provider-ui` 的共享 header（`ProviderCardHeader`，`role`、调用方 `status` 与头条 `quota`；`title`/`mark`/`summary`/`open`/`unsaved` 保持旧 codex 布局），根节点标记 `li[data-provider-card][data-provider-role]`、header 按钮标记 `data-provider-card-header`、正文标记 `data-provider-body`，引入一份 `<style>{providerUiCss}</style>`，并声明 `header: 'shared'` 让外壳去掉兜底 badge。缺失额度不渲染 meter，绝不画成零；`normalizeQuotaRemaining` 保留精度，NaN/Infinity/越界一律视为不可用。
+provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 directory 与 slot 类型，不得在本地重复 module augmentation。退出登录或切换账户后，provider 调用 `ctx.providerDirectory.invalidateUsage(key)` 让侧栏丢弃缓存额度并重查；短暂读取失败仍把上次可用窗口标为过期展示。
 `dsh-model-switch` 经构建产物 `dsh-llm-providers-ui/order` 复用 `sortCatalogGroups`。
 
 在 npm 发布之前，lab checkout 在开发时可用 `link:../dsh-llm-providers-ui`，但工作区 `package.json` 不得提交 `link:` spec。

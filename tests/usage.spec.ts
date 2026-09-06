@@ -384,4 +384,37 @@ describe('Provider Usage readers', () => {
     store.dispose()
     vi.useRealTimers()
   })
+
+  it('drops cached windows on invalidate so a failed reread cannot go stale', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      throw new Error('signed out')
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+    store.invalidate(['llm-cursor'])
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'error', windows: [] })
+    store.dispose()
+  })
+
+  it('clears to logged-out on invalidate after sign-out', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      return { ok: true, value: { status: 'logged-out' } }
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    store.invalidate()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
+    store.dispose()
+  })
 })

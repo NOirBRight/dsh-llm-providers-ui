@@ -24,6 +24,7 @@ interface ProviderEntry {
 export class ProviderDirectory {
   private readonly entries = new Map<string, ProviderEntry>()
   private readonly listeners = new Set<() => void>()
+  private readonly invalidationListeners = new Set<(key: string) => void>()
 
   /**
    * Publish a Provider declaration.
@@ -79,6 +80,27 @@ export class ProviderDirectory {
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener)
     return () => { this.listeners.delete(listener) }
+  }
+
+  /**
+   * Signal that cached quota for a key is no longer valid. Providers call
+   * this immediately after sign-out or account switch; the shell purges the
+   * sidebar cache and refetches, so the previous account's quota never lingers
+   * as a stale tile. Transient read errors still show stale data by design.
+   * @param key - Provider card key whose quota cache must drop.
+   */
+  invalidateUsage(key: string): void {
+    for (const listener of this.invalidationListeners) listener(key)
+  }
+
+  /**
+   * Subscribe to quota-invalidation signals.
+   * @param listener - Called with the key whose cache must drop.
+   * @returns A disposer that stops notifications.
+   */
+  onInvalidateUsage(listener: (key: string) => void): () => void {
+    this.invalidationListeners.add(listener)
+    return () => { this.invalidationListeners.delete(listener) }
   }
 
   private notify(): void {

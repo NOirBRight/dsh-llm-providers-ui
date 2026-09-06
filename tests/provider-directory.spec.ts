@@ -34,4 +34,14 @@ describe('ProviderDirectory', () => {
     unregister()
     expect(directory.headerOf('llm-codex')).toBe('legacy')
   })
+
+  it('notifies usage-invalidation listeners per key until disposed', () => {
+    const directory = new ProviderDirectory()
+    const seen: string[] = []
+    const stop = directory.onInvalidateUsage(key => { seen.push(key) })
+    directory.invalidateUsage('llm-codex')
+    stop()
+    directory.invalidateUsage('llm-codex')
+    expect(seen).toEqual(['llm-codex'])
+  })
 })

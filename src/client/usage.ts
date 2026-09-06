@@ -31,6 +31,14 @@ export interface ProviderUsageStore {
   subscribe(listener: () => void): () => void
   configure(config: ProviderUsageConfig): void
   refresh(keys?: readonly string[]): void
+  /**
+   * Drop cached quota for keys and refetch. Unlike refresh, invalidation
+   * purges stored windows first, so a failed reread reports an error instead
+   * of resurrecting the previous account's quota as stale. Providers call this
+   * (via providerDirectory.invalidateUsage) after sign-out or account switch.
+   * @param keys - provider keys to invalidate; every configured key when omitted.
+   */
+  invalidate(keys?: readonly string[]): void
   dispose(): void
 }
 
@@ -108,6 +116,27 @@ export function clearProviderUsageCache(): void {
   memoryUsageCache = new Map()
   try { globalThis.localStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
   try { globalThis.sessionStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
+}
+
+/** Remove keys from the memory and persisted quota caches without touching other providers. */
+function dropPersistedUsageKeys(keys: readonly string[]): void {
+  const drop = new Set(keys)
+  for (const key of drop) memoryUsageCache.delete(key)
+  const raw = storageGet()
+  if (raw === null) return
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return
+  }
+  if (!Array.isArray(parsed)) return
+  const kept = parsed.filter(value => {
+    const item = recordUsageValue(value)
+    return item === undefined || !nonEmptyString(item.providerKey) || !drop.has(item.providerKey)
+  })
+  if (kept.length === parsed.length) return
+  storageSet(JSON.stringify(kept))
 }
 
 function writeUsageCache(current: Map<string, ProviderUsageSummary>): void {
@@ -255,6 +284,24 @@ export function createProviderUsageStore(
         const item = queued[index]
         if (item !== undefined && targets.includes(item.key)) queued.splice(index, 1)
       }
+      sync(true, keys)
+    },
+    invalidate: (keys) => {
+      const targets = keys === undefined ? [...configuredKeys] : keys.filter(key => configuredKeys.includes(key))
+      if (targets.length === 0) return
+      refreshGeneration += 1
+      for (const [key, controller] of active) if (targets.includes(key)) { controller.abort(); active.delete(key) }
+      for (let index = queued.length - 1; index >= 0; index -= 1) {
+        const item = queued[index]
+        if (item !== undefined && targets.includes(item.key)) queued.splice(index, 1)
+      }
+      for (const key of targets) current.delete(key)
+      dropPersistedUsageKeys(targets)
+      for (const key of targets) {
+        const reader = readerForKey(key)
+        if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
+      }
+      publish()
       sync(true, keys)
     },
     dispose: () => {

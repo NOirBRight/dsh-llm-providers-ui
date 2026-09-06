@@ -21,6 +21,14 @@ export interface ProviderUsageStore {
     subscribe(listener: () => void): () => void;
     configure(config: ProviderUsageConfig): void;
     refresh(keys?: readonly string[]): void;
+    /**
+     * Drop cached quota for keys and refetch. Unlike refresh, invalidation
+     * purges stored windows first, so a failed reread reports an error instead
+     * of resurrecting the previous account's quota as stale. Providers call this
+     * (via providerDirectory.invalidateUsage) after sign-out or account switch.
+     * @param keys - provider keys to invalidate; every configured key when omitted.
+     */
+    invalidate(keys?: readonly string[]): void;
     dispose(): void;
 }
 export declare function clearProviderUsageCache(): void;

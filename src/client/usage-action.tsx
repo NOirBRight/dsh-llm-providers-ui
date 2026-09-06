@@ -107,7 +107,8 @@ export function installProviderUsage(
     directoryGeneration += 1
     reconcile()
   })
+  const stopInvalidate = directory.onInvalidateUsage(key => { usage.invalidate([key]) })
   return () => {
-    disposeReverse([stopDirectory, stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
+    disposeReverse([stopInvalidate, stopDirectory, stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
   }
 }
