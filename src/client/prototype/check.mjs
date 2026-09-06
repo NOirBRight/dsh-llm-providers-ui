@@ -21,5 +21,26 @@ for(const width of [1280,390,320]) for(const theme of ['light','dark']){
  await evaluate('document.querySelector("[data-model]").click()');assert.equal(await evaluate('dirty'),true);
  await evaluate("document.querySelector('[data-action=\"save\"]').click()");assert.equal(await evaluate('dirty'),false);
  await evaluate("document.querySelector('[data-action=\"open\"][data-id=\"agy\"]').click()");assert.equal(await evaluate('opened'),null);
+ assert.equal(await evaluate('document.querySelectorAll(".cardHeader .mark svg").length'),8);
+ await evaluate("document.querySelector('[data-action=\"open\"][data-id=\"agy\"]').click()");
+ await evaluate("document.querySelector('[data-action=\"model-settings\"][data-index=\"0\"]').click()");
+ await evaluate('document.querySelector("[data-pref=effort]").value="high";document.querySelector("[data-pref=effort]").dispatchEvent(new Event("change",{bubbles:true}))');
+ assert.equal(await evaluate('prefs.agy[0].effort'),'high');
+ await evaluate('document.querySelector("[data-pref=thinking]").click()');
+ assert.equal(await evaluate('prefs.agy[0].effort'),'auto');
+ assert.equal(await evaluate('document.querySelector("[data-pref=effort]").disabled'),true);
+ assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'model menu overflow');
+ await evaluate("document.querySelector('[data-action=\"model-sort\"]').click()");
+ await evaluate("document.querySelector('[data-scope=\"agy\"][data-id=\"0\"][data-offset=\"1\"]').click()");
+ assert.deepEqual(await evaluate('modelOrder.agy'),['1','0','2']);
+ await evaluate("document.querySelector('[data-action=\"model-sort\"]').click()");
+ await evaluate("document.querySelector('[data-action=\"provider-sort\"]').click()");
+ await evaluate("document.querySelector('[data-scope=\"providers\"][data-id=\"agy\"][data-offset=\"-1\"]').click()");
+ assert.equal(await evaluate('providerOrder[0]'),'agy');
+ assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'sort overflow');
+ const points=await evaluate('[...document.querySelectorAll(".sortrow")].slice(0,2).map(r=>{const b=r.querySelector(".grip").getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2}})');
+ if(width<681){await call('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...points[0],id:1}]});await call('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...points[1],id:1}]});await call('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]})}
+ else {await call('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...points[0]});await call('Input.dispatchMouseEvent',{type:'mouseMoved',button:'left',buttons:1,...points[1]});await call('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...points[1]})}
+ assert.equal(await evaluate('providerOrder[0]'),'codex','drag reorder');
 }
-assert.deepEqual(errors,[]);console.log('PASS: selected A, light/dark, desktop/390/320; no side accents or overflow; expand, model edit and save');ws.close();
+assert.deepEqual(errors,[]);console.log('PASS: selected A, light/dark, desktop/390/320; no side accents or overflow; eight icons, capabilities, effort, model ordering, mouse/touch provider dragging and save');ws.close();
