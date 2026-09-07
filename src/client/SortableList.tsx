@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
-import { createPortal } from 'react-dom'
 
 /** Props of {@link SortableList}. */
 export interface SortableListProps<T> {
@@ -103,16 +102,6 @@ const moveButtonStyle: CSSProperties = {
 }
 const touchCss = '@media (pointer:coarse){[data-sortable-handle],[data-sortable-move]{min-width:44px;min-height:44px}}'
 const cardCss = '[data-sortable-card] [data-sortable-item] li,[data-sortable-ghost] [data-sortable-item] li{border:0!important;border-radius:0!important;background:transparent!important;overflow:visible!important;list-style:none;margin:0}'
-const ghostStyle: CSSProperties = {
-  ...rowStyle,
-  position: 'fixed',
-  zIndex: 10_000,
-  pointerEvents: 'none',
-  opacity: 0.96,
-  boxShadow: 'var(--dsw-shadow-lv2, 0 10px 30px rgba(0, 0, 0, 0.18))',
-  outline: '2px solid color-mix(in srgb, var(--dsw-alias-state-business-primary) 22%, transparent)',
-}
-
 /** Grip glyph marking one row's pointer handle. */
 function IconGrip(): ReactNode {
   return (
@@ -125,8 +114,13 @@ function IconGrip(): ReactNode {
 }
 
 /**
- * Pointer-driven sortable list: a portal ghost follows the pointer, a preview
- * array records the prospective order, and FLIP animations move sibling rows.
+ * Pointer-driven sortable list: an in-tree floating ghost follows the pointer,
+ * a preview array records the prospective order, and FLIP animations move
+ * sibling rows. The ghost stays inside the list ancestry so ancestor-scoped
+ * row styles keep matching it while it floats (position:fixed escapes
+ * overflow clipping without leaving the scope). Constraint: no
+ * transform/filter/perspective on list ancestors, which would re-anchor
+ * the fixed ghost to that ancestor instead of the viewport.
  */
 export function SortableList<T>({
   items,
@@ -308,6 +302,11 @@ export function SortableList<T>({
     else rowRefs.current.set(id, node)
   }
 
+  /** The ghost clones live row controls: keep the copy unfocusable. React 18 types no inert prop, so set the DOM flag behind a support guard. */
+  const setGhostInert = (node: HTMLDivElement | null): void => {
+    if (node !== null && 'inert' in node) (node as unknown as { inert: boolean }).inert = true
+  }
+
   const movePreviewFromPointer = (pointerY: number): void => {
     if (draggedId === null) return
     const current = previewRef.current ?? [...items]
@@ -343,6 +342,12 @@ export function SortableList<T>({
     setPreviewItems(next)
   }
 
+  // One geometry definition feeds both rows and the drag ghost, so the ghost
+  // keeps its row's size by construction whatever chrome or caller renders it.
+  const rowChromeStyle = plain ? plainRowStyle : card ? cardRowStyle : rowStyle
+  const rowGridColumns = (showHandle ? '44px ' : '') + 'minmax(0,1fr)' + (moveButtons && showHandle ? ' auto auto' : '')
+  const rowItemStyle: CSSProperties = plain ? plainItemStyle : card ? cardItemStyle : { minWidth: 0 }
+
   return (
     <div
       data-sortable-card={card ? '' : undefined}
@@ -361,10 +366,8 @@ export function SortableList<T>({
             ref={(node) => { setRowRef(id, node) }}
             data-sortable-row="true"
             style={{
-              ...(plain
-                ? plainRowStyle
-                : card ? cardRowStyle : rowStyle),
-              gridTemplateColumns: (showHandle ? '44px ' : '') + 'minmax(0,1fr)' + (moveButtons && showHandle ? ' auto auto' : ''),
+              ...rowChromeStyle,
+              gridTemplateColumns: rowGridColumns,
               visibility: dragging ? 'hidden' : 'visible',
               pointerEvents: dragging ? 'none' : 'auto',
               borderColor: dragging ? 'transparent' : 'var(--dsw-alias-border-l2)',
@@ -393,7 +396,7 @@ export function SortableList<T>({
             >
               <IconGrip />
             </button>
-            <div data-sortable-item="" style={plain ? plainItemStyle : card ? cardItemStyle : { minWidth: 0 }}>{renderItem(item, index)}</div>
+            <div data-sortable-item="" style={rowItemStyle}>{renderItem(item, index)}</div>
             {moveButtons
               ? (
                 <>
@@ -428,23 +431,34 @@ export function SortableList<T>({
         )
       })}
       {dragGhost !== null && draggedItem !== undefined
-        ? createPortal(
+        ? (
           <div
+            data-sortable-row="true"
             data-sortable-ghost="true"
+            aria-hidden="true"
+            ref={setGhostInert}
             style={{
-              ...ghostStyle,
-              ...(card ? cardRowStyle : {}),
+              ...rowChromeStyle,
+              gridTemplateColumns: rowGridColumns,
               position: 'fixed',
+              boxSizing: 'border-box',
               left: dragGhost.x,
               top: dragGhost.y,
               width: dragGhost.width,
               minHeight: dragGhost.height,
+              zIndex: 10_000,
+              pointerEvents: 'none',
+              opacity: 0.96,
+              boxShadow: 'var(--dsw-shadow-lv2, 0 10px 30px rgba(0, 0, 0, 0.18))',
+              outline: '2px solid color-mix(in srgb, var(--dsw-alias-state-business-primary) 22%, transparent)',
             }}
           >
-            <div style={{ ...handleStyle, cursor: 'grabbing' }}><IconGrip /></div>
-            <div data-sortable-item="" style={card ? cardItemStyle : { minWidth: 0 }}>{renderItem(draggedItem, renderedItems.findIndex(item => getId(item) === draggedId))}</div>
-          </div>,
-          document.body,
+            <div data-sortable-handle="" style={{ ...handleStyle, display: showHandle ? 'flex' : 'none', ...(plain ? { borderRight: 0 } : {}), cursor: 'grabbing' }}><IconGrip /></div>
+            <div data-sortable-item="" style={rowItemStyle}>{renderItem(draggedItem, renderedItems.findIndex(item => getId(item) === draggedId))}</div>
+            {moveButtons && showHandle
+              ? (<><span aria-hidden="true" style={{ ...moveButtonStyle, visibility: 'hidden' }}>↑</span><span aria-hidden="true" style={{ ...moveButtonStyle, visibility: 'hidden' }}>↓</span></>)
+              : null}
+          </div>
         )
         : null}
     </div>

@@ -3,8 +3,9 @@
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import { applySavedOrder } from '../order.js'
 
-import type { ProviderUsageReader, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js'
-import { recordUsageValue, nonEmptyString, nonNegativeNumber } from '../usage-readers.js'
+import type { ProviderUsageReader, ProviderUsageSummary } from '../usage-readers.js'
+import { readUsageCache, writeUsageCache, dropPersistedUsageKeys, hasUsageData } from '../usage-readers.js'
+export { peekCachedUsage, rememberCachedUsage, rememberHeadlineQuota, headerQuotaFromCache, clearProviderUsageCache } from '../usage-readers.js'
 
 export type { ProviderUsageReader, ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js'
 export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow } from '../usage-readers.js'
@@ -23,7 +24,6 @@ export interface ProviderUsageConfig {
 export const USAGE_POLL_MS = 15 * 60 * 1000
 export const USAGE_MIN_REFETCH_MS = 5 * 60 * 1000
 export const USAGE_READ_TIMEOUT_MS = 20_000
-const USAGE_CACHE_KEY = 'dsh-llm-providers-ui:usage-cache'
 const USAGE_MAX_IN_FLIGHT = 3
 
 export interface ProviderUsageStore {
@@ -40,118 +40,6 @@ export interface ProviderUsageStore {
    */
   invalidate(keys?: readonly string[]): void
   dispose(): void
-}
-
-function hasUsageData(summary: ProviderUsageSummary | undefined): summary is ProviderUsageSummary {
-  return summary !== undefined && summary.windows.length > 0 && (summary.status === 'ready' || summary.status === 'stale')
-}
-
-function cachedSummary(value: unknown): ProviderUsageSummary | undefined {
-  const item = recordUsageValue(value)
-  if (item === undefined || !nonEmptyString(item.providerKey) || !nonEmptyString(item.name)) return undefined
-  const status = item.status
-  if (status !== 'ready' && status !== 'stale') return undefined
-  if (!Array.isArray(item.windows) || item.windows.length === 0) return undefined
-  const windows: UsageWindowSummary[] = []
-  for (const windowValue of item.windows) {
-    const quotaWindow = recordUsageValue(windowValue)
-    if (quotaWindow === undefined || !nonEmptyString(quotaWindow.id) || !nonEmptyString(quotaWindow.label) || !nonEmptyString(quotaWindow.shortLabel) || !nonEmptyString(quotaWindow.valueText)) return undefined
-    if (quotaWindow.remainingPercent !== undefined && (!nonNegativeNumber(quotaWindow.remainingPercent) || quotaWindow.remainingPercent > 100)) return undefined
-    if (quotaWindow.resetsAt !== undefined && !nonEmptyString(quotaWindow.resetsAt)) return undefined
-    windows.push({
-      id: quotaWindow.id,
-      label: quotaWindow.label,
-      shortLabel: quotaWindow.shortLabel,
-      valueText: quotaWindow.valueText,
-      ...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent }),
-      ...(quotaWindow.resetsAt === undefined ? {} : { resetsAt: quotaWindow.resetsAt }),
-    })
-  }
-  return {
-    providerKey: item.providerKey,
-    name: item.name,
-    status: 'ready',
-    windows,
-    ...(nonEmptyString(item.fetchedAt) ? { fetchedAt: item.fetchedAt } : {}),
-  }
-}
-
-let memoryUsageCache = new Map<string, ProviderUsageSummary>()
-
-function storageGet(): string | null {
-  try {
-    return globalThis.localStorage?.getItem(USAGE_CACHE_KEY) ?? globalThis.sessionStorage?.getItem(USAGE_CACHE_KEY) ?? null
-  } catch { return null }
-}
-
-function storageSet(value: string): void {
-  try { globalThis.localStorage?.setItem(USAGE_CACHE_KEY, value) } catch { /* quota */ }
-  try { globalThis.sessionStorage?.setItem(USAGE_CACHE_KEY, value) } catch { /* quota */ }
-}
-
-function parseUsageCache(raw: string | null): Map<string, ProviderUsageSummary> {
-  const cached = new Map<string, ProviderUsageSummary>()
-  if (raw === null) return cached
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return cached
-    for (const value of parsed) {
-      const item = cachedSummary(value)
-      if (item !== undefined) cached.set(item.providerKey, item)
-    }
-  } catch { /* malformed */ }
-  return cached
-}
-
-function readUsageCache(): Map<string, ProviderUsageSummary> {
-  const fromStorage = parseUsageCache(storageGet())
-  if (fromStorage.size > 0) {
-    memoryUsageCache = new Map(fromStorage)
-    return fromStorage
-  }
-  return new Map(memoryUsageCache)
-}
-
-export function clearProviderUsageCache(): void {
-  memoryUsageCache = new Map()
-  try { globalThis.localStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
-  try { globalThis.sessionStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
-}
-
-/** Remove keys from the memory and persisted quota caches without touching other providers. */
-function dropPersistedUsageKeys(keys: readonly string[]): void {
-  const drop = new Set(keys)
-  for (const key of drop) memoryUsageCache.delete(key)
-  const raw = storageGet()
-  if (raw === null) return
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    return
-  }
-  if (!Array.isArray(parsed)) return
-  const kept = parsed.filter(value => {
-    const item = recordUsageValue(value)
-    return item === undefined || !nonEmptyString(item.providerKey) || !drop.has(item.providerKey)
-  })
-  if (kept.length === parsed.length) return
-  storageSet(JSON.stringify(kept))
-}
-
-function writeUsageCache(current: Map<string, ProviderUsageSummary>): void {
-  const merged = parseUsageCache(storageGet())
-  for (const [key, item] of memoryUsageCache) merged.set(key, item)
-  for (const item of current.values()) if (hasUsageData(item)) merged.set(item.providerKey, {
-    providerKey: item.providerKey,
-    name: item.name,
-    status: 'ready',
-    windows: item.windows,
-    ...(item.fetchedAt === undefined ? {} : { fetchedAt: item.fetchedAt }),
-  })
-  if (merged.size === 0) return
-  memoryUsageCache = merged
-  storageSet(JSON.stringify([...merged.values()]))
 }
 
 function keepUsage(old: ProviderUsageSummary | undefined, next: ProviderUsageSummary): ProviderUsageSummary {

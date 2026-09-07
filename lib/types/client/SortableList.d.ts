@@ -30,8 +30,13 @@ export interface SortableListProps<T> {
     moveDownLabel?: (item: T, index: number) => string;
 }
 /**
- * Pointer-driven sortable list: a portal ghost follows the pointer, a preview
- * array records the prospective order, and FLIP animations move sibling rows.
+ * Pointer-driven sortable list: an in-tree floating ghost follows the pointer,
+ * a preview array records the prospective order, and FLIP animations move
+ * sibling rows. The ghost stays inside the list ancestry so ancestor-scoped
+ * row styles keep matching it while it floats (position:fixed escapes
+ * overflow clipping without leaving the scope). Constraint: no
+ * transform/filter/perspective on list ancestors, which would re-anchor
+ * the fixed ghost to that ancestor instead of the viewport.
  */
 export declare function SortableList<T>({ items, getId, renderItem, dragLabel, onReorder, disabled, chrome, sorting, moveButtons, moveUpLabel, moveDownLabel, }: SortableListProps<T>): ReactNode;
 //# sourceMappingURL=SortableList.d.ts.map

@@ -1,4 +1,4 @@
-/** Bundle-safe quota reader factories: pure decode plus RPC reads. No ModuleLoader wrapper, no store. */
+/** Bundle-safe quota decoders, RPC readers, and browser cache helpers; no ModuleLoader wrapper or reactive store. */
 
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 
@@ -340,4 +340,216 @@ export function createCommandCodeUsageReader(): ProviderUsageReader {
 /** Create the OpenCode Go quota reader declared by the OpenCode Go client plugin. */
 export function createOpenCodeGoUsageReader(): ProviderUsageReader {
   return { providerKey: 'llm-opencode-go', name: 'OpenCode Go', read: (rpc, _refresh, signal) => readUsage(rpc, '/opencode-go', {}, signal, value => decodeFractionUsage(['session', 'weekly', 'monthly'], value)) }
+}
+
+const USAGE_CACHE_KEY = 'dsh-llm-providers-ui:usage-cache'
+/**
+ * Browser last-good usage cache shared across bundles: the sidebar store and
+ * each provider Settings card bundle their own copy of this module, so the
+ * module-level memory map below is per-bundle while storage is shared.
+ * Readable storage is authoritative, including empty after invalidation; memory
+ * is only a fallback while storage is unavailable. Stale status persists
+ * honestly, and collapsed-header headlines never replace a full multi-window
+ * summary (a later full read upgrades a headline).
+ */
+let memoryUsageCache = new Map<string, ProviderUsageSummary>()
+
+/** Whether a ready or stale summary retains displayable usage windows.
+ * @param summary - Current or retained provider usage.
+ * @returns Whether its windows can be displayed and persisted.
+ */
+export function hasUsageData(summary: ProviderUsageSummary | undefined): summary is ProviderUsageSummary {
+  return summary !== undefined && summary.windows.length > 0 && (summary.status === 'ready' || summary.status === 'stale')
+}
+
+function cachedSummary(value: unknown): ProviderUsageSummary | undefined {
+  const item = recordUsageValue(value)
+  if (item === undefined || !nonEmptyString(item.providerKey) || !nonEmptyString(item.name)) return undefined
+  const status = item.status
+  if (status !== 'ready' && status !== 'stale') return undefined
+  if (!Array.isArray(item.windows) || item.windows.length === 0) return undefined
+  const windows: UsageWindowSummary[] = []
+  for (const windowValue of item.windows) {
+    const quotaWindow = recordUsageValue(windowValue)
+    if (quotaWindow === undefined || !nonEmptyString(quotaWindow.id) || !nonEmptyString(quotaWindow.label) || !nonEmptyString(quotaWindow.shortLabel) || !nonEmptyString(quotaWindow.valueText)) return undefined
+    if (quotaWindow.remainingPercent !== undefined && (!nonNegativeNumber(quotaWindow.remainingPercent) || quotaWindow.remainingPercent > 100)) return undefined
+    if (quotaWindow.resetsAt !== undefined && !nonEmptyString(quotaWindow.resetsAt)) return undefined
+    windows.push({
+      id: quotaWindow.id,
+      label: quotaWindow.label,
+      shortLabel: quotaWindow.shortLabel,
+      valueText: quotaWindow.valueText,
+      ...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent }),
+      ...(quotaWindow.resetsAt === undefined ? {} : { resetsAt: quotaWindow.resetsAt }),
+    })
+  }
+  return {
+    providerKey: item.providerKey,
+    name: item.name,
+    status,
+    windows,
+    ...(nonEmptyString(item.fetchedAt) ? { fetchedAt: item.fetchedAt } : {}),
+  }
+}
+
+interface UsageStorageBackend {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+  removeItem?(key: string): void
+}
+
+/** Readable storage backends. A backend that throws on read is unusable and skipped. */
+function usageStorageBackends(): UsageStorageBackend[] {
+  const backends: UsageStorageBackend[] = []
+  for (const name of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      const backend = globalThis[name] as UsageStorageBackend | undefined | null
+      if (backend === undefined || backend === null) continue
+      backend.getItem(USAGE_CACHE_KEY)
+      backends.push(backend)
+    } catch { /* unreadable backend */ }
+  }
+  return backends
+}
+
+function storageRead(): { available: boolean, raw: string | null } {
+  const backends = usageStorageBackends()
+  if (backends.length === 0) return { available: false, raw: null }
+  for (const backend of backends) {
+    try {
+      const raw = backend.getItem(USAGE_CACHE_KEY)
+      if (raw !== null) return { available: true, raw }
+    } catch { /* unreadable backend; try the next one */ }
+  }
+  return { available: true, raw: null }
+}
+
+function storageWrite(value: string): void {
+  for (const backend of usageStorageBackends()) {
+    try { backend.setItem(USAGE_CACHE_KEY, value) } catch { /* quota */ }
+  }
+}
+
+function storageRemove(): void {
+  for (const backend of usageStorageBackends()) {
+    try { backend.removeItem?.(USAGE_CACHE_KEY) } catch { /* ignore */ }
+  }
+}
+
+function parseUsageCache(raw: string | null): Map<string, ProviderUsageSummary> {
+  const cached = new Map<string, ProviderUsageSummary>()
+  if (raw === null) return cached
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return cached
+    for (const value of parsed) {
+      const item = cachedSummary(value)
+      if (item !== undefined) cached.set(item.providerKey, item)
+    }
+  } catch { /* malformed */ }
+  return cached
+}
+
+export function readUsageCache(): Map<string, ProviderUsageSummary> {
+  const { available, raw } = storageRead()
+  if (!available) return new Map(memoryUsageCache)
+  const fromStorage = parseUsageCache(raw)
+  memoryUsageCache = new Map(fromStorage)
+  return fromStorage
+}
+
+/** Persistable copy: status stays ready/stale as the caller holds it, never laundered to ready. */
+function persistableUsage(summary: ProviderUsageSummary): ProviderUsageSummary {
+  return {
+    providerKey: summary.providerKey,
+    name: summary.name,
+    status: summary.status,
+    windows: summary.windows,
+    ...(summary.fetchedAt === undefined ? {} : { fetchedAt: summary.fetchedAt }),
+  }
+}
+
+/** A collapsed-header single window, never a full multi-window summary. */
+function isHeadlineOnly(summary: ProviderUsageSummary): boolean {
+  return summary.windows.length === 1 && summary.windows[0]?.id === 'headline'
+}
+
+export function writeUsageCache(current: Map<string, ProviderUsageSummary>): void {
+  const entries = [...current.values()].filter(hasUsageData)
+  const { available, raw } = storageRead()
+  if (!available) {
+    for (const item of entries) memoryUsageCache.set(item.providerKey, persistableUsage(item))
+    return
+  }
+  const merged = parseUsageCache(raw)
+  for (const item of entries) {
+    const previous = merged.get(item.providerKey)
+    if (previous !== undefined && !isHeadlineOnly(previous) && isHeadlineOnly(item)) continue
+    merged.set(item.providerKey, persistableUsage(item))
+  }
+  memoryUsageCache = new Map(merged)
+  if (merged.size === 0) return
+  storageWrite(JSON.stringify([...merged.values()]))
+}
+
+export function dropPersistedUsageKeys(keys: readonly string[]): void {
+  const drop = new Set(keys)
+  for (const key of drop) memoryUsageCache.delete(key)
+  const { available, raw } = storageRead()
+  if (!available || raw === null) return
+  let parsed: unknown
+  try { parsed = JSON.parse(raw) } catch { return }
+  if (!Array.isArray(parsed)) return
+  const kept = parsed.filter(value => {
+    const item = recordUsageValue(value)
+    return item === undefined || !nonEmptyString(item.providerKey) || !drop.has(item.providerKey)
+  })
+  if (kept.length === parsed.length) return
+  storageWrite(JSON.stringify(kept))
+}
+
+export function clearProviderUsageCache(): void {
+  memoryUsageCache = new Map()
+  storageRemove()
+}
+
+/** Last-good quota for a Provider card header, available on first paint. */
+export function peekCachedUsage(providerKey: string): ProviderUsageSummary | undefined {
+  return readUsageCache().get(providerKey)
+}
+
+export function rememberCachedUsage(summary: ProviderUsageSummary): void {
+  if (!hasUsageData(summary)) return
+  writeUsageCache(new Map([[summary.providerKey, summary]]))
+}
+
+/**
+ * Collapsed-header last-good quota for first paint. Ignores headlines without
+ * a finite in-range remaining percent so missing quota renders no meter, never
+ * a zero bar. Never replaces a cached full multi-window summary, and records
+ * no fetchedAt: a headline is display data, not a fetch, so freshness checks
+ * treat it as expired and refetch.
+ */
+export function rememberHeadlineQuota(providerKey: string, name: string, quota: { label?: string, remainingPercent?: number } | null | undefined): void {
+  if (quota?.remainingPercent === undefined || !Number.isFinite(quota.remainingPercent)) return
+  const remainingPercent = Math.round(quota.remainingPercent * 10) / 10
+  if (remainingPercent < 0 || remainingPercent > 100) return
+  const label = quota.label ?? 'Quota'
+  rememberCachedUsage({
+    providerKey,
+    name,
+    status: 'ready',
+    windows: [{ id: 'headline', label, shortLabel: label, valueText: String(remainingPercent) + '%', remainingPercent }],
+  })
+}
+
+export function headerQuotaFromCache(summary: ProviderUsageSummary | undefined): { label: string, remainingPercent?: number, detail?: string } | undefined {
+  if (summary === undefined) return undefined
+  const quotaWindow = pickPrimaryWindow(summary.windows)
+  if (quotaWindow === undefined) return undefined
+  return {
+    label: quotaWindow.shortLabel || quotaWindow.label,
+    ...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent }),
+    ...(quotaWindow.resetsAt === undefined ? {} : { detail: quotaWindow.resetsAt }),
+  }
 }
