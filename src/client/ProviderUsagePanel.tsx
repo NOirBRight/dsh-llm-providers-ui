@@ -20,10 +20,6 @@ function usageTone(remainingPercent: number | undefined): UsageTone | undefined 
   return undefined
 }
 
-function providerInitial(name: string): string {
-  return name.trim().charAt(0)
-}
-
 function FilterRow(props: { summary: ProviderUsageSummary, hidden: boolean, onToggle: (visible: boolean) => void }): ReactNode {
   return (
     <label className="pu-filter-item">
@@ -33,7 +29,7 @@ function FilterRow(props: { summary: ProviderUsageSummary, hidden: boolean, onTo
         checked={!props.hidden}
         onChange={event => { props.onToggle(event.target.checked) }}
       />
-      <span className="pu-mark"><ProviderMark providerKey={props.summary.providerKey} fallback={providerInitial(props.summary.name)} /></span>
+      <span className="pu-mark"><ProviderMark providerKey={props.summary.providerKey} /></span>
       <span className="pu-filter-name">{props.summary.name}</span>
     </label>
   )
@@ -77,8 +73,8 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}',
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
-  '[data-provider-usage-panel] .pu-stage{width:100%;min-width:0;height:132px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
-  '[data-provider-usage-panel] .pu-stage-open{height:auto;overflow:visible}',
+  '[data-provider-usage-panel] .pu-stage{width:100%;min-width:0;height:auto;max-height:132px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
+  '[data-provider-usage-panel] .pu-stage-open{max-height:none;overflow:visible}',
   '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
   '[data-provider-usage-panel] .pu-cell{position:relative;min-width:0}',
   '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 22px 5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer;outline:none}',
@@ -90,7 +86,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:14px;height:14px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
   '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:color-mix(in srgb,var(--dsw-alias-label-primary) 55%,var(--dsw-alias-label-secondary));font-size:10px;font-weight:500;line-height:12px}',
   '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
-  '[data-provider-usage-panel] .pu-primary{color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary));font-size:12px;font-weight:500;line-height:14px;font-variant-numeric:tabular-nums}',
+  '[data-provider-usage-panel] .pu-primary{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary));font-size:12px;font-weight:500;line-height:14px;font-variant-numeric:tabular-nums}',
   '[data-provider-usage-panel] .pu-low .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-low{color:color-mix(in srgb,#d94848 58%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:color-mix(in srgb,#c47b08 58%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
@@ -169,7 +165,7 @@ function ProviderRow(props: { summary: ProviderUsageSummary, onSelect: () => voi
         onClick={props.onSelect}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); props.onSelect() } }}
       >
-        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
+        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} /></span>
         <span className="pu-copy">
           <span className="pu-name">{summary.name}{summary.status === 'stale' ? ' · 已过期' : ''}</span>
           <span className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</span>
@@ -195,7 +191,7 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
         <button type="button" className="pu-icon-btn" aria-label="返回全部 Provider" onClick={props.onBack}>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>
         </button>
-        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} fallback={providerInitial(summary.name)} /></span>
+        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} /></span>
         <span className="pu-detail-name">{summary.name}</span>
         <button
           type="button"

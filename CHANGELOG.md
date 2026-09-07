@@ -1,4 +1,11 @@
 # Changelog
+
+## [0.1.10] - 2026-09-07
+
+- Shared Provider headers, quota minis, role marks, and theme-adaptive vendor icons.
+- Three complete compact quota rows with single-line status and unrestricted expanded details.
+- Narrow settings layout and declaration consumers verified against the packaged public interfaces.
+
 ## [0.1.7] - 2026-09-05
 
 ### Changed

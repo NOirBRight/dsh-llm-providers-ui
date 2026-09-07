@@ -34,7 +34,7 @@ The 14px globe glyph on the nav row is an isolated temporary adapter (`src/clien
 - `dsh-llm-providers-ui` (Host): `applySavedOrder`, `decodeProviderOrder`, `sortCatalogGroups`, `PROVIDER_ITEM_ORDER`, etc. Built artifact: `lib/index.js` + `lib/types`.
 - `dsh-llm-providers-ui/order` (pure, ESM): same order helpers, stable built utility for `dsh-model-switch` and provider pickers. Built artifact: `lib/order.js` + `lib/types/order.d.ts`. Provider plugins `alwaysBundle` this built export; do not import from `src`.
 - `dsh-llm-providers-ui/sortable` (client utility, ESM): `SortableList` drag-reorder implementation. Built artifact: `lib/sortable.js` + `lib/types/sortable.d.ts`. Single implementation lives in `src/client/SortableList.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/SortableList.tsx`.
-- `dsh-llm-providers-ui/provider-ui` (client utility, ESM): shared `ProviderCardHeader`, `ProviderQuotaMeter`, `normalizeQuotaRemaining`, and `providerUiCss`. Built artifact: `lib/provider-ui.js` + `lib/types/provider-ui.d.ts`. Single implementation lives in `src/client/provider-ui.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/provider-ui.tsx`.
+- `dsh-llm-providers-ui/provider-ui` (client utility, ESM): shared `ProviderCardHeader`, `ProviderQuotaMeter`, `ProviderMark`, `normalizeQuotaRemaining`, and `providerUiCss`. Built artifact: `lib/provider-ui.js` + `lib/types/provider-ui.d.ts`. Single implementation lives in `src/client/provider-ui.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/provider-ui.tsx`.
 - `dsh-llm-providers-ui/client` (Web): owner plugin wiring and the `providerDirectory` Cordis service declaration. Built artifact: `lib/client.js` (ModuleLoader CJS) + `lib/types/client`; it exports only the plugin entrypoints. Do not import `./src/*`.
 - `dsh-llm-providers-ui/usage-readers` (pure, ESM): `ProviderUsageReader` types and vendor `create*UsageReader` factories for provider client bundles. Built artifact: `lib/usage-readers.js` + `lib/types/usage-readers.d.ts`. Provider plugins `alwaysBundle` this export.
 
@@ -46,8 +46,10 @@ This package is a bundle that must be installed explicitly. Until DSH's third-pa
 
 ## Consumer contract
 
-Provider plugins register their card under `settings.provider.item` with their `settingsNs` key and register `{ key, role, header, usage }` on `ctx.providerDirectory` inside an effect. The returned disposer owns the registration. Usage-enabled providers import their reader factory from `dsh-llm-providers-ui/usage-readers`. Unregistered cards keep the LLM badge and do not receive a Provider Usage tile.
-Migrated cards render the shared header from `dsh-llm-providers-ui/provider-ui` (`ProviderCardHeader` with `role`, caller `status`, and headline `quota`; `title`/`mark`/`summary`/`open`/`unsaved` keep the legacy codex layout), mark their root `li[data-provider-card][data-provider-role]`, their header button `data-provider-card-header`, and their body `data-provider-body`, include one `<style>{providerUiCss}</style>`, and declare `header: 'shared'` so the shell drops its fallback badge. Missing quota renders no meter, never a zero bar; `normalizeQuotaRemaining` keeps precision and reports NaN/Infinity/out-of-range as unavailable.
+Provider plugins register their card under `settings.provider.item` with their `settingsNs` key and register `{ key, role, header, usage }` on `ctx.providerDirectory` inside an effect. The returned disposer owns the registration. Usage-enabled providers import their reader factory from `dsh-llm-providers-ui/usage-readers`. Unregistered cards keep the LLM badge and do not receive a Provider Usage tile. The sidebar usage stage sizes to its rendered tiles (natural grid height up to the three-row cap, then scrolls), so hiding providers shrinks the panel instead of leaving blank rows. Quota and unavailable-status headlines stay on one line with ellipsis, keeping tiles equal-height and three rows fully visible at narrow sidebar widths.
+Migrated cards render the shared header from `dsh-llm-providers-ui/provider-ui` (`ProviderCardHeader` with `role`, caller `status`, and headline `quota`; `title`/`mark`/`summary`/`open`/`unsaved` keep the legacy codex layout), mark their root `li[data-provider-card][data-provider-role]`, their header button `data-provider-card-header`, and their body `data-provider-body`, include one `<style>{providerUiCss}</style>`, and declare `header: 'shared'` so the shell drops its fallback badge. Cards start their existing cached quota read when account readiness is known, independent of expansion; opening an already-loaded card does not refetch. Missing quota renders no meter, never a zero bar; `normalizeQuotaRemaining` keeps precision and reports NaN/Infinity/out-of-range as unavailable.
+The settings fallback preserves ancestor overflow clipping and the native settings title. Mobile layouts keep ownership of offscreen panels and dialog header spacing.
+
 Provider plugins import directory and slot types from `dsh-llm-providers-ui/client` with `import type {}` and must not duplicate the module augmentations locally. After sign-out or account switch, providers call `ctx.providerDirectory.invalidateUsage(key)` so the sidebar drops the cached quota and refetches; transient read errors still show the last good windows as stale.
 `dsh-model-switch` reuses `sortCatalogGroups` via the built `dsh-llm-providers-ui/order` export.
 
@@ -61,14 +63,14 @@ Latest installation (the URL never contains a version):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 ~~~
 
 Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.7/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.10/dsh-llm-providers-ui-0.1.10.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -76,7 +78,7 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to the latest Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -86,9 +88,9 @@ dsh plugin --profile web remove dsh-llm-providers-ui
 
 Configuration: use the plugin section in Settings for Web UI plugins, or the profile dsh.profile.bundles entry for Host-only plugins. Start with this README's minimal YAML/JSON example and provide credentials/backend addresses explicitly.
 
-Rollback: rerun the fixed v0.1.3 command (or the previously recorded Alpha.4 tarball), verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
+Rollback: reinstall the previously recorded immutable tarball, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service; never put a source checkout in the production profile.
 
-Release and integrity will be published with the Alpha.4 migration release.
+Verify release assets against the SHA-256 manifest attached to the selected release.
 
 Codex quota reads explicitly refresh the backend; the UI store controls caching for both manual refresh and expired-cache polling.
 

@@ -38,6 +38,7 @@ async function providers() {
   if (!await evaluate('Boolean(document.querySelector("[data-providers-section]"))')) await click('LLM Providers')
   await wait('document.querySelectorAll("[data-providers-section] [data-provider-card]").length===7')
   await wait('document.querySelector("[data-provider-card=antigravity] [data-provider-header-status]")?.textContent==="Connected" && Boolean(document.querySelector("[data-provider-card=antigravity] [role=meter]"))')
+  await wait('[...document.querySelectorAll("[data-provider-card]")].every(c=>c.querySelector("[data-provider-card-header][aria-expanded=false] [data-provider-quota-mini]"))')
   await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
 }
 async function screenshot(name) {
@@ -46,6 +47,8 @@ async function screenshot(name) {
 }
 await call('Page.enable')
 await call('Runtime.enable')
+await call('Page.bringToFront')
+await wait('[...document.querySelectorAll("button")].some(b=>b.getAttribute("aria-label")==="Open sidebar"||["Settings","General"].includes(b.textContent.trim()))')
 let originalTheme
 try {
   if (!await evaluate('[...document.querySelectorAll("button")].some(b=>b.textContent.trim()==="General")')) {
@@ -75,6 +78,7 @@ try {
     await evaluate('document.querySelector("[data-provider-card=antigravity] [data-provider-card-header]").click()')
     await wait('document.querySelector("[data-provider-card=antigravity] [data-provider-card-header]").getAttribute("aria-expanded")==="true"')
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'), true, 'Expanded Antigravity overflow')
+    assert.equal(await evaluate('Boolean(document.querySelector("[data-provider-card=antigravity] details"))'), false, 'Runtime internals must not occupy the normal settings card')
     await screenshot('lab-antigravity-' + width + '-' + theme.toLowerCase())
     await evaluate('document.querySelector("[data-provider-card=antigravity] [data-provider-card-header]").click()')
     console.log('PASS layout ' + width + ' ' + theme)
