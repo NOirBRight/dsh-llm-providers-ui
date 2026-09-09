@@ -156,10 +156,19 @@ export function createProviderUsageStore(
         const item = queued[index]
         if (item !== undefined && (!configuredKeys.includes(item.key) || snapshot.hiddenKeys.includes(item.key))) queued.splice(index, 1)
       }
-      for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) { current.delete(key) }
-      for (const key of configuredKeys) if (!current.has(key)) {
-        const reader = readerForKey(key)
-        if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
+      const persisted = readUsageCache()
+      if (configuredKeys.length > 0) {
+        for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) current.delete(key)
+      }
+      for (const key of configuredKeys) {
+        const existing = current.get(key)
+        if (hasUsageData(existing)) continue
+        const cached = persisted.get(key)
+        if (hasUsageData(cached)) current.set(key, cached)
+        else if (existing === undefined) {
+          const reader = readerForKey(key)
+          if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
+        }
       }
       sync(false)
       startPoll()

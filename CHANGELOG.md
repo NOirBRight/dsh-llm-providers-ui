@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.11] - 2026-09-09
+
+- Keep last-good sidebar quota visible across a configure that temporarily has no readers.
+
 ## [0.1.10] - 2026-09-07
 
 - Shared Provider headers, quota minis, role marks, and theme-adaptive vendor icons.

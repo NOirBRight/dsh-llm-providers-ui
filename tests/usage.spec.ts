@@ -329,6 +329,26 @@ describe('Provider Usage readers', () => {
     store.dispose()
   })
 
+  it('shows last-good quota immediately after a configure with no readers', async () => {
+    let hang = false
+    const rpc = rpcFor(async () => {
+      if (hang) return new Promise(() => {})
+      return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+    })
+    let enabled = true
+    const store = createProviderUsageStore(rpc, key => enabled ? readers.get(key) : undefined)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+    enabled = false
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    hang = true
+    enabled = true
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+    store.dispose()
+  })
+
   it('hydrates last-good usage from localStorage before the first read', async () => {
     const memory = new Map<string, string>()
     vi.stubGlobal('localStorage', {
