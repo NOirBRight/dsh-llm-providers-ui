@@ -43,6 +43,9 @@ export interface ProviderUsageStore {
 }
 
 function keepUsage(old: ProviderUsageSummary | undefined, next: ProviderUsageSummary): ProviderUsageSummary {
+  // Signed out means those windows are not this account's any more, so they are
+  // dropped rather than relabelled stale. A provider that still has credentials
+  // and merely failed to answer keeps its last good windows, marked stale.
   if (next.status === 'logged-out') return next
   if (!hasUsageData(next) && hasUsageData(old)) return { ...old, status: 'stale' }
   return next

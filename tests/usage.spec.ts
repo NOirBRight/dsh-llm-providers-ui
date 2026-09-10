@@ -166,6 +166,12 @@ describe('Provider Usage readers', () => {
     await expect(codexReader.read(rpc, false, new AbortController().signal)).resolves.toEqual({ status: 'logged-out' })
   })
 
+  it('maps a missing or unusable credential to logged-out', async () => {
+    const rpc = rpcFor(async () => ({ ok: false, error: { code: 'INVALID_CREDENTIAL', message: 'the API key is blank' } }))
+    await expect(createOllamaUsageReader().read(rpc, false, new AbortController().signal))
+      .resolves.toEqual({ status: 'logged-out' })
+  })
+
   it('re-reads Grok with its contractually empty payload', async () => {
     const signal = new AbortController().signal
     const rpc = rpcFor(async () => ({ ok: true, value: { status: 'logged-out' } }))
@@ -257,6 +263,23 @@ describe('Provider Usage readers', () => {
     const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
+    store.refresh()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
+    store.dispose()
+  })
+
+  it('drops the cached quota when the credential stops resolving', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      return { ok: false, error: { code: 'INVALID_CREDENTIAL', message: 'the API key is blank' } }
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
     store.refresh()
     await flush()
     expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })

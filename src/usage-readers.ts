@@ -4,6 +4,19 @@ import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/cli
 
 export type ProviderUsageStatus = 'loading' | 'ready' | 'logged-out' | 'unsupported' | 'stale' | 'error'
 
+/**
+ * Wire error code the Host answers when the provider credential is missing or
+ * unusable (mirrors `INVALID_CREDENTIAL_CODE` in `@deepseek-ai/dsh-llm`, which a
+ * browser bundle cannot import). Mapped to `logged-out` so a provider without a
+ * usable credential never keeps serving the previous account's quota.
+ */
+const INVALID_CREDENTIAL_CODE = 'INVALID_CREDENTIAL'
+
+/** Whether one RPC failure means "this provider has no usable credential". */
+function credentialFailure(error: { code?: unknown, message?: unknown }): boolean {
+  return error.code === INVALID_CREDENTIAL_CODE
+}
+
 export interface UsageWindowSummary {
   id: string
   label: string
@@ -288,7 +301,9 @@ async function readCodexUsage(rpc: ClientConnectionRpc, signal: AbortSignal): Pr
   while (!signal.aborted) {
     // The UI store owns freshness; auth/status otherwise retains nonempty quota indefinitely.
     const result = await rpc.call('/codex', 'auth/status', { refresh: true }, signal)
-    last = result.ok ? decodeCodexAuthStatus(result.value) : { status: 'error', message: result.error.message }
+    last = result.ok
+      ? decodeCodexAuthStatus(result.value)
+      : credentialFailure(result.error) ? { status: 'logged-out' } : { status: 'error', message: result.error.message }
     if (last.status !== 'ready' || last.windows.length > 0 || Date.now() >= deadline) return last
     await waitForCodexUsage(signal)
   }
@@ -305,7 +320,9 @@ async function readUsage(
   decode: UsageDecoder,
 ): Promise<ProviderUsageRead> {
   const result = await rpc.call(channel, 'usage/read', payload, signal)
-  return result.ok ? usageResult(result.value, decode) : { status: 'error', message: result.error.message }
+  if (result.ok) return usageResult(result.value, decode)
+  if (credentialFailure(result.error)) return { status: 'logged-out' }
+  return { status: 'error', message: result.error.message }
 }
 
 /** Create the Codex quota reader declared by the Codex client plugin. */
