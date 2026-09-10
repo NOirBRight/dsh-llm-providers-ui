@@ -13,6 +13,7 @@ let selected = providers.some(p => p.id === params.get('provider')) ? params.get
 const variant = 'C';
 let detailC = params.has('provider');
 let readOnly = false;
+let showSidebarUsage = true;
 let filter = 'all';
 let modalState = null;
 let sortDrag = null;
@@ -143,7 +144,13 @@ function pageTitle(subtitle) { return '<header class="page-title"><div><h1>LLM P
 function VariantC() {
   if(detailC){const p=getP();return '<div class="breadcrumb"><button data-action="overview">'+icon('back')+' 额度总览</button><span>/</span><span>'+esc(p.name)+'</span></div><article class="full-detail"><div class="detail-title">'+identity(p,true)+'</div>'+providerBody(p,'detail-body')+'</article>';}
   const visible=order.map(getP).filter(p=>filter==='all'||p.role===filter);
-  return pageTitle('先看账户额度，再进入独立详情页配置。')+'<div class="overview-note"><span class="number">'+providers.filter(p=>p.connected).length+'</span><div class="grow"><strong>已连接的 Provider</strong><p>额度属于各自账户，不合并统计，也不互相替代。</p></div></div><div class="section-heading overview-filters"><div class="row">'+[['all','全部'],['llm','LLM'],['agent','Agent']].map(([id,name])=>'<button class="btn '+(filter===id?'':'quiet')+'" data-action="filter" data-filter="'+id+'" aria-pressed="'+(filter===id)+'">'+name+'</button>').join('')+'</div><span class="tiny faint" data-system-zone>系统时区 · '+esc(systemZone())+'</span></div><div class="ledger"><div class="ledger-labels"><span>Provider / 连接状态</span><span>主要窗口 · 剩余额度</span><span>配置</span></div><div id="provider-rows">'+visible.map(p=>'<div class="ledger-row" data-ledger-provider="'+p.id+'" data-sort-id="'+p.id+'"><div class="provider-cell">'+dragHandle(p.id,p.name)+identity(p)+'</div><div class="mini">'+quotaSummary(p)+'</div>'+btn('open-provider','详情',p.id)+'</div>').join('')+'</div></div>';
+  return pageTitle('先看账户额度，再进入独立详情页配置。')+'<div class="overview-note"><span class="number">'+providers.filter(p=>p.connected).length+'</span><div class="grow overview-copy"><strong>已连接的 Provider</strong><p>额度属于各自账户，不合并统计，也不互相替代。</p></div><label class="sidebar-toggle" title="全局控制 Task Panel 的额度显示；关闭设置可预览"><span>在侧边栏显示</span><input id="show-sidebar-usage" type="checkbox" role="switch" aria-label="在侧边栏显示额度" aria-describedby="sidebar-usage-hint" '+(showSidebarUsage?'checked':'')+' '+(readOnly?'disabled':'')+'></label><span id="sidebar-usage-hint" class="sr-only">仅控制 Task Panel 的额度区域；单个 Provider 的选择沿用外部设置。</span></div><div class="section-heading overview-filters"><div class="row">'+[['all','全部'],['llm','LLM'],['agent','Agent']].map(([id,name])=>'<button class="btn '+(filter===id?'':'quiet')+'" data-action="filter" data-filter="'+id+'" aria-pressed="'+(filter===id)+'">'+name+'</button>').join('')+'</div><span class="tiny faint" data-system-zone>系统时区 · '+esc(systemZone())+'</span></div><div class="ledger"><div class="ledger-labels"><span>Provider / 连接状态</span><span>主要窗口 · 剩余额度</span><span>配置</span></div><div id="provider-rows">'+visible.map(p=>'<div class="ledger-row" data-ledger-provider="'+p.id+'" data-sort-id="'+p.id+'"><div class="provider-cell">'+dragHandle(p.id,p.name)+identity(p)+'</div><div class="mini">'+quotaSummary(p)+'</div>'+btn('open-provider','详情',p.id)+'</div>').join('')+'</div></div>';
+}
+function renderTaskPanel() {
+  $('#task-usage').hidden=!showSidebarUsage;
+  // Reuse the current quota data; this preview does not duplicate external per-provider preferences.
+  $('#task-usage-cards').innerHTML=$('#closed').hidden||!showSidebarUsage?'':providers.filter(p=>p.role==='llm').map(p=>'<button class="task-usage-card" data-action="open-provider" data-provider="'+p.id+'" title="查看 '+esc(p.name)+' 额度详情">'+brand(p)+'<span class="grow"><span class="task-usage-name">'+esc(p.name)+'</span>'+quotaSummary(p)+'</span></button>').join('');
+  $('#task-preview-status').textContent=showSidebarUsage?'额度区域已显示。':'额度区域已隐藏，会话和其他侧栏内容不受影响。';
 }
 function renderDraftbar() {
   const p=getP();
@@ -168,14 +175,14 @@ function render(resetScroll=false) {
   if(focus){const next=$('[data-focus="'+CSS.escape(focus)+'"]',work);next?.focus({preventScroll:true});if(next instanceof HTMLInputElement&&cursor!==null&&['text','password','search','url'].includes(next.type))next.setSelectionRange(cursor,cursor);}
   $$('[data-advanced]',work).forEach(d=>d.addEventListener('toggle',()=>{getP(d.dataset.advanced).advancedOpen=d.open;}));
   $('#variant-label').innerHTML='C · 额度总览<small>已选定方案 · 继续细化</small>';
-  renderDraftbar();syncURL();
+  renderDraftbar();renderTaskPanel();syncURL();
 }
 function stateSnapshot() {
-  return {variant,selected,expandedModels:[...expandedModels],sort:sortState?{type:sortState.type,provider:sortState.provider,items:sortIDs(true)}:null,detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,systemTime:new Date().toISOString(),timeZone:systemZone(),providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
+  return {variant,selected,showSidebarUsage,expandedModels:[...expandedModels],sort:sortState?{type:sortState.type,provider:sortState.provider,items:sortIDs(true)}:null,detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,systemTime:new Date().toISOString(),timeZone:systemZone(),providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
 }
 function record(action) { console.info('[prototype state]',action,stateSnapshot()); }
 function toast(text, undo=false) { clearTimeout(toastTimer);$('#toast').innerHTML=esc(text)+(undo?' <button class="link-btn" style="color:inherit;margin-left:8px" data-action="undo-remove">撤销</button>':'');toastTimer=setTimeout(()=>{$('#toast').textContent='';},4500); }
-function openProvider(id) { if(sortState)endSort(true);selected=id;detailC=true;render(true);record('select provider'); }
+function openProvider(id) { if(sortState)endSort(true);const fromSidebar=!$('#closed').hidden;$('.settings').hidden=false;$('#closed').hidden=true;selected=id;detailC=true;render(true);if(fromSidebar)$('.breadcrumb button').focus({preventScroll:true});record('select provider'); }
 function showModal(type, data={}) { modalState={type,...data};renderModal();if(!$('#modal').open)$('#modal').showModal();requestAnimationFrame(()=>{$('input:not([type=checkbox]),select,button',$('#modal'))?.focus();}); }
 function closeModal() { $('#modal').close();modalState=null; }
 function dialogFrame(title,body,footer='') { return '<div class="dialog-inner"><header class="dialog-header"><h2 id="modal-title">'+title+'</h2><button type="button" class="icon-btn" data-action="close-modal" aria-label="关闭对话框">'+icon('close')+'</button></header><div class="dialog-body">'+body+'</div>'+(footer?'<footer class="dialog-footer">'+footer+'</footer>':'')+'</div>'; }
@@ -338,10 +345,10 @@ document.addEventListener('click',async event=>{
   if(action==='overview'){if(sortState)endSort(true);detailC=false;render(true);return;}
   if(action==='filter'){filter=target.dataset.filter;render(true);return;}
   if(action==='theme'){document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';$('#theme-button').textContent=document.documentElement.dataset.theme==='dark'?'浅色':'深色';syncURL();record('theme');return;}
-  if(action==='close-settings'){$('.settings').hidden=true;$('#closed').hidden=false;return;}
-  if(action==='reopen'){$('.settings').hidden=false;$('#closed').hidden=true;return;}
+  if(action==='close-settings'){if(sortState)endSort(true);$('.settings').hidden=true;$('#closed').hidden=false;renderTaskPanel();$('#closed [data-action=reopen]').focus();return;}
+  if(action==='reopen'){$('.settings').hidden=false;$('#closed').hidden=true;renderTaskPanel();const toggle=$('#show-sidebar-usage');(toggle&&!toggle.disabled?toggle:$('#close-settings')).focus({preventScroll:true});return;}
   if(action==='scope'||action==='review'||action==='config-preview')return showModal(action);
-  if(action==='reset-demo'){if(sortDrag)finishPointerSort(false);sortState=null;expandedModels.clear();keyDrafts.clear();providers=copy(window.PROVIDER_DEMO);order=providers.map(v=>v.id);saved=new Map(providers.map(v=>[v.id,copy(config(v))]));readOnly=false;detailC=false;selected='codex';filter='all';if($('#modal').open)closeModal();render(true);toast('已重置全部演示数据');record('reset');return;}
+  if(action==='reset-demo'){if(sortDrag)finishPointerSort(false);sortState=null;expandedModels.clear();keyDrafts.clear();providers=copy(window.PROVIDER_DEMO);order=providers.map(v=>v.id);saved=new Map(providers.map(v=>[v.id,copy(config(v))]));readOnly=false;showSidebarUsage=true;detailC=false;selected='codex';filter='all';if($('#modal').open)closeModal();render(true);toast('已重置全部演示数据');record('reset');return;}
   if(action==='sort-providers'||action==='sort-models')return beginSort(action,p);
   if(action==='toggle-model'){const key=p.id+':'+target.dataset.model;if(expandedModels.has(key))expandedModels.delete(key);else expandedModels.add(key);render();record('toggle model parameters');return;}
   if(action==='toggle-models'){const allClosed=p.models.every(m=>!expandedModels.has(modelKey(p,m)));p.models.forEach(m=>allClosed?expandedModels.add(modelKey(p,m)):expandedModels.delete(modelKey(p,m)));render();$('[data-action="toggle-models"][data-provider="'+p.id+'"]')?.focus({preventScroll:true});record('toggle all model parameters');return;}
@@ -374,6 +381,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('change',event=>{
   const input=event.target;
+  if(input.id==='show-sidebar-usage'){if(readOnly){input.checked=showSidebarUsage;return;}showSidebarUsage=input.checked;renderTaskPanel();record('sidebar quota visibility');return;}
   if(input.id==='frame'){document.documentElement.style.setProperty('--frame',input.value+'px');syncURL();return;}
   if(input.id==='auth-remote'){modalState.remote=input.checked;renderModal();return;}
   if(input.dataset.candidate){if(input.checked)modalState.picked.add(input.dataset.candidate);else modalState.picked.delete(input.dataset.candidate);$('#picker-count').textContent='已选择 '+modalState.picked.size+' 个模型';return;}

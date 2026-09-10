@@ -66,7 +66,7 @@ code{font-size:11px;overflow-wrap:anywhere}
 .stage{--stage-top:42px;--stage-bottom:calc(var(--controls-height) + 40px + var(--safe-bottom));min-height:var(--viewport-height);padding:var(--stage-top) calc(12px + var(--safe-right)) var(--stage-bottom) calc(12px + var(--safe-left));display:grid;place-items:center}
 .prototype-caption{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:11px;color:#4e535a;white-space:normal;text-align:center;max-width:calc(100vw - 24px);width:max-content;letter-spacing:.3px}
 .prototype-caption strong{font-size:10px;letter-spacing:1.5px;margin-right:8px}
-.settings{display:flex;width:min(var(--frame),calc(100vw - 24px - var(--safe-left) - var(--safe-right)));height:min(840px,calc(var(--viewport-height) - var(--stage-top) - var(--stage-bottom)));min-height:0;overflow:hidden;background:var(--bg);border:1px solid color-mix(in srgb,var(--ink) 12%,transparent);border-radius:32px;box-shadow:0 16px 64px #0002,0 2px 8px #0001;container-type:inline-size;container-name:settings}
+.settings,.closed{display:flex;width:min(var(--frame),calc(100vw - 24px - var(--safe-left) - var(--safe-right)));height:min(840px,calc(var(--viewport-height) - var(--stage-top) - var(--stage-bottom)));min-height:0;overflow:hidden;background:var(--bg);border:1px solid color-mix(in srgb,var(--ink) 12%,transparent);border-radius:32px;box-shadow:0 16px 64px #0002,0 2px 8px #0001;container-type:inline-size;container-name:settings}
 .nav{width:188px;flex:none;padding:24px 12px;display:flex;flex-direction:column;gap:20px}
 .nav-title{font-size:16px;font-weight:500;padding:0 12px}
 .nav-list{display:flex;flex-direction:column;gap:4px}
@@ -208,6 +208,13 @@ code{font-size:11px;overflow-wrap:anywhere}
 .overview-note{padding:14px 16px;background:var(--subtle);border:1px solid var(--line);border-radius:11px;margin-bottom:19px;display:flex;align-items:center;gap:12px}
 .overview-note .number{font-size:27px;line-height:1;font-weight:550;font-variant-numeric:tabular-nums;letter-spacing:-1px}
 .overview-note p{font-size:11px;color:var(--muted)}
+.sidebar-toggle{display:flex;align-items:center;gap:8px;min-height:44px;flex:none;font-size:11px;white-space:nowrap;cursor:pointer}
+.overview-note .sidebar-toggle input[type=checkbox][role=switch]{appearance:none;position:relative;width:32px;height:18px;min-height:18px;padding:2px;border:0;border-radius:20px;background:var(--faint);cursor:inherit}
+.sidebar-toggle input::before{content:"";display:block;width:14px;height:14px;background:var(--bg);border-radius:50%;transition:transform .15s}
+.overview-note .sidebar-toggle input[type=checkbox][role=switch]:checked{background:var(--ink)}
+.sidebar-toggle input:checked::before{transform:translateX(14px)}
+.sidebar-toggle:has(input:disabled){opacity:.45;cursor:not-allowed}
+@container workspace (max-width:440px){.overview-copy p{display:none}}
 .ledger{display:flex;flex-direction:column}
 .ledger-labels,.ledger-row{display:grid;--quota-column:minmax(170px,calc((100% - 90px)/2.05));grid-template-columns:minmax(140px,1fr) var(--quota-column) 50px;gap:20px;align-items:center}
 .ledger-labels{padding:0 12px 10px;font-size:10px;color:var(--faint);border-bottom:1px solid var(--line)}
@@ -268,8 +275,28 @@ dialog::backdrop{background:#14171b55;backdrop-filter:blur(3px)}
 .toast{width:max-content;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--controls-height) + var(--draft-height) + 52px + var(--safe-bottom) + var(--viewport-bottom));pointer-events:none;z-index:12000;background:var(--ink);color:var(--bg);box-shadow:0 4px 20px #0003;border-radius:10px;padding:10px 16px;font-size:12px;max-width:calc(100vw - 32px);text-align:center}
 .toast:empty{display:none}
 .toast button{pointer-events:auto}
-.closed{position:fixed;inset:0;display:grid;place-content:center;gap:15px;text-align:center;color:#4e535a}
-.closed h2{font-size:20px}
+/* Task Panel preview uses the existing sidebar/footer structure, not a second settings surface. */
+.task-panel{flex:0 0 280px;max-width:100%;padding:18px 12px 12px;display:flex;flex-direction:column;gap:12px;overflow:auto;scrollbar-width:thin;border-right:1px solid var(--line);background:var(--subtle)}
+.task-panel header{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px}
+.task-sessions{flex:1;min-height:84px;font-size:12px}
+.task-session{padding:10px 8px;margin-top:8px;border-radius:8px;background:var(--hover);display:flex;align-items:center;gap:8px}
+.task-usage{flex:none}
+.task-usage[hidden]{display:none}
+.task-usage h3{font-size:12px;margin-bottom:8px}
+.task-usage-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.task-usage-card{display:flex;align-items:center;gap:6px;min-width:0;min-height:52px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);text-align:left}
+.task-usage-card:hover{background:var(--hover)}
+.task-usage-card .brand,.task-usage-card .brand svg{width:16px;height:16px}
+.task-usage-name{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.task-usage-card .meter-top{justify-content:flex-start}
+.task-usage-card .meter-value{font-size:13px}
+.task-usage-card .track,.task-usage-card .meter-label,.task-usage-card .meter-caption,.task-usage-card .missing-quota small{display:none}
+.task-usage-card .missing-quota{display:block;min-height:0;font-size:10px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task-panel>.btn{min-height:44px;flex:none}
+.task-chat{flex:1;min-width:0;padding:24px;display:grid;place-content:center;gap:12px}
+.task-chat h2{font-size:20px}
+.task-chat p{font-size:12px;color:var(--muted)}
+@container settings (max-width:620px){.task-chat{padding:0}.task-chat>*{display:none}}
 .closed[hidden]{display:none}
 .settings[hidden]{display:none}
 
@@ -389,7 +416,7 @@ dialog::backdrop{background:#14171b55;backdrop-filter:blur(3px)}
 
 [data-compact=true] .stage{--stage-top:calc(8px + var(--safe-top));--stage-bottom:calc(var(--controls-height) + 20px + var(--safe-bottom))}
 [data-compact=true] .prototype-caption,[data-compact=true] .prototype-bar>label,[data-compact=true] .prototype-bar>.bar-btn,[data-compact=true] .prototype-bar>.divider{display:none}
-[data-compact=true] .settings .nav,[data-compact=true] .settings .shell-top{display:none}
+[data-compact=true] .settings .nav{display:none}
 [data-compact=true] .icon-label .control-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 [data-compact=true] .icon-label{min-width:44px;gap:0;padding:6px}
 [data-compact=true] .model-toolbar{flex-wrap:nowrap}
@@ -409,8 +436,8 @@ dialog::backdrop{background:#14171b55;backdrop-filter:blur(3px)}
 
 </style></head><body>
 <div class="prototype-caption"><strong>DESIGN STUDY / 02</strong> 高保真交互原型 · 全部为演示数据 · 不写入真实配置</div>
-<div class="stage"><section class="settings" aria-label="设置原型"><nav class="nav" aria-label="设置导航"><div class="nav-title">设置</div><div class="nav-list" id="settings-nav"></div><div class="nav-note">DeepSeek Harness<br>账号、模型与原生 Agent</div></nav><div class="pane"><header class="shell-top"><button class="btn config-button" data-action="config-preview">查看演示配置</button><button class="icon-btn" data-action="close-settings" aria-label="关闭设置" id="close-settings">×</button></header><main class="workspace" id="workspace"></main><div id="draftbar" class="draftbar" aria-live="polite"></div></div></section></div>
-<div class="closed" id="closed" hidden><h2>设置已关闭</h2><p>原型里的草稿仍保留在内存中。</p><button class="btn" data-action="reopen">重新打开设置</button></div>
+<div class="stage"><section class="settings" aria-label="设置原型"><nav class="nav" aria-label="设置导航"><div class="nav-title">设置</div><div class="nav-list" id="settings-nav"></div><div class="nav-note">DeepSeek Harness<br>账号、模型与原生 Agent</div></nav><div class="pane"><header class="shell-top"><button class="btn config-button" data-action="config-preview">查看演示配置</button><button class="icon-btn" data-action="close-settings" aria-label="关闭设置" id="close-settings">×</button></header><main class="workspace" id="workspace"></main><div id="draftbar" class="draftbar" aria-live="polite"></div></div></section>
+<div class="closed" id="closed" hidden><aside class="task-panel" aria-label="Task Panel 预览"><header><strong>DeepSeek Harness</strong><span class="tiny muted">演示</span></header><section class="task-sessions" aria-label="会话"><div class="muted">Sessions</div><div class="task-session"><span class="dot good"></span>Provider 设置原型</div></section><section class="task-usage" id="task-usage" aria-label="Provider Usage"><h3>Provider Usage</h3><div class="task-usage-cards" id="task-usage-cards"></div></section><button class="btn" data-action="reopen">返回设置</button></aside><main class="task-chat"><h2>Task Panel 预览</h2><p id="task-preview-status" role="status"></p><p>全局开关只影响额度区域，单个 Provider 的选择仍由外部设置管理。</p><p>演示数据 · 不写入真实配置</p></main></div></div>
 <nav class="prototype-bar" aria-label="方案 C 预览工具"><div class="variant-label" id="variant-label"></div><span class="divider"></span><label><span class="sr-only">预览尺寸</span><select id="frame"><option value="1040">宽屏 1040</option><option value="800">原尺寸 800</option><option value="390">手机 APP 390</option></select></label><button class="bar-btn" data-action="theme" id="theme-button">深色</button><button class="bar-btn" data-action="review">状态与规范</button><button class="bar-btn" data-action="reset-demo">重置演示</button></nav>
 <dialog id="modal" aria-labelledby="modal-title"></dialog><div class="toast" id="toast" role="status"></div><div class="sr-only" id="announce" aria-live="assertive"></div>
 <script src="provider-settings-marks.js"></script><script src="provider-settings-data.js"></script><script src="provider-settings-system.js"></script>
