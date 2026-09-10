@@ -5,8 +5,21 @@ import {
   normalizeQuotaRemaining,
   ProviderCardHeader,
   ProviderQuotaMeter,
+  providerQuotaHeaderProps,
   providerUiCss,
 } from '../src/client/provider-ui.tsx'
+
+describe('providerQuotaHeaderProps', () => {
+  it('spreads the meter whenever quota is known', () => {
+    const quota = { label: 'Week', remainingPercent: 42 }
+    expect(providerQuotaHeaderProps(quota, { dashLabel: 'usage', settled: false })).toEqual({ quota })
+  })
+
+  it('shows the labelled dash only once a query settled without usable quota', () => {
+    expect(providerQuotaHeaderProps(null, { dashLabel: 'usage', settled: true })).toEqual({ quota: { label: 'usage' } })
+    expect(providerQuotaHeaderProps(null, { dashLabel: 'usage', settled: false })).toEqual({})
+  })
+})
 
 describe('normalizeQuotaRemaining', () => {
   it('passes valid percents through with full precision', () => {
