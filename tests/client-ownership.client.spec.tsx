@@ -234,6 +234,29 @@ describe('providers-ui Web ownership', () => {
     await ctx.fiber.dispose()
   })
 
+  it('withholds the diagnostic across the mobile seat timeline', async () => {
+    const { ctx, slots, settingsScope } = await makeContext('loading')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.useFakeTimers()
+    const owner = installOwner(ctx)
+    await owner.await()
+
+    // The mobile shell has no usable settings snapshot until its settings shell settles.
+    vi.advanceTimersByTime(4_700)
+    settingsScope.setStatus('ready')
+    expect(warn).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(600)
+    slots.declare('settings.section')
+    vi.advanceTimersByTime(60_000)
+    expect(warn).not.toHaveBeenCalled()
+
+    await owner.dispose()
+    vi.useRealTimers()
+    warn.mockRestore()
+    await ctx.fiber.dispose()
+  })
+
   it('withholds the diagnostic when settings.section declares inside the grace window', async () => {
     const { ctx, slots } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -273,7 +296,7 @@ describe('providers-ui Web ownership', () => {
   })
 
   it('warns once when settings.section stays undeclared past the grace', async () => {
-    const { ctx } = await makeContext()
+    const { ctx, settingsScope } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.useFakeTimers()
     const owner = installOwner(ctx)
@@ -281,9 +304,14 @@ describe('providers-ui Web ownership', () => {
     vi.advanceTimersByTime(1)
     expect(warn).not.toHaveBeenCalled()
 
+    vi.advanceTimersByTime(14_000)
+    settingsScope.setStatus('ready')
+    expect(warn).not.toHaveBeenCalled()
+
     vi.advanceTimersByTime(60_000)
     expect(warn).toHaveBeenCalledTimes(1)
     expect(warn.mock.calls[0]?.[0]).toContain('settings.section')
+    for (let index = 0; index < 5; index += 1) settingsScope.setStatus('ready')
     vi.advanceTimersByTime(60_000)
     expect(warn).toHaveBeenCalledTimes(1)
 
