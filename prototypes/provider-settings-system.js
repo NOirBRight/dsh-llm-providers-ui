@@ -149,8 +149,9 @@ function VariantC() {
 function renderTaskPanel() {
   $('#task-usage').hidden=!showSidebarUsage;
   // Reuse the current quota data; this preview does not duplicate external per-provider preferences.
-  $('#task-usage-cards').innerHTML=$('#closed').hidden||!showSidebarUsage?'':providers.filter(p=>p.role==='llm').map(p=>'<button class="task-usage-card" data-action="open-provider" data-provider="'+p.id+'" title="查看 '+esc(p.name)+' 额度详情">'+brand(p)+'<span class="grow"><span class="task-usage-name">'+esc(p.name)+'</span>'+quotaSummary(p)+'</span></button>').join('');
+  $('#task-usage-cards').innerHTML=$('#closed').hidden||!showSidebarUsage?'':providers.filter(p=>p.role==='llm').map(p=>'<button class="task-usage-card" data-action="'+(usageReady?'usage-open':'open-provider')+'" data-provider="'+p.id+'" title="查看 '+esc(p.name)+' 额度详情">'+brand(p)+'<span class="grow"><span class="task-usage-name">'+esc(p.name)+'</span>'+quotaSummary(p)+'</span></button>').join('');
   $('#task-preview-status').textContent=showSidebarUsage?'额度区域已显示。':'额度区域已隐藏，会话和其他侧栏内容不受影响。';
+  if(usageReady)updateUsageStudy();
 }
 function renderDraftbar() {
   const p=getP();
@@ -158,7 +159,7 @@ function renderDraftbar() {
   $('#draftbar').innerHTML=dirty(p)||p.footerError?'<div class="grow"><div class="row"><span class="dot warn"></span><span>'+esc(p.name)+' · '+(p.saving?'正在保存演示配置':'有未保存的更改')+'</span></div>'+(p.footerError?'<div class="tiny danger-text" style="margin-top:4px">'+esc(p.footerError)+'</div>':'')+'</div><div class="actions">'+btn(p.conflict?'reload-config':'discard',p.conflict?'重新载入':'放弃更改',p.id,'',p.saving)+btn('save',p.saving?'保存中…':'保存更改',p.id,'primary',readOnly||p.saving)+'</div>':'';
 }
 function syncURL() {
-  const url=new URL(location.href);url.searchParams.set('variant',variant);url.searchParams.set('frame',$('#frame').value);url.searchParams.set('theme',document.documentElement.dataset.theme||'light');
+  const url=new URL(location.href);url.searchParams.set('variant',usageReady?usageVariant:variant);url.searchParams.set('frame',$('#frame').value);url.searchParams.set('theme',document.documentElement.dataset.theme||'light');
   if(detailC)url.searchParams.set('provider',selected);else url.searchParams.delete('provider');
   history.replaceState(null,'',url);
 }
@@ -178,7 +179,7 @@ function render(resetScroll=false) {
   renderDraftbar();renderTaskPanel();syncURL();
 }
 function stateSnapshot() {
-  return {variant,selected,showSidebarUsage,expandedModels:[...expandedModels],sort:sortState?{type:sortState.type,provider:sortState.provider,items:sortIDs(true)}:null,detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,systemTime:new Date().toISOString(),timeZone:systemZone(),providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
+  return {variant,selected,usageStudy:usageReady?usageSnapshot():null,showSidebarUsage,expandedModels:[...expandedModels],sort:sortState?{type:sortState.type,provider:sortState.provider,items:sortIDs(true)}:null,detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,systemTime:new Date().toISOString(),timeZone:systemZone(),providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
 }
 function record(action) { console.info('[prototype state]',action,stateSnapshot()); }
 function toast(text, undo=false) { clearTimeout(toastTimer);$('#toast').innerHTML=esc(text)+(undo?' <button class="link-btn" style="color:inherit;margin-left:8px" data-action="undo-remove">撤销</button>':'');toastTimer=setTimeout(()=>{$('#toast').textContent='';},4500); }
@@ -415,3 +416,4 @@ function fitViewport(){const v=window.visualViewport;if(v&&v.scale!==1)return;co
 window.visualViewport?.addEventListener('resize',fitViewport);window.addEventListener('resize',fitViewport);fitViewport();
 setInterval(refreshTimes,60000);window.addEventListener('focus',refreshTimes);
 render();record('initial');
+if(params.get('surface')==='task')initUsageStudy();
