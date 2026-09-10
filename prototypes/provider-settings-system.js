@@ -1,4 +1,4 @@
-/* THROWAWAY prototype. All actions are in-memory simulations; never call a provider or store credentials.
+/* THROWAWAY prototype. All actions are in-memory simulations; never call a provider or persist credentials.
  * Three independent layouts share presentation of the same researched controls, not a production framework.
  */
 'use strict';
@@ -19,6 +19,10 @@ let readOnly = false;
 let filter = 'all';
 let modalState = null;
 let sortDrag = null;
+let sortState = null;
+const collapsedModels = new Set();
+const modelKey = (p,m) => p.id+":"+m.uid;
+const modelLocked = p => readOnly||p.saving||(p.role==="agent"&&(!p.connected||!p.installed));
 let removed = null;
 // Password drafts stay outside serializable/reviewable state and never leave this page.
 const keyDrafts = new Map();
@@ -102,12 +106,16 @@ function quotaBlock(p) {
 }
 const effortLabels = {off:'关闭',none:'无',minimal:'最小',low:'低',medium:'中',high:'高',xhigh:'极高',max:'最大'};
 function modelField(p,m,key,label,type='text',placeholder='') {
-  return '<label class="field"><span class="field-label">'+label+'</span><input data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="'+key+'" data-focus="'+p.id+'-'+m.uid+'-'+key+'" type="'+type+'" value="'+esc(m[key])+'" placeholder="'+esc(placeholder)+'"'+(key==='id'?' required':'')+(type==='number'?' min="1" step="1"':'')+'></label>';
+  return '<label class="field"><span class="field-label">'+label+'</span><input data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="'+key+'" data-focus="'+p.id+'-'+m.uid+'-'+key+'" type="'+type+'" value="'+esc(m[key])+'" placeholder="'+esc(placeholder)+'"'+(key==='id'?' required':'')+(type==='number'?' min="1" step="1"':'')+(modelLocked(p)?' disabled':'')+'></label>';
 }
 function modelsBlock(p) {
-  const locked=readOnly||p.saving||(p.role==='agent'&&(!p.connected||!p.installed));
-  const rows=p.models.map(m=>'<article class="model-card" data-model-row="'+m.uid+'"><div class="model-top">'+modelField(p,m,'id','Model ID')+modelField(p,m,'name','显示名称')+'<button type="button" class="icon-btn" data-action="remove-model" data-provider="'+p.id+'" data-model="'+m.uid+'" aria-label="移除 '+esc(m.name||m.id||'新模型')+'">'+icon('trash')+'</button></div><div class="model-options">'+modelField(p,m,'context','上下文窗口 · Tokens','number','Provider 默认')+'<div class="model-capabilities">'+['vision','thinking'].map(key=>'<label><input type="checkbox" data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="'+key+'" data-focus="'+p.id+'-'+m.uid+'-'+key+'" '+(m[key]?'checked':'')+'>'+(key==='vision'?'视觉':'推理')+'</label>').join('')+'</div><label class="field"><span class="field-label">默认思考等级</span><select data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="effort" data-focus="'+p.id+'-'+m.uid+'-effort" '+(!m.thinking||!(m.efforts??p.efforts).length?'disabled':'')+'><option value="">Provider 默认</option>'+(m.efforts??p.efforts).map(e=>'<option value="'+e+'" '+(m.effort===e?'selected':'')+'>'+effortLabels[e]+' · '+e+'</option>').join('')+'</select></label></div>'+(m.hint?'<div class="model-source">'+esc(m.hint)+'</div>':'')+'</article>').join('');
-  return '<section data-model-catalog="'+p.id+'"><div class="section-heading"><h3>模型<span class="count">'+p.models.length+' 个</span></h3><div class="row">'+btn('sort-models',icon('sort')+' 排序',p.id,'quiet',locked||p.models.length<2)+btn('catalog',icon('plus')+' '+esc(p.catalogLabel),p.id,'',readOnly||p.saving||!p.connected)+'</div></div><p class="field-hint" style="margin-bottom:12px">模型将按此顺序出现在选择器中。上下文留空时采用 Provider 默认值。</p>'+(p.validation?alertBox(esc(p.validation),'error'):'')+'<fieldset '+(locked?'disabled':'')+'><div class="model-list">'+(rows||'<div class="empty-box">'+icon('model')+'<strong>还没有添加模型</strong><p>从 Provider 获取目录，或手动填写 Model ID。</p></div>')+'</div><div class="model-actions">'+btn('add-model',icon('plus')+' 手动添加模型',p.id,'',locked)+'</div></fieldset></section>';
+  if(sortState?.type==='sort-models'&&sortState.provider===p.id)return '<section data-model-catalog="'+p.id+'">'+inlineSort()+'</section>';
+  const locked=modelLocked(p),allClosed=p.models.length&&p.models.every(m=>collapsedModels.has(modelKey(p,m)));
+  const rows=p.models.map(m=>{
+    const closed=collapsedModels.has(modelKey(p,m)),panel='parameters-'+p.id+'-'+m.uid;
+    return '<article class="model-card" data-model-row="'+m.uid+'"><div class="model-top">'+modelField(p,m,'id','Model ID')+modelField(p,m,'name','显示名称')+'<button type="button" class="icon-btn model-toggle" data-action="toggle-model" data-provider="'+p.id+'" data-model="'+m.uid+'" data-focus="toggle-'+p.id+'-'+m.uid+'" aria-expanded="'+!closed+'" aria-controls="'+panel+'" aria-label="'+(closed?'展开':'收起')+'模型参数" title="'+(closed?'展开':'收起')+'模型参数">'+icon('chevron','chevron')+'</button><button type="button" class="icon-btn" data-action="remove-model" data-provider="'+p.id+'" data-model="'+m.uid+'" aria-label="移除 '+esc(m.name||m.id||'新模型')+'" '+(locked?'disabled':'')+'>'+icon('trash')+'</button></div><fieldset class="model-parameters" id="'+panel+'" '+(closed?'hidden ':'')+(locked?'disabled':'')+'><div class="model-options">'+modelField(p,m,'context','上下文窗口 · Tokens','number','Provider 默认')+'<div class="model-capabilities">'+['vision','thinking'].map(key=>'<label><input type="checkbox" data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="'+key+'" data-focus="'+p.id+'-'+m.uid+'-'+key+'" '+(m[key]?'checked':'')+'>'+(key==='vision'?'视觉':'推理')+'</label>').join('')+'</div><label class="field"><span class="field-label">默认思考等级</span><select data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="effort" data-focus="'+p.id+'-'+m.uid+'-effort" '+(!m.thinking||!(m.efforts??p.efforts).length?'disabled':'')+'><option value="">Provider 默认</option>'+(m.efforts??p.efforts).map(e=>'<option value="'+e+'" '+(m.effort===e?'selected':'')+'>'+effortLabels[e]+' · '+e+'</option>').join('')+'</select></label></div>'+(m.hint?'<div class="model-source">'+esc(m.hint)+'</div>':'')+'</fieldset></article>';
+  }).join('');
+  return '<section data-model-catalog="'+p.id+'"><div class="section-heading"><h3>模型<span class="count">'+p.models.length+' 个</span></h3><div class="row model-toolbar">'+(p.models.length?btn('toggle-models',allClosed?'全部展开':'全部收起',p.id,'quiet'):'')+btn('sort-models',icon('sort')+' 排序',p.id,'quiet',locked||p.models.length<2)+btn('catalog',icon('plus')+' '+esc(p.catalogLabel),p.id,'',readOnly||p.saving||!p.connected)+'</div></div><p class="field-hint" style="margin-bottom:12px">名称和 ID 始终显示；展开箭头查看容量与能力参数。</p>'+(p.validation?alertBox(esc(p.validation),'error'):'')+'<div class="model-list">'+(rows||'<div class="empty-box">'+icon('model')+'<strong>还没有添加模型</strong><p>从 Provider 获取目录，或手动填写 Model ID。</p></div>')+'</div><div class="model-actions">'+btn('add-model',icon('plus')+' 手动添加模型',p.id,'',locked)+'</div></section>';
 }
 function advancedBlock(p) {
   if(!p.advanced.length&&!p.baseURL) return '';
@@ -140,6 +148,7 @@ function VariantC() {
 }
 function renderDraftbar() {
   const p=getP();
+  if(sortState){$('#draftbar').innerHTML='<div class="grow"><strong>'+esc(sortState.type==='sort-models'?getP(sortState.provider).name+' · 模型排序':'Provider 排序')+'</strong><div class="tiny muted">取消保留原顺序，其他草稿不变</div></div><div class="actions">'+btn('cancel-sort','取消')+btn('commit-sort','完成排序','','primary')+'</div>';return;}
   $('#draftbar').innerHTML=dirty(p)||p.footerError?'<div class="grow"><div class="row"><span class="dot warn"></span><span>'+esc(p.name)+' · '+(p.saving?'正在保存演示配置':'有未保存的更改')+'</span></div>'+(p.footerError?'<div class="tiny danger-text" style="margin-top:4px">'+esc(p.footerError)+'</div>':'')+'</div><div class="actions">'+btn(p.conflict?'reload-config':'discard',p.conflict?'重新载入':'放弃更改',p.id,'',p.saving)+btn('save',p.saving?'保存中…':'保存更改',p.id,'primary',readOnly||p.saving)+'</div>':'';
 }
 function syncURL() {
@@ -148,9 +157,12 @@ function syncURL() {
   history.replaceState(null,'',url);
 }
 function render(resetScroll=false) {
+  $('.settings').classList.toggle('sorting',!!sortState);
   const work=$('#workspace'),scroll=work.scrollTop,focus=document.activeElement?.dataset?.focus;
   const cursor=focus&&document.activeElement instanceof HTMLInputElement?document.activeElement.selectionStart:null;
-  work.innerHTML=variant==='A'?VariantA():variant==='B'?VariantB():VariantC();
+  if(sortDrag)finishPointerSort(false);
+  work.innerHTML=sortState?.type==='sort-providers'?pageTitle('在原列表中调整顺序，暂时隐藏额度与配置。')+inlineSort():variant==='A'?VariantA():variant==='B'?VariantB():VariantC();
+  if(sortState){$$('button:not([data-drag]),input,select,textarea',work).forEach(el=>el.disabled=true);$$('details',work).forEach(el=>el.inert=true);}
   $$('[data-key]',work).forEach(input=>{input.value=keyDrafts.get(input.dataset.key)||'';});
   work.scrollTop=resetScroll?0:scroll;
   if(focus){const next=$('[data-focus="'+CSS.escape(focus)+'"]',work);next?.focus({preventScroll:true});if(next instanceof HTMLInputElement&&cursor!==null&&['text','password','search','url'].includes(next.type))next.setSelectionRange(cursor,cursor);}
@@ -159,23 +171,40 @@ function render(resetScroll=false) {
   renderDraftbar();syncURL();
 }
 function stateSnapshot() {
-  return {variant,selected,expanded:[...expanded],detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,demoTime:'2026-09-10 09:34 UTC+8',providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
+  return {variant,selected,expanded:[...expanded],collapsedModels:[...collapsedModels],sort:sortState?{type:sortState.type,provider:sortState.provider,items:sortState.items}:null,detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,demoTime:'2026-09-10 09:34 UTC+8',providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
 }
 function record(action) { console.info('[prototype state]',action,stateSnapshot()); }
 function toast(text, undo=false) { clearTimeout(toastTimer);$('#toast').innerHTML=esc(text)+(undo?' <button class="link-btn" style="color:inherit;margin-left:8px" data-action="undo-remove">撤销</button>':'');toastTimer=setTimeout(()=>{$('#toast').textContent='';},4500); }
 function openProvider(id) { selected=id;detailC=true;if(variant==='A'){if(expanded.has(id))expanded.delete(id);else expanded.add(id);}render(variant!=='A');record('select provider'); }
-function switchVariant(delta) { const keys=Object.keys(variantNames);variant=keys[(keys.indexOf(variant)+delta+keys.length)%keys.length];detailC=false;render(true);record('switch variant'); }
+function switchVariant(delta) { const keys=Object.keys(variantNames);variant=keys[(keys.indexOf(variant)+delta+keys.length)%keys.length];detailC=sortState?.type==='sort-models';render(true);if(sortState)$(document.documentElement.dataset.compact==='true'?'.sort-list':'.inline-sort')?.scrollIntoView({block:'start'});record('switch variant'); }
 function showModal(type, data={}) { modalState={type,...data};renderModal();if(!$('#modal').open)$('#modal').showModal();requestAnimationFrame(()=>{$('input:not([type=checkbox]),select,button',$('#modal'))?.focus();}); }
-function closeModal() { if(sortDrag)finishPointerSort(false);$('#modal').close();modalState=null; }
+function closeModal() { $('#modal').close();modalState=null; }
 function dialogFrame(title,body,footer='') { return '<div class="dialog-inner"><header class="dialog-header"><h2 id="modal-title">'+title+'</h2><button type="button" class="icon-btn" data-action="close-modal" aria-label="关闭对话框">'+icon('close')+'</button></header><div class="dialog-body">'+body+'</div>'+(footer?'<footer class="dialog-footer">'+footer+'</footer>':'')+'</div>'; }
 function sortRows() {
-  const modelMode=modalState.type==='sort-models';const p=getP(modalState.provider);
-  return modalState.items.map((id,i)=>{const item=modelMode?p.models.find(m=>m.uid===id):getP(id);return '<div class="sort-row" data-sort-id="'+id+'"><button type="button" class="grip" data-drag="'+id+'" aria-label="移动 '+esc(modelMode?item.name||item.id:item.name)+'；可用上下方向键" aria-describedby="sort-help">'+icon('grip')+'</button>'+(modelMode?icon('model'):brand(item))+'<span class="name grow">'+esc(modelMode?item.name||item.id||'未命名模型':item.name)+'</span>'+(!modelMode?badge(item):'')+'<span class="position">'+(i+1)+' / '+modalState.items.length+'</span></div>';}).join('');
+  const modelMode=sortState.type==='sort-models',p=getP(sortState.provider);
+  return sortState.items.map((id,i)=>{const item=modelMode?p.models.find(m=>m.uid===id):getP(id);return '<div class="sort-row" data-sort-id="'+id+'"><button type="button" class="grip" data-drag="'+id+'" aria-label="移动 '+esc(modelMode?item.name||item.id:item.name)+'；可用上下方向键" aria-describedby="sort-help">'+icon('grip')+'</button>'+(modelMode?icon('model'):brand(item))+'<div class="grow"><div class="name">'+esc(modelMode?item.name||item.id||'未命名模型':item.name)+'</div>'+(modelMode?'<div class="tiny muted mono sort-model-id">'+esc(item.id)+'</div>':'')+'</div>'+(!modelMode?badge(item):'')+'<span class="position">'+(i+1)+' / '+sortState.items.length+'</span></div>';}).join('');
+}
+function inlineSort() {
+  const modelMode=sortState.type==='sort-models';
+  return '<section class="inline-sort" data-kind="'+sortState.type+'" aria-label="'+(modelMode?'模型':'Provider')+'排序"><div class="section-heading"><h3>'+(modelMode?'模型':'Provider')+'<span class="count">'+sortState.items.length+' 个</span></h3><span class="pill">排序中</span></div><p class="field-hint" id="sort-help">拖动手柄调整顺序；键盘 ↑ / ↓ 移动，Esc 取消。</p><div class="sort-list">'+sortRows()+'</div></section>';
+}
+function beginSort(type,p) {
+  if(readOnly||sortState||p?.saving)return;
+  sortState={type,provider:type==='sort-models'?p.id:null,items:type==='sort-models'?p.models.map(m=>m.uid):[...order],scroll:$('#workspace').scrollTop};
+  if(type==='sort-models'){selected=p.id;expanded.add(p.id);detailC=true;}
+  render(type==='sort-providers');$(document.documentElement.dataset.compact==='true'?'.sort-list':'.inline-sort').scrollIntoView({block:'start'});$('[data-drag]')?.focus({preventScroll:true});record('begin inline sort');
+}
+function endSort(commit) {
+  if(!sortState)return;if(sortDrag)finishPointerSort(false);
+  const s=sortState;
+  if(commit){if(s.type==='sort-providers')order=[...s.items];else{const p=getP(s.provider);p.models=s.items.map(id=>p.models.find(m=>m.uid===id));}}
+  sortState=null;render();$('#workspace').scrollTop=s.scroll;
+  const button=$('[data-action="'+s.type+'"]'+(s.provider?'[data-provider="'+s.provider+'"]':''));button?.focus({preventScroll:true});button?.scrollIntoView({block:'nearest'});
+  toast(commit?(s.type==='sort-models'?'模型顺序已更新；保存更改后生效':'Provider 顺序已更新'):'已取消排序，原顺序与草稿保留');record(commit?'commit inline sort':'cancel inline sort');
 }
 function renderModal() {
   const s=modalState,p=getP(s.provider);
   let html='';
-  if(s.type==='sort-providers'||s.type==='sort-models') html=dialogFrame(s.type==='sort-providers'?'Provider 排序':esc(p.name)+' · 模型排序','<p class="dialog-description" id="sort-help">拖动手柄调整顺序；也可聚焦手柄后按 ↑ / ↓。排序时只显示名称，不挤压额度和配置。取消将保留原顺序。</p><div class="sort-list">'+sortRows()+'</div><div class="tiny muted">完成后同步到演示模型选择器；不会改变账号或草稿。</div>',btn('close-modal','取消')+btn('commit-sort','完成排序','','primary'));
   if(s.type==='catalog') html=dialogFrame(esc(p.name)+' · 选择模型','<p class="dialog-description">'+esc(p.catalogLabel)+'。Fast 和大上下文版本是独立条目；未勾选模型不会出现在目录中。</p><input class="catalog-search" type="search" id="catalog-search" placeholder="搜索名称或 Model ID" aria-label="搜索模型" autofocus><div id="candidate-list"></div>', '<span class="count" id="picker-count"></span>'+btn('close-modal','取消')+btn('apply-catalog','应用到模型目录','','primary'));
   if(s.type==='account-menu') html=dialogFrame('管理 '+esc(p.name)+' 账号','<div class="account"><div>'+esc(p.account||'演示账户')+'<div class="account-meta">'+status(p)+'</div></div></div><p class="dialog-description">'+(p.auth==='google'?'切换账号将影响此 DSH 实例的所有设备。退出仅清除此实例的隔离登录，不会撤销 Google 授权。':p.auth==='cursor-cli'?'Cursor ACP 使用这台机器的 Cursor CLI 登录状态，不是独立的 Google 登录配置。':'退出后清除账号额度展示，但保留模型配置。')+'</p>',btn('confirm-logout','退出登录',p.id,'danger')+btn('confirm-switch','切换账号',p.id));
   if(['confirm-logout','confirm-switch','discard','reload-config'].includes(s.type)) {
@@ -213,9 +242,10 @@ function authDialog(p) {
 function reviewDialog() {
   const p=getP();
   const scenarios=[['normal','正常数据'],['logged-out','未连接'],['reauth','授权失效'],['loading','额度加载中'],['low','额度偏低 · 8%'],['zero','额度已用尽 · 0%'],['unknown-reset','重置时间未知'],['empty','无额度数据'],['stale','刷新失败 · 保留缓存'],['error','读取失败 · 无缓存'],['readonly','只读配置'],['save-error','下一次保存失败'],['conflict','配置版本冲突'],['missing','Agent 运行环境未安装']];
-  return dialogFrame('状态与接入规范','<div class="review-grid"><label class="field"><span class="field-label">预览 Provider</span><select id="review-provider">'+providers.map(v=>'<option value="'+v.id+'" '+(v.id===selected?'selected':'')+'>'+esc(v.name)+'</option>').join('')+'</select></label><label class="field"><span class="field-label">预览状态</span><select id="review-scenario">'+scenarios.map(([id,label])=>'<option value="'+id+'" '+(p.scenario===id?'selected':'')+'>'+label+'</option>').join('')+'</select></label></div>'+btn('apply-scenario','应用预览状态','','primary')+'<div class="section-heading" style="margin:0"><h3>所有 Provider 遵守同一套规则</h3></div><ol class="design-rules"><li>账号 → 额度 → 模型 → 可选高级设置。没有能力时不伪造开关。</li><li>同层级进度条等宽；整数显示，原值保留用于填充和阈值判断。</li><li>重置时间统一为 UTC+8；精确时间缺失就说明，不用周期推算日期。</li><li>模型及其参数直接展开。高级设置默认收起。</li><li>排序独立精简视图，单一手柄，同时支持鼠标、触摸和键盘。</li><li>Cursor ACP 只展示已实现能力；不借用 Cursor LLM 的额度或 Google 登录回调。</li></ol><p class="tiny muted">演示基准时间：2026-09-10 09:34（UTC+8）。刷新仅模拟状态；数值不是账户实时数据。</p><details><summary class="tiny muted" style="cursor:pointer">查看完整内存状态（无凭据）</summary><pre class="state-json" style="margin-top:10px">'+esc(JSON.stringify(stateSnapshot(),null,2))+'</pre></details>',btn('close-modal','返回原型'));
+  return dialogFrame('状态与接入规范','<div class="review-grid"><label class="field"><span class="field-label">预览 Provider</span><select id="review-provider">'+providers.map(v=>'<option value="'+v.id+'" '+(v.id===selected?'selected':'')+'>'+esc(v.name)+'</option>').join('')+'</select></label><label class="field"><span class="field-label">预览状态</span><select id="review-scenario">'+scenarios.map(([id,label])=>'<option value="'+id+'" '+(p.scenario===id?'selected':'')+'>'+label+'</option>').join('')+'</select></label></div>'+btn('apply-scenario','应用预览状态','','primary')+'<div class="section-heading" style="margin:0"><h3>所有 Provider 遵守同一套规则</h3></div><ol class="design-rules"><li>账号 → 额度 → 模型 → 可选高级设置。没有能力时不伪造开关。</li><li>同层级进度条等宽；整数显示，原值保留用于填充和阈值判断。</li><li>重置时间统一为 UTC+8；精确时间缺失就说明，不用周期推算日期。</li><li>模型支持展开/收起，ID 与名称常显。高级设置默认收起。</li><li>排序留在原页面，临时精简列表；单一手柄支持鼠标、触摸和键盘。</li><li>Cursor ACP 只展示已实现能力；不借用 Cursor LLM 的额度或 Google 登录回调。</li></ol><p class="tiny muted">演示基准时间：2026-09-10 09:34（UTC+8）。刷新仅模拟状态；数值不是账户实时数据。</p><details><summary class="tiny muted" style="cursor:pointer">查看完整内存状态（无凭据）</summary><pre class="state-json" style="margin-top:10px">'+esc(JSON.stringify(stateSnapshot(),null,2))+'</pre></details>',btn('close-modal','返回原型'));
 }
 function applyScenario() {
+  if(sortState)endSort(false);
   selected=$('#review-provider').value;const p=getP(),name=$('#review-scenario').value,seed=window.PROVIDER_DEMO.find(v=>v.id===selected);
   p.quota=copy(seed.quota);p.connected=seed.connected;p.installed=true;p.authExpired=false;p.footerError='';p.validation='';p.saveFailure=false;p.conflict=false;readOnly=false;p.scenario=name;
   if(name==='logged-out'||name==='reauth')p.connected=false;
@@ -245,27 +275,34 @@ function validate(p) {
 function save(p) {
   if(readOnly)return;
   p.validation=validate(p);p.footerError='';
-  if(p.validation){render();toast(p.validation);$('[data-model-catalog="'+p.id+'"]')?.scrollIntoView({block:'start'});return;}
+  if(p.validation){p.models.forEach(m=>collapsedModels.delete(modelKey(p,m)));render();toast(p.validation);$('[data-model-catalog="'+p.id+'"]')?.scrollIntoView({block:'start'});return;}
   if(p.conflict){p.footerError='配置已被其他客户端更新。草稿保留；请重新载入或继续编辑。';render();return;}
   p.saving=true;render();
   setTimeout(()=>{if(getP(p.id)!==p)return;p.saving=false;if(p.saveFailure){p.saveFailure=false;p.footerError='保存失败，草稿已保留。恢复连接后可重试。';render();record('save failed');return;}p.models.forEach(m=>m.id=m.id.trim());saved.set(p.id,copy(config(p)));if(p.pendingKey){keyDrafts.delete(p.id);p.pendingKey=false;p.connected=true;p.authExpired=false;p.quota={status:'idle',windows:[],facts:[],activity:[]};}p.footerError='';render();toast('已保存到演示内存，真实配置未改变');record('save draft');},450);
 }
 function discard(p) { keyDrafts.delete(p.id);Object.assign(p,copy(saved.get(p.id)));p.pendingKey=false;p.validation='';p.footerError='';p.conflict=false;p.saveFailure=false; }
 function moveSort(id,to) {
-  const items=modalState.items,from=items.indexOf(id);to=Math.max(0,Math.min(items.length-1,to));if(from===to)return;
+  const items=sortState.items,from=items.indexOf(id);to=Math.max(0,Math.min(items.length-1,to));if(from===to)return;
   items.splice(to,0,items.splice(from,1)[0]);
   const list=$('.sort-list'),node=$('[data-sort-id="'+id+'"]',list),nextId=items[to+1];list.insertBefore(node,nextId?$('[data-sort-id="'+nextId+'"]',list):null);
   $$('.sort-row',list).forEach((n,i)=>$('.position',n).textContent=(i+1)+' / '+items.length);
   $('#announce').textContent='已移动到第 '+(to+1)+' 位，共 '+items.length+' 项。';
 }
+function dragOver(x,y) {
+  const row=document.elementFromPoint(x,y)?.closest('[data-sort-id]');if(!row||row.dataset.sortId===sortDrag.id)return;
+  const items=sortState.items,from=items.indexOf(sortDrag.id),to=items.indexOf(row.dataset.sortId),r=row.getBoundingClientRect();
+  if((from<to&&y>r.top+r.height/2)||(from>to&&y<r.top+r.height/2))moveSort(sortDrag.id,to);
+}
 function startPointerSort(event,handle) {
   if(event.button!==0||sortDrag)return;event.preventDefault();handle.focus({preventScroll:true});
-  const row=handle.closest('.sort-row'),rect=row.getBoundingClientRect(),ghost=row.cloneNode(true);ghost.classList.add('sort-ghost');ghost.removeAttribute('data-sort-id');ghost.setAttribute('aria-hidden','true');$$('button',ghost).forEach(b=>b.tabIndex=-1);Object.assign(ghost.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px'});$('#modal').append(ghost);row.classList.add('grabbed');
-  sortDrag={id:handle.dataset.drag,ghost,row,offset:event.clientY-rect.top,original:[...modalState.items]};
+  const row=handle.closest('.sort-row'),rect=row.getBoundingClientRect(),ghost=row.cloneNode(true);ghost.classList.add('sort-ghost');ghost.removeAttribute('data-sort-id');ghost.setAttribute('aria-hidden','true');$$('button',ghost).forEach(b=>b.tabIndex=-1);Object.assign(ghost.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px'});document.body.append(ghost);row.classList.add('grabbed');
+  sortDrag={id:handle.dataset.drag,pointerId:event.pointerId,ghost,row,offset:event.clientY-rect.top,original:[...sortState.items],x:event.clientX,y:event.clientY,frame:0};
   try{handle.setPointerCapture(event.pointerId);}catch{/* prototype browser may not expose pointer capture */}
+  function scrollEdge(){if(!sortDrag)return;const work=$('#workspace'),r=work.getBoundingClientRect(),y=sortDrag.y;const list=$('.sort-list').getBoundingClientRect(),band=Math.min(38,r.height/3);const dy=y<r.top+band?Math.max(-10,Math.min(0,list.top-r.top)):y>r.bottom-band?Math.min(10,Math.max(0,list.bottom-r.bottom)):0;if(dy){work.scrollTop+=dy;dragOver(sortDrag.x,y);}sortDrag.frame=requestAnimationFrame(scrollEdge);}
+  sortDrag.frame=requestAnimationFrame(scrollEdge);
 }
 function finishPointerSort(commit) {
-  if(!sortDrag)return;const drag=sortDrag;sortDrag=null;drag.ghost.remove();drag.row.classList.remove('grabbed');if(!commit){modalState.items=drag.original;$('.sort-list').innerHTML=sortRows();}record(commit?'pointer sort preview':'cancel pointer sort');
+  if(!sortDrag)return;const drag=sortDrag;sortDrag=null;cancelAnimationFrame(drag.frame);drag.ghost.remove();drag.row.classList.remove('grabbed');if(!commit){sortState.items=drag.original;$('.sort-list').innerHTML=sortRows();$('[data-drag="'+drag.id+'"]')?.focus({preventScroll:true});}record(commit?'pointer sort preview':'cancel pointer sort');
 }
 function authSuccess(p) { p.connected=true;p.authExpired=false;p.installed=true;p.account=p.auth==='google'?'design.demo@gmail.com':p.auth==='cursor-cli'?'cursor.demo@example.com':p.account||'design.demo@example.com';p.quota=copy(window.PROVIDER_DEMO.find(v=>v.id===p.id).quota);p.footerError='';closeModal();render();toast('演示账号已连接，未进行真实授权');record('auth success'); }
 document.addEventListener('click',async event=>{
@@ -281,10 +318,11 @@ document.addEventListener('click',async event=>{
   if(action==='close-settings'){$('.settings').hidden=true;$('#closed').hidden=false;return;}
   if(action==='reopen'){$('.settings').hidden=false;$('#closed').hidden=true;return;}
   if(action==='scope'||action==='review'||action==='config-preview')return showModal(action);
-  if(action==='reset-demo'){keyDrafts.clear();providers=copy(window.PROVIDER_DEMO);order=providers.map(v=>v.id);saved=new Map(providers.map(v=>[v.id,copy(config(v))]));expanded.clear();readOnly=false;detailC=false;selected='codex';filter='all';if($('#modal').open)closeModal();render(true);toast('已重置全部演示数据');record('reset');return;}
-  if(action==='sort-providers')return showModal(action,{items:[...order]});
-  if(action==='sort-models')return showModal(action,{provider:p.id,items:p.models.map(m=>m.uid)});
-  if(action==='commit-sort'){if(modalState.type==='sort-providers')order=[...modalState.items];else{const v=getP(modalState.provider);v.models=modalState.items.map(id=>v.models.find(m=>m.uid===id));selected=v.id;}closeModal();render();toast('顺序已更新，账号与草稿保持不变');record('commit order');return;}
+  if(action==='reset-demo'){if(sortDrag)finishPointerSort(false);sortState=null;collapsedModels.clear();keyDrafts.clear();providers=copy(window.PROVIDER_DEMO);order=providers.map(v=>v.id);saved=new Map(providers.map(v=>[v.id,copy(config(v))]));expanded.clear();readOnly=false;detailC=false;selected='codex';filter='all';if($('#modal').open)closeModal();render(true);toast('已重置全部演示数据');record('reset');return;}
+  if(action==='sort-providers'||action==='sort-models')return beginSort(action,p);
+  if(action==='commit-sort'||action==='cancel-sort')return endSort(action==='commit-sort');
+  if(action==='toggle-model'){const key=p.id+':'+target.dataset.model;if(collapsedModels.has(key))collapsedModels.delete(key);else collapsedModels.add(key);render();record('toggle model parameters');return;}
+  if(action==='toggle-models'){const allClosed=p.models.every(m=>collapsedModels.has(modelKey(p,m)));p.models.forEach(m=>allClosed?collapsedModels.delete(modelKey(p,m)):collapsedModels.add(modelKey(p,m)));render();$('[data-action="toggle-models"][data-provider="'+p.id+'"]')?.focus({preventScroll:true});record('toggle all model parameters');return;}
   if(action==='catalog')return showModal('catalog',{provider:p.id,picked:new Set(p.models.map(m=>m.id))});
   if(action==='apply-catalog'){const v=getP(modalState.provider);const chosen=modalState.picked;v.models=[...v.models.filter(m=>chosen.has(m.id)),...v.candidates.filter(m=>chosen.has(m.id)&&!v.models.some(old=>old.id===m.id)).map(m=>({...copy(m),uid:crypto.randomUUID()}))];selected=v.id;closeModal();render();toast('模型目录已更新；保存后生效');record('catalog selection');return;}
   if(action==='add-model'){p.models.push({uid:crypto.randomUUID(),id:'',name:'',context:'',vision:false,thinking:false,effort:''});selected=p.id;render();const row=$('[data-model-row="'+p.models.at(-1).uid+'"]');row?.scrollIntoView({block:'center'});$('input',row)?.focus();record('add model');return;}
@@ -320,20 +358,17 @@ document.addEventListener('change',event=>{
   if(input.dataset.model&&input.dataset.field){if(input.type!=='checkbox'&&input.tagName!=='SELECT'){record('edit model');return;}const p=getP(input.dataset.provider),m=p.models.find(v=>v.uid===input.dataset.model);m[input.dataset.field]=input.type==='checkbox'?input.checked:input.value;if(input.dataset.field==='thinking'&&!input.checked)m.effort='';selected=p.id;render();record('edit model');return;}
   if(input.dataset.control){if(input.type==='number'){record('edit advanced setting');return;}const p=getP(input.dataset.provider);p.advanced.find(c=>c.key===input.dataset.control).value=input.type==='checkbox'?input.checked:input.value;selected=p.id;render();record('edit advanced setting');}
 });
-document.addEventListener('pointerdown',event=>{const handle=event.target.closest('[data-drag]');if(handle&&modalState?.items)startPointerSort(event,handle);});
+document.addEventListener('pointerdown',event=>{const handle=event.target.closest('[data-drag]');if(handle&&sortState?.items)startPointerSort(event,handle);});
 window.addEventListener('pointermove',event=>{
-  if(!sortDrag)return;event.preventDefault();sortDrag.ghost.style.top=event.clientY-sortDrag.offset+'px';
-  const list=$('.sort-list'),rect=list.getBoundingClientRect();if(event.clientY<rect.top+30)list.scrollTop-=12;if(event.clientY>rect.bottom-30)list.scrollTop+=12;
-  const row=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-sort-id]');if(!row||row.dataset.sortId===sortDrag.id)return;
-  const items=modalState.items,from=items.indexOf(sortDrag.id),to=items.indexOf(row.dataset.sortId),r=row.getBoundingClientRect();
-  if((from<to&&event.clientY>r.top+r.height/2)||(from>to&&event.clientY<r.top+r.height/2))moveSort(sortDrag.id,to);
+  if(!sortDrag||sortDrag.pointerId!==event.pointerId)return;event.preventDefault();sortDrag.x=event.clientX;sortDrag.y=event.clientY;sortDrag.ghost.style.top=event.clientY-sortDrag.offset+'px';dragOver(event.clientX,event.clientY);
 },{passive:false});
-window.addEventListener('pointerup',()=>finishPointerSort(true));
-window.addEventListener('pointercancel',()=>finishPointerSort(false));
+window.addEventListener('pointerup',event=>{if(sortDrag?.pointerId===event.pointerId)finishPointerSort(true);});
+window.addEventListener('pointercancel',event=>{if(sortDrag?.pointerId===event.pointerId)finishPointerSort(false);});
 document.addEventListener('keydown',event=>{
-  if(sortDrag&&event.key==='Escape'){event.preventDefault();event.stopPropagation();finishPointerSort(false);return;}
+  // One Escape cancels sorting, even when the browser sends pointercancel before keydown.
+  if(sortState&&!$('#modal').open&&event.key==='Escape'){event.preventDefault();event.stopPropagation();endSort(false);return;}
   const handle=event.target.closest?.('[data-drag]');
-  if(handle&&['ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();moveSort(handle.dataset.drag,modalState.items.indexOf(handle.dataset.drag)+(event.key==='ArrowDown'?1:-1));handle.focus();record('keyboard sort preview');return;}
+  if(handle&&['ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();moveSort(handle.dataset.drag,sortState.items.indexOf(handle.dataset.drag)+(event.key==='ArrowDown'?1:-1));handle.focus();record('keyboard sort preview');return;}
   if($('#modal').open||event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
   if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();switchVariant(event.key==='ArrowRight'?1:-1);}
 });
@@ -343,5 +378,9 @@ $('#settings-nav').innerHTML=[['settings','通用'],['link','远程连接'],['so
 $('#frame').value=['390','800','1040'].includes(params.get('frame'))?params.get('frame'):'1040';
 document.documentElement.style.setProperty('--frame',$('#frame').value+'px');
 document.documentElement.dataset.theme=params.get('theme')==='dark'?'dark':'light';$('#theme-button').textContent=document.documentElement.dataset.theme==='dark'?'浅色':'深色';
-new ResizeObserver(entries=>{const mobile=entries[0].contentRect.width<=620;$('.settings').classList.toggle('mobile-shell',mobile);if(mobile){const nav=$('.nav-list'),active=$('.nav-cell.active');nav.scrollLeft=active.offsetLeft-nav.offsetLeft-(nav.clientWidth-active.clientWidth)/2;}}).observe($('.settings'));
+new ResizeObserver(entries=>{const mobile=entries[0].contentRect.width<=620||(innerWidth<=1000&&(document.documentElement.dataset.compact==='true'||matchMedia('(pointer:coarse)').matches));$('.settings').classList.toggle('mobile-shell',mobile);if(mobile){const nav=$('.nav-list'),active=$('.nav-cell.active');nav.scrollLeft=active.offsetLeft-nav.offsetLeft-(nav.clientWidth-active.clientWidth)/2;}}).observe($('.settings'));
+const chromeSize=new ResizeObserver(entries=>entries.forEach(entry=>document.documentElement.style.setProperty(entry.target.id==='draftbar'?'--draft-height':'--controls-height',Math.ceil(entry.target.getBoundingClientRect().height)+'px')));
+chromeSize.observe($('.prototype-bar'));chromeSize.observe($('#draftbar'));
+function fitViewport(){const v=window.visualViewport;if(v&&v.scale!==1)return;const h=v?.height||innerHeight;document.documentElement.style.setProperty('--viewport-height',h+'px');document.documentElement.style.setProperty('--viewport-bottom',Math.max(0,innerHeight-h-(v?.offsetTop||0))+'px');document.documentElement.dataset.compact=String(h<560);if(document.activeElement?.matches('input,textarea,select'))requestAnimationFrame(()=>document.activeElement?.scrollIntoView({block:'nearest'}));}
+window.visualViewport?.addEventListener('resize',fitViewport);window.addEventListener('resize',fitViewport);fitViewport();
 render();record('initial');
