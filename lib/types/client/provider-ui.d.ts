@@ -43,11 +43,26 @@ export interface ProviderAuthState {
  * leaving another account's quota behind.
  * @param providerKey - usage cache key, identical to the sidebar reader's key.
  * @param providerName - display name recorded with the cached quota.
- * @param quota - the live answer, or null while none has arrived.
+ * @param quota - the live answer, or null while none has arrived. Only the label and
+ * the remaining percent are persisted, because that is all a stored headline holds.
  * @param auth - settled state of the account read.
  * @returns the live quota, else the cached one; null when withheld or when neither is displayable.
  */
 export declare function useProviderQuotaCache(providerKey: string, providerName: string, quota: ProviderQuotaState | null, auth: ProviderAuthState): ProviderQuotaState | null;
+/**
+ * Header props for a provider card: the meter when quota is known, otherwise a
+ * labelled unavailable dash once the provider's query settled without usable
+ * quota, and nothing at all while that query is still outstanding.
+ * @param quota - resolved quota, or null when withheld or unknown.
+ * @param options - `dashLabel` names the unavailable dash; `settled` is true when the query finished without usable quota.
+ * @returns props to spread into {@link ProviderCardHeader}.
+ */
+export declare function providerQuotaHeaderProps(quota: ProviderQuotaState | null, options: {
+    dashLabel: string;
+    settled: boolean;
+}): {
+    quota?: ProviderQuotaState;
+};
 /** Props of {@link ProviderQuotaMeter}. */
 export interface ProviderQuotaMeterProps {
     /** Remaining quota, 0-100. Values outside 0-100 are unavailable, never clamped. */
