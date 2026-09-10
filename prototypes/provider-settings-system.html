@@ -39,12 +39,12 @@ code{font-size:11px;overflow-wrap:anywhere}
 .stack{display:flex;flex-direction:column;gap:8px;min-width:0}
 .grow{flex:1;min-width:0}
 .spacer{margin-left:auto}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;border:1px solid var(--line);border-radius:9px;padding:6px 12px;background:var(--bg);white-space:nowrap;font-size:12px;font-weight:500}
-.btn:hover:not(:disabled){background:var(--hover);border-color:var(--faint)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;border:1px solid var(--line);border-radius:9px;padding:6px 12px;background:var(--bg);color:var(--ink);white-space:nowrap;font-size:12px;font-weight:500}
+.btn:hover:not(:disabled){background:var(--hover);border-color:var(--faint);color:var(--ink)}
 .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.btn.primary:hover:not(:disabled){opacity:.87}
+.btn.primary:hover:not(:disabled){background:var(--ink);color:var(--bg);border-color:var(--ink);opacity:.87}
 .btn.quiet{background:transparent;border-color:transparent}
-.btn.danger{color:var(--danger)}
+.btn.danger,.btn.danger:hover:not(:disabled){color:var(--danger)}
 .icon-btn{display:inline-grid;place-items:center;width:32px;height:32px;min-height:32px;padding:0;border-radius:8px;flex:none}
 .icon-btn:hover{background:var(--hover)}
 .link-btn{font-size:12px;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
