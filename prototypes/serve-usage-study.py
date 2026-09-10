@@ -16,7 +16,7 @@ class Preview(SimpleHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path == '/':
             self.send_response(302)
-            self.send_header('Location', '/provider-settings-system.html?surface=task&variant=A&inspect=codex')
+            self.send_header('Location', '/provider-settings-system.html?surface=task&variant=B&inspect=codex')
             self.end_headers()
             return None
         if path not in ASSETS:
