@@ -20,7 +20,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha4')
 const FIXTURE_TARBALL_ROOT = join(FIXTURE_ROOT, 'tarballs')
 const PACKAGE_NAME = 'dsh-llm-providers-ui'
-const PACKAGE_VERSION = '0.1.10'
+const PACKAGE_VERSION = '0.1.12'
 const ROOT_ARCHIVE = join(ROOT, PACKAGE_NAME + '-' + PACKAGE_VERSION + '.tgz')
 const OFFICIAL_ALPHA4 = '0.1.2-alpha.4'
 const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.4'
@@ -59,6 +59,7 @@ const REQUIRED_FILES = [
   'lib/sortable.js',
   'lib/provider-ui.js',
   'lib/usage-readers.js',
+  'lib/model-catalog.js',
   'lib/types/index.d.ts',
   'lib/types/client/index.d.ts',
   'lib/types/order.d.ts',
@@ -66,6 +67,7 @@ const REQUIRED_FILES = [
   'lib/types/provider-ui.d.ts',
   'lib/types/client/provider-ui.d.ts',
   'lib/types/usage-readers.d.ts',
+  'lib/types/model-catalog.d.ts',
   'lib/types/client/ProvidersSection.d.ts',
   'lib/types/client/provider-section.d.ts',
 ]
@@ -77,6 +79,7 @@ const EXPECTED_EXPORTS = {
   './sortable': { types: './lib/types/sortable.d.ts', default: './lib/sortable.js' },
   './provider-ui': { types: './lib/types/provider-ui.d.ts', default: './lib/provider-ui.js' },
   './usage-readers': { types: './lib/types/usage-readers.d.ts', default: './lib/usage-readers.js' },
+  './model-catalog': { types: './lib/types/model-catalog.d.ts', default: './lib/model-catalog.js' },
 }
 const BUILTIN_MODULES = new Set([...builtinModules, ...builtinModules.map(name => 'node:' + name)])
 const SOURCE_SEGMENTS = new Set(['src', 'source', 'test', 'tests', '__tests__', 'scripts'])

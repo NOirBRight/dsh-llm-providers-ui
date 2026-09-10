@@ -36,13 +36,21 @@ The 14px globe glyph on the nav row is an isolated temporary adapter (`src/clien
 - `dsh-llm-providers-ui/sortable` (client utility, ESM): `SortableList` drag-reorder implementation. Built artifact: `lib/sortable.js` + `lib/types/sortable.d.ts`. Single implementation lives in `src/client/SortableList.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/SortableList.tsx`.
 - `dsh-llm-providers-ui/provider-ui` (client utility, ESM): shared `ProviderCardHeader`, `ProviderQuotaMeter`, `ProviderMark`, `normalizeQuotaRemaining`, and `providerUiCss`. Built artifact: `lib/provider-ui.js` + `lib/types/provider-ui.d.ts`. Single implementation lives in `src/client/provider-ui.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/provider-ui.tsx`.
 - `dsh-llm-providers-ui/client` (Web): owner plugin wiring and the `providerDirectory` Cordis service declaration. Built artifact: `lib/client.js` (ModuleLoader CJS) + `lib/types/client`; it exports only the plugin entrypoints. Do not import `./src/*`.
+- `dsh-llm-providers-ui/model-catalog` (client utility, ESM): `ModelCatalogEditor`, `ModelPickerDialog`, `applyCatalogPatch`, and catalog layout helpers. Built artifact: `lib/model-catalog.js` + `lib/types/model-catalog.d.ts`. Provider plugins `alwaysBundle` this built export; do not import from `src/client`.
 - `dsh-llm-providers-ui/usage-readers` (pure, ESM): `ProviderUsageReader` types and vendor `create*UsageReader` factories for provider client bundles. Built artifact: `lib/usage-readers.js` + `lib/types/usage-readers.d.ts`. Provider plugins `alwaysBundle` this export. It also owns the browser last-good usage cache (`readUsageCache`, `writeUsageCache`, `dropPersistedUsageKeys`, `peekCachedUsage`, `rememberCachedUsage`, `rememberHeadlineQuota`, `headerQuotaFromCache`, `clearProviderUsageCache`): readable storage is authoritative (including empty after invalidation) with memory only as an unavailable-storage fallback; stale status persists honestly; collapsed-header headlines never replace a full multi-window summary and record no fetch time; invalidation flows through `ctx.providerDirectory.invalidateUsage(key)`.
 
 The package exposes only the built `lib/` entrypoints listed above; consumers should import those package exports rather than source paths.
 
 ## Installation
 
-This package is a bundle that must be installed explicitly. Until DSH's third-party bundle supports transitive auto-mount, the profile must list `dsh-llm-providers-ui` alongside the provider plugins (e.g. in `~/.dsh-lab/profiles/web/package.json` `dsh.profile.bundles` and `dependencies`). No strict load order with providers is required. See `cordis.patch.yml`.
+This package is a bundle and must be listed in the profile. Until DSH mounts transitive bundles, install it alongside every provider card:
+
+```sh
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+```
+
+No strict load order with providers is required. See `cordis.patch.yml`.
 
 ## Consumer contract
 
@@ -70,7 +78,7 @@ Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.10/dsh-llm-providers-ui-0.1.10.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 ~~~
 
 Update, uninstall, and verify:

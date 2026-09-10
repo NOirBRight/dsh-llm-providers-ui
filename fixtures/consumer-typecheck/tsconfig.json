@@ -12,6 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "dsh-llm-providers-ui/client": ["../../lib/types/client/index.d.ts"],
+      "dsh-llm-providers-ui/model-catalog": ["../../lib/types/model-catalog.d.ts"],
       "dsh-llm-providers-ui": ["../../lib/types/index.d.ts"]
     }
   },

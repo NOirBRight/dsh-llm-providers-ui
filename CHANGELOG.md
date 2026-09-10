@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.12] - 2026-09-10
+
+- Shared model catalog editor and picker (`./model-catalog`). Generic patches keep `contextWindow`. Optional input/output fields and tri-state capabilities stay caller-opted.
+
 ## [0.1.11] - 2026-09-09
 
 - Keep last-good sidebar quota visible across a configure that temporarily has no readers.

@@ -38,6 +38,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 - `dsh-llm-providers-ui/sortable`（client 工具，ESM）：`SortableList` 拖拽排序实现。构建产物：`lib/sortable.js` + `lib/types/sortable.d.ts`。唯一实现在 `src/client/SortableList.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/SortableList.tsx` import。
 - `dsh-llm-providers-ui/provider-ui`（client 工具，ESM）：共享 `ProviderCardHeader`、`ProviderQuotaMeter`、`normalizeQuotaRemaining` 与 `providerUiCss`。构建产物：`lib/provider-ui.js` + `lib/types/provider-ui.d.ts`。唯一实现在 `src/client/provider-ui.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/provider-ui.tsx` import。
 - `dsh-llm-providers-ui/client`（Web）：owner 插件接线与 `providerDirectory` Cordis service 声明。构建产物：`lib/client.js`（ModuleLoader CJS）+ `lib/types/client`；只导出插件入口。不要 import `./src/*`。
+- `dsh-llm-providers-ui/model-catalog`（client 工具，ESM）：`ModelCatalogEditor`、`ModelPickerDialog`、`applyCatalogPatch` 与目录布局辅助。构建产物：`lib/model-catalog.js` + `lib/types/model-catalog.d.ts`。provider 插件应 `alwaysBundle` 此导出，不要从 `src/client` import。
 - `dsh-llm-providers-ui/usage-readers`（纯 ESM）：供 provider client bundle 使用的 `ProviderUsageReader` 类型与各 vendor 的 `create*UsageReader` 工厂。构建产物：`lib/usage-readers.js` + `lib/types/usage-readers.d.ts`。provider 插件应 `alwaysBundle` 此导出。
 
 本包只暴露上面列出的构建后 `lib/` 入口；调用方应 import 这些包导出，而非源码路径。
@@ -63,14 +64,14 @@ Latest 安装（URL 永不带版本号）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 ~~~
 
 固定版本安装：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.7/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 ~~~
 
 更新、卸载与验证：
@@ -78,7 +79,7 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到最新 Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor

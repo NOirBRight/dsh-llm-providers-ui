@@ -13,6 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from 'dsh-llm-providers-ui/client'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ProviderHeaderOwnership, ProviderRole } from 'dsh-llm-providers-ui/client'
+import type { ModelCatalogDraft } from 'dsh-llm-providers-ui/model-catalog'
 
 declare const ctx: Context
 
@@ -24,5 +25,6 @@ export function checkConsumerTypes(): string {
   const reader = directory.reader('llm-example')
   const entries = ctx.slots.entriesOfSlot('settings.provider.item')
   stop()
-  return role + header + String(reader) + String(entries.length)
+  const draft: ModelCatalogDraft = { rowId: 'x', id: 'model' }
+  return role + header + String(reader) + String(entries.length) + draft.id
 }
