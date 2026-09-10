@@ -63,6 +63,7 @@
     "pack:check": "node scripts/check-pack.mjs",
     "consumer:check": "tsc -p fixtures/consumer-typecheck/tsconfig.json --noEmit",
     "prototype:sidebar-usage": "python3 -m http.server 4178 --directory prototypes",
+    "prototype:providers": "python3 -m http.server 4186 --bind 127.0.0.1 --directory prototypes",
     "check": "pnpm run test && pnpm run typecheck && pnpm run build && pnpm run consumer:check && pnpm run pack:check"
   },
   "engines": {
