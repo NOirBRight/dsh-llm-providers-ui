@@ -17,6 +17,7 @@ try{
       await choose(p,id);assert.equal(await surface.isVisible(),true);assert.equal(await p.locator('.usage-content [role=meter]').count(),windows);assert.equal(await surface.locator('[data-system-zone]').count(),1);
       const shape=await surface.boundingBox(),bar=await p.locator('.prototype-bar').boundingBox();assert.ok(shape.x>=0&&shape.x+shape.width<=width+1&&shape.y>=0&&shape.y+shape.height<=bar.y+1,JSON.stringify({id,width,height,shape,bar}));
       for(const action of ['usage-refresh-all','usage-refresh','usage-close','usage-settings']){const box=await act(p,action).boundingBox();assert.ok(box.height>=44&&box.width>=44,action);assert.ok(box.y>=0&&box.y+box.height<=bar.y+1,JSON.stringify({id,width,height,action,box}));}
+      if(id==='grok'&&height>=390)assert.equal(await p.locator('.usage-content').evaluate(n=>n.scrollHeight>n.clientHeight+1),false,'one window fits the available viewport');
       assert.equal(await surface.evaluate(n=>n.scrollWidth>n.clientWidth+1),false);assert.equal(await p.locator('#task-usage-cards').isVisible(),false);
       const text=await surface.innerText();for(const omitted of ['账户额度','各窗口独立计量','更新时间未提供','Personal Usage'])assert.equal(text.includes(omitted),false,omitted);
     }

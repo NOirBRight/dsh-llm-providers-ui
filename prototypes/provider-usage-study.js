@@ -9,7 +9,9 @@ const usageCanRefresh=p=>!readOnly&&p.role==='llm'&&p.connected&&p.quota.status!
 function usageSnapshot(){return {variant:usageVariant,open:usageOpen,provider:usageId,scenario:getP(usageId).scenario||'normal',refreshingProviders:providers.filter(p=>p.refreshing).map(p=>p.id),settingsLockedAt:'93d085e'};}
 function positionUsage(event){
   if(!usageReady||!usageOpen)return;
-  $('#usage-inspector').style.maxHeight=Math.max(160,$('#closed').clientHeight-240)+'px';
+  const panel=$('.task-panel'),toolbar=$('.usage-tools'),style=getComputedStyle(panel);
+  const available=panel.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-toolbar.getBoundingClientRect().height-parseFloat(getComputedStyle(toolbar).marginBottom);
+  $('#usage-inspector').style.maxHeight=Math.max(120,available)+'px';
   if(event?.type!=='scroll')$('#task-usage').scrollIntoView({block:'nearest'});
 }
 function closeUsage(returnFocus=true){
