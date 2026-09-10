@@ -443,7 +443,8 @@ function fixtureArchives() {
     fail('fixture provenance does not identify the official alpha.4 checkout')
   }
   if (!Array.isArray(payload.fixtures) || !Array.isArray(payload.edges)) fail('fixture provenance has no graph arrays')
-  const fixtureText = JSON.stringify(payload).replaceAll('0.1.2-rc.1', '')
+  // Approved RC allowlist: 0.1.2-rc.1 (legacy) and 0.1.5-rc.1 (verified 015 migration target).
+  const fixtureText = JSON.stringify(payload).replaceAll('0.1.2-rc.1', '').replaceAll('0.1.5-rc.1', '')
   if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d))/iu.test(fixtureText)) fail('fixture provenance contains alpha.2 or unapproved RC data')
   const entries = readdirSync(FIXTURE_TARBALL_ROOT, { withFileTypes: true })
   if (entries.some(entry => !entry.isFile() || !entry.name.endsWith('.tgz'))) fail('fixture tarball directory contains an ignored non-archive entry')

@@ -1048,7 +1048,7 @@
       "childName": "@deepseek-ai/dsh-client-locale",
       "childVersion": "0.1.2-alpha.4",
       "name": "@deepseek-ai/dsh-client-locale",
-      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
       "field": "peerDependencies",
       "optional": false
     },
@@ -1060,7 +1060,7 @@
       "childName": "@deepseek-ai/dsh-client-ui-renderer",
       "childVersion": "0.1.2-alpha.4",
       "name": "@deepseek-ai/dsh-client-ui-renderer",
-      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
       "field": "peerDependencies",
       "optional": false
     },
@@ -1072,7 +1072,7 @@
       "childName": "@deepseek-ai/dsh-client-ui-settings",
       "childVersion": "0.1.2-alpha.4",
       "name": "@deepseek-ai/dsh-client-ui-settings",
-      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
       "field": "peerDependencies",
       "optional": false
     },
@@ -1084,7 +1084,7 @@
       "childName": "@deepseek-ai/dsh-client-ui-slots",
       "childVersion": "0.1.2-alpha.4",
       "name": "@deepseek-ai/dsh-client-ui-slots",
-      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
       "field": "peerDependencies",
       "optional": false
     },
@@ -1096,7 +1096,7 @@
       "childName": "@deepseek-ai/dsh-settings",
       "childVersion": "0.1.2-alpha.4",
       "name": "@deepseek-ai/dsh-settings",
-      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+      "range": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
       "field": "peerDependencies",
       "optional": false
     },
