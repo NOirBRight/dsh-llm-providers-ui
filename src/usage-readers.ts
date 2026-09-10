@@ -13,7 +13,7 @@ export type ProviderUsageStatus = 'loading' | 'ready' | 'logged-out' | 'unsuppor
 const INVALID_CREDENTIAL_CODE = 'INVALID_CREDENTIAL'
 
 /** Whether one RPC failure means "this provider has no usable credential". */
-function credentialFailure(error: { code?: unknown, message?: unknown }): boolean {
+function credentialFailure(error: { code?: unknown }): boolean {
   return error.code === INVALID_CREDENTIAL_CODE
 }
 
