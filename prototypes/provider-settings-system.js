@@ -1,26 +1,23 @@
 /* THROWAWAY prototype. All actions are in-memory simulations; never call a provider or persist credentials.
- * Three independent layouts share presentation of the same researched controls, not a production framework.
+ * Chosen design C: quota overview and independent configuration. Earlier A/B studies remain in git history.
  */
 'use strict';
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const copy = value => structuredClone(value);
-const NOW = Date.parse('2026-09-10T09:34:00+08:00');
 const params = new URLSearchParams(location.search);
-const variantNames = {A:'统一列表', B:'主从面板', C:'额度总览'};
 let providers = copy(window.PROVIDER_DEMO);
 let order = providers.map(p => p.id);
 let selected = providers.some(p => p.id === params.get('provider')) ? params.get('provider') : 'codex';
-let variant = Object.hasOwn(variantNames, params.get('variant')) ? params.get('variant') : 'A';
-let expanded = new Set(params.has('provider') ? [selected] : []);
+const variant = 'C';
 let detailC = params.has('provider');
 let readOnly = false;
 let filter = 'all';
 let modalState = null;
 let sortDrag = null;
 let sortState = null;
-const collapsedModels = new Set();
+const expandedModels = new Set();
 const modelKey = (p,m) => p.id+":"+m.uid;
 const modelLocked = p => readOnly||p.saving||(p.role==="agent"&&(!p.connected||!p.installed));
 let removed = null;
@@ -50,22 +47,31 @@ function status(p) { return p.installing ? '安装中' : !p.installed && p.role=
 function identity(p, big = false) {
   return '<div class="identity">'+brand(p,big)+'<div class="grow"><div class="name-line"><span class="name">'+esc(p.name)+'</span>'+badge(p)+(p.development?'<span class="pill dev">开发中</span>':'')+(dirty(p)?'<span class="draft-dot" title="有未保存的更改">●</span>':'')+'</div><div class="sub"><span class="dot '+(p.connected&&p.installed?'good':'')+'"></span>'+status(p)+'<span aria-hidden="true">·</span>'+p.models.length+' 个模型</div></div></div>';
 }
+const systemZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 function dateLabel(value) {
-  const n = Date.parse(value);
-  if (!Number.isFinite(n)) return null;
-  return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(n).replace(/(\d{2})\/(\d{2}),?/, '$2/$1').replace(',','');
+  const n=Date.parse(value);
+  return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(n):null;
 }
 function resetCaption(w) {
-  const date = dateLabel(w.reset);
-  if (!date) return (w.period ? esc(w.period)+' · ' : '')+'重置时间未提供';
-  const mins = Math.ceil((Date.parse(w.reset)-NOW)/60000);
-  const relative = mins <= 0 ? '已到期，等待更新' : mins >= 1440 ? Math.ceil(mins/1440)+'天后' : mins >= 60 ? Math.floor(mins/60)+'小时'+(mins%60 ? mins%60+'分后' : '后') : mins+'分钟后';
+  const date=dateLabel(w.reset);
+  if(!date)return (w.period?w.period+' · ':'')+'重置时间未提供';
+  const mins=Math.ceil((Date.parse(w.reset)-Date.now())/60000);
+  const relative=mins<=0?'已到期，等待更新':mins>=1440?Math.ceil(mins/1440)+'天后':mins>=60?Math.floor(mins/60)+'小时'+(mins%60?mins%60+'分后':'后'):mins+'分钟后';
   return '重置于 '+date+' · '+relative;
 }
+function resetStamp(w,cls='meter-caption') {
+  const caption=resetCaption(w);
+  return '<span class="'+cls+'" data-reset="'+esc(w.reset)+'" data-period="'+esc(w.period)+'" title="'+esc(caption+' · '+systemZone())+'">'+esc(caption)+'</span>';
+}
+function refreshTimes() {
+  $$('[data-reset]').forEach(el=>{const text=resetCaption({reset:el.dataset.reset,period:el.dataset.period});el.textContent=text;el.title=text+' · '+systemZone();});
+  $$('[data-local-date]').forEach(el=>el.textContent=dateLabel(el.dataset.localDate)||'—');
+  $$('[data-system-zone]').forEach(el=>el.textContent='系统时区 · '+systemZone());
+}
 const validRemaining = w => typeof w?.remaining==='number' && Number.isFinite(w.remaining) && w.remaining>=0 && w.remaining<=100 && !w.disabled;
-function meter(w, mini = false) {
-  if (!w || !validRemaining(w)) return '<div class="missing-quota">'+(w?.disabled?'此额度窗口已停用':w ? esc(w.label)+' · 暂无数据':'暂未提供额度数据')+'<small class="faint">'+(w?resetCaption(w):'等待 Provider 返回')+'</small></div>';
-  return '<div class="meter'+(mini?' mini':'')+'"><div class="meter-top"><span class="meter-label">'+esc(w.label)+'</span><span class="meter-value">'+Math.round(w.remaining)+'%'+(!mini?' <small class="muted">剩余</small>':'')+'</span></div><div class="track" role="meter" aria-label="'+esc(w.label)+' 剩余额度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+w.remaining+'" aria-valuetext="'+Math.round(w.remaining)+'% 剩余"><div class="fill'+(w.remaining<20?' low':'')+'" style="width:'+w.remaining+'%"></div></div><div class="meter-caption" title="'+resetCaption(w)+'（UTC+8）">'+resetCaption(w)+'</div></div>';
+function meter(w,mini=false) {
+  if(!w||!validRemaining(w))return '<div class="missing-quota">'+(w?.disabled?'此额度窗口已停用':w?esc(w.label)+' · 暂无数据':'暂未提供额度数据')+(w?resetStamp(w,'faint'):'<small class="faint">等待 Provider 返回</small>')+'</div>';
+  return '<div class="meter'+(mini?' mini':'')+'"><div class="meter-top"><span class="meter-label">'+esc(w.label)+'</span><span class="meter-value">'+Math.round(w.remaining)+'%'+(!mini?' <small class="muted">剩余</small>':'')+'</span></div><div class="track" role="meter" aria-label="'+esc(w.label)+' 剩余额度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+w.remaining+'" aria-valuetext="'+Math.round(w.remaining)+'% 剩余"><div class="fill'+(w.remaining<20?' low':'')+'" style="width:'+w.remaining+'%"></div></div>'+resetStamp(w)+'</div>';
 }
 const primary = p => p.quota.windows.find(validRemaining) || p.quota.windows[0];
 function quotaSummary(p) {
@@ -99,23 +105,23 @@ function quotaBlock(p) {
   else if (p.quota.status==='idle') body=alertBox('额度尚未读取。点击“刷新”获取；保存配置不会自动查询。');
   else {
     body=(p.quota.status==='stale'?alertBox('刷新失败，以下保留上次成功的数据，不代表当前额度。','warn'):'')+'<div class="quota-list"'+(p.quota.status==='stale'?' style="margin-top:15px"':'')+'>'+(p.quota.windows.length?p.quota.windows.map(w=>meter(w)).join(''):alertBox('暂未返回额度数据。可刷新重试。'))+'</div>';
-    if(p.quota.facts.length) body+='<dl class="facts">'+p.quota.facts.map(f=>'<div><dt>'+esc(f.label)+'</dt><dd>'+esc(/^\d{4}-\d\d-\d\dT/.test(f.value)?dateLabel(f.value)+' UTC+8':f.value)+'</dd></div>').join('')+'</dl>';
+    if(p.quota.facts.length) body+='<dl class="facts">'+p.quota.facts.map(f=>'<div><dt>'+esc(f.label)+'</dt><dd>'+(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(f.value)&&dateLabel(f.value)?'<span data-local-date="'+esc(f.value)+'">'+esc(dateLabel(f.value))+'</span>':esc(f.value))+'</dd></div>').join('')+'</dl>';
     if(p.quota.activity.length) body+='<details class="activity"><summary>本周按模型统计</summary><div class="activity-list">'+p.quota.activity.map(a=>'<div class="row between"><span>'+esc(a.name)+'</span><span class="muted">'+a.count+' 次请求</span></div>').join('')+'</div></details>';
   }
-  return '<section><div class="section-heading"><h3>剩余额度</h3>'+btn('refresh',icon('refresh',p.refreshing?'spin':'')+(p.refreshing?' 刷新中':' 刷新'),p.id,'quiet',disabled)+'</div>'+body+'<div class="quota-meta"><span>账户剩余额度 · 各窗口独立计量</span><span>UTC+8'+(p.connected&&['ready','stale','empty'].includes(p.quota.status)?' · 更新于 '+(p.updated||'09:34'):'')+'</span></div></section>';
+  return '<section><div class="section-heading"><h3>剩余额度</h3>'+btn('refresh',icon('refresh',p.refreshing?'spin':'')+(p.refreshing?' 刷新中':' 刷新'),p.id,'quiet',disabled)+'</div>'+body+'<div class="quota-meta"><span>账户剩余额度 · 各窗口独立计量</span><span><span data-system-zone>系统时区 · '+esc(systemZone())+'</span>'+(p.connected&&['ready','stale','empty'].includes(p.quota.status)?p.updated?' · 更新于 <span data-local-date="'+esc(p.updated)+'">'+esc(dateLabel(p.updated))+'</span>':' · 更新时间未提供':'')+'</span></div></section>';
 }
 const effortLabels = {off:'关闭',none:'无',minimal:'最小',low:'低',medium:'中',high:'高',xhigh:'极高',max:'最大'};
 function modelField(p,m,key,label,type='text',placeholder='') {
   return '<label class="field"><span class="field-label">'+label+'</span><input data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="'+key+'" data-focus="'+p.id+'-'+m.uid+'-'+key+'" type="'+type+'" value="'+esc(m[key])+'" placeholder="'+esc(placeholder)+'"'+(key==='id'?' required':'')+(type==='number'?' min="1" step="1"':'')+(modelLocked(p)?' disabled':'')+'></label>';
 }
 function modelsBlock(p) {
-  if(sortState?.type==='sort-models'&&sortState.provider===p.id)return '<section data-model-catalog="'+p.id+'">'+inlineSort()+'</section>';
-  const locked=modelLocked(p),allClosed=p.models.length&&p.models.every(m=>collapsedModels.has(modelKey(p,m)));
+
+  const locked=modelLocked(p),allClosed=p.models.length&&p.models.every(m=>!expandedModels.has(modelKey(p,m)));
   const rows=p.models.map(m=>{
-    const closed=collapsedModels.has(modelKey(p,m)),panel='parameters-'+p.id+'-'+m.uid;
-    return '<article class="model-card" data-model-row="'+m.uid+'"><div class="model-top">'+modelField(p,m,'id','Model ID')+modelField(p,m,'name','显示名称')+'<button type="button" class="icon-btn model-toggle" data-action="toggle-model" data-provider="'+p.id+'" data-model="'+m.uid+'" data-focus="toggle-'+p.id+'-'+m.uid+'" aria-expanded="'+!closed+'" aria-controls="'+panel+'" aria-label="'+(closed?'展开':'收起')+'模型参数" title="'+(closed?'展开':'收起')+'模型参数">'+icon('chevron','chevron')+'</button><button type="button" class="icon-btn" data-action="remove-model" data-provider="'+p.id+'" data-model="'+m.uid+'" aria-label="移除 '+esc(m.name||m.id||'新模型')+'" '+(locked?'disabled':'')+'>'+icon('trash')+'</button></div><fieldset class="model-parameters" id="'+panel+'" '+(closed?'hidden ':'')+(locked?'disabled':'')+'><div class="model-options">'+modelField(p,m,'context','上下文窗口 · Tokens','number','Provider 默认')+'<div class="model-capabilities">'+['vision','thinking'].map(key=>'<label><input type="checkbox" data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="'+key+'" data-focus="'+p.id+'-'+m.uid+'-'+key+'" '+(m[key]?'checked':'')+'>'+(key==='vision'?'视觉':'推理')+'</label>').join('')+'</div><label class="field"><span class="field-label">默认思考等级</span><select data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="effort" data-focus="'+p.id+'-'+m.uid+'-effort" '+(!m.thinking||!(m.efforts??p.efforts).length?'disabled':'')+'><option value="">Provider 默认</option>'+(m.efforts??p.efforts).map(e=>'<option value="'+e+'" '+(m.effort===e?'selected':'')+'>'+effortLabels[e]+' · '+e+'</option>').join('')+'</select></label></div>'+(m.hint?'<div class="model-source">'+esc(m.hint)+'</div>':'')+'</fieldset></article>';
+    const closed=!expandedModels.has(modelKey(p,m)),panel='parameters-'+p.id+'-'+m.uid;
+    return '<article class="model-card" data-model-row="'+m.uid+'" data-sort-id="'+m.uid+'">'+dragHandle(m.uid,m.name||m.id||'新模型')+'<div class="model-sort-summary"><div class="grow"><div class="sort-name">'+esc(m.name||m.id||'新模型')+'</div><div class="sort-model-id mono tiny muted">'+esc(m.id)+'</div></div></div><div class="model-editor"><div class="model-top">'+modelField(p,m,'id','Model ID')+modelField(p,m,'name','显示名称')+'<button type="button" class="icon-btn model-toggle" data-action="toggle-model" data-provider="'+p.id+'" data-model="'+m.uid+'" data-focus="toggle-'+p.id+'-'+m.uid+'" aria-expanded="'+!closed+'" aria-controls="'+panel+'" aria-label="'+(closed?'展开':'收起')+'模型参数" title="'+(closed?'展开':'收起')+'模型参数">'+icon('chevron','chevron')+'</button><button type="button" class="icon-btn" data-action="remove-model" data-provider="'+p.id+'" data-model="'+m.uid+'" aria-label="移除 '+esc(m.name||m.id||'新模型')+'" '+(locked?'disabled':'')+'>'+icon('trash')+'</button></div><fieldset class="model-parameters" id="'+panel+'" '+(closed?'hidden ':'')+(locked?'disabled':'')+'><div class="model-options">'+modelField(p,m,'context','上下文窗口 · Tokens','number','Provider 默认')+'<div class="model-capabilities">'+['vision','thinking'].map(key=>'<label><input type="checkbox" data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="'+key+'" data-focus="'+p.id+'-'+m.uid+'-'+key+'" '+(m[key]?'checked':'')+'>'+(key==='vision'?'视觉':'推理')+'</label>').join('')+'</div><label class="field"><span class="field-label">默认思考等级</span><select data-provider="'+p.id+'" data-model="'+m.uid+'" data-field="effort" data-focus="'+p.id+'-'+m.uid+'-effort" '+(!m.thinking||!(m.efforts??p.efforts).length?'disabled':'')+'><option value="">Provider 默认</option>'+(m.efforts??p.efforts).map(e=>'<option value="'+e+'" '+(m.effort===e?'selected':'')+'>'+effortLabels[e]+' · '+e+'</option>').join('')+'</select></label></div>'+(m.hint?'<div class="model-source">'+esc(m.hint)+'</div>':'')+'</fieldset></div></article>';
   }).join('');
-  return '<section data-model-catalog="'+p.id+'"><div class="section-heading"><h3>模型<span class="count">'+p.models.length+' 个</span></h3><div class="row model-toolbar">'+(p.models.length?btn('toggle-models',allClosed?'全部展开':'全部收起',p.id,'quiet'):'')+btn('sort-models',icon('sort')+' 排序',p.id,'quiet',locked||p.models.length<2)+btn('catalog',icon('plus')+' '+esc(p.catalogLabel),p.id,'',readOnly||p.saving||!p.connected)+'</div></div><p class="field-hint" style="margin-bottom:12px">名称和 ID 始终显示；展开箭头查看容量与能力参数。</p>'+(p.validation?alertBox(esc(p.validation),'error'):'')+'<div class="model-list">'+(rows||'<div class="empty-box">'+icon('model')+'<strong>还没有添加模型</strong><p>从 Provider 获取目录，或手动填写 Model ID。</p></div>')+'</div><div class="model-actions">'+btn('add-model',icon('plus')+' 手动添加模型',p.id,'',locked)+'</div></section>';
+  return '<section data-model-catalog="'+p.id+'"><div class="section-heading"><h3>模型<span class="count">'+p.models.length+' 个</span></h3><div class="row model-toolbar">'+(p.models.length?btn('toggle-models',icon('sliders')+'<span class="control-label">'+(allClosed?'全部展开':'全部收起')+'</span>',p.id,'quiet icon-label'):'')+btn('sort-models',icon('sort')+' 排序',p.id,'quiet sort-toggle',locked||p.models.length<2)+btn('catalog',icon('plus')+'<span class="control-label">'+esc(p.catalogLabel)+'</span>',p.id,'icon-label',readOnly||p.saving||!p.connected)+'</div></div><p class="field-hint" style="margin-bottom:12px">名称和 ID 始终显示；展开箭头查看容量与能力参数。</p>'+(p.validation?alertBox(esc(p.validation),'error'):'')+'<div class="model-list">'+(rows||'<div class="empty-box">'+icon('model')+'<strong>还没有添加模型</strong><p>从 Provider 获取目录，或手动填写 Model ID。</p></div>')+'</div><div class="model-actions">'+btn('add-model',icon('plus')+' 手动添加模型',p.id,'',locked)+'</div></section>';
 }
 function advancedBlock(p) {
   if(!p.advanced.length&&!p.baseURL) return '';
@@ -133,74 +139,85 @@ function advancedBlock(p) {
 function providerBody(p, cls='') {
   return '<div class="provider-body '+cls+'" data-provider-body="'+p.id+'"><p class="provider-intro">'+esc(p.description)+'</p>'+(p.notice?alertBox(esc(p.notice),'warn'):'')+(p.development?alertBox('接入规范示例 · Cursor ACP 尚未安装在 3080。仅展示已实现的 CLI 登录和模型能力；额度查询暂不支持。'):'')+(readOnly?alertBox('当前连接为只读。可以查看所有配置，但不能修改账号、模型或排序。','warn'):'')+accountBlock(p)+quotaBlock(p)+modelsBlock(p)+advancedBlock(p)+'<div class="provider-foot">'+icon('lock')+esc(p.name)+' · v'+esc(p.version)+' · '+(p.role==='agent'?'原生 Agent':'LLM Provider')+'</div></div>';
 }
-function pageTitle(subtitle) { return '<header class="page-title"><div><h1>LLM Providers</h1><p>'+subtitle+'</p></div>'+btn('sort-providers',icon('sort')+' Provider 排序','','',readOnly)+'</header>'; }
-function VariantA() {
-  return pageTitle('统一管理账号、额度与模型。选择一个 Provider 查看配置。')+'<div class="provider-list">'+order.map(id=>{const p=getP(id);return '<article class="provider-row" data-provider-row="'+id+'"><button class="provider-head" data-action="open-provider" data-provider="'+id+'" aria-expanded="'+expanded.has(id)+'" aria-controls="body-'+id+'">'+identity(p)+'<div class="mini">'+quotaSummary(p)+'</div>'+icon('chevron','chevron')+'</button><div id="body-'+id+'" '+(!expanded.has(id)?'hidden':'')+'>'+(expanded.has(id)?providerBody(p):'')+'</div></article>';}).join('')+'</div>';
-}
-function VariantB() {
-  const p=getP();
-  return pageTitle('在左侧选择 Provider，在右侧完成全部配置。')+'<div class="master-detail"><aside class="provider-rail" aria-label="选择 Provider"><div class="rail-label">PROVIDERS / '+order.length+'</div>'+order.map(id=>{const v=getP(id);return '<button class="rail-item" data-action="open-provider" data-provider="'+id+'" aria-current="'+(id===selected)+'">'+brand(v)+'<div class="grow"><div class="rail-name">'+esc(v.name)+(dirty(v)?' <span class="draft-dot">●</span>':'')+'</div><div class="rail-status">'+(v.role==='agent'?'Agent':'LLM')+' · '+status(v)+'</div></div></button>';}).join('')+'</aside><article class="detail-panel"><div class="detail-title">'+identity(p,true)+'</div>'+providerBody(p,'detail-body')+'</article></div>';
-}
+function pageTitle(subtitle) { return '<header class="page-title"><div><h1>LLM Providers</h1><p>'+subtitle+'</p></div>'+btn('sort-providers',icon('sort')+' Provider 排序','','sort-toggle',readOnly)+'</header>'; }
 function VariantC() {
-  if(detailC) { const p=getP();return '<div class="breadcrumb"><button data-action="overview">'+icon('back')+' 额度总览</button><span>/</span><span>'+esc(p.name)+'</span></div><article class="full-detail"><div class="detail-title">'+identity(p,true)+'</div>'+providerBody(p,'detail-body')+'</article>'; }
+  if(detailC){const p=getP();return '<div class="breadcrumb"><button data-action="overview">'+icon('back')+' 额度总览</button><span>/</span><span>'+esc(p.name)+'</span></div><article class="full-detail"><div class="detail-title">'+identity(p,true)+'</div>'+providerBody(p,'detail-body')+'</article>';}
   const visible=order.map(getP).filter(p=>filter==='all'||p.role===filter);
-  return pageTitle('先看账户额度，再进入独立详情页配置。')+'<div class="overview-note"><span class="number">'+providers.filter(p=>p.connected).length+'</span><div class="grow"><strong>已连接的 Provider</strong><p>额度属于各自账户，不合并统计，也不互相替代。</p></div></div><div class="section-heading"><div class="row">'+[['all','全部'],['llm','LLM'],['agent','Agent']].map(([id,name])=>'<button class="btn '+(filter===id?'':'quiet')+'" data-action="filter" data-filter="'+id+'" aria-pressed="'+(filter===id)+'">'+name+'</button>').join('')+'</div><span class="tiny faint">时间均为 UTC+8</span></div><div class="ledger"><div class="ledger-labels"><span>Provider / 连接状态</span><span>主要窗口 · 剩余额度</span><span>配置</span></div>'+visible.map(p=>'<div class="ledger-row" data-ledger-provider="'+p.id+'">'+identity(p)+'<div class="mini">'+quotaSummary(p)+'</div>'+btn('open-provider','详情',p.id)+'</div>').join('')+'</div>';
+  return pageTitle('先看账户额度，再进入独立详情页配置。')+'<div class="overview-note"><span class="number">'+providers.filter(p=>p.connected).length+'</span><div class="grow"><strong>已连接的 Provider</strong><p>额度属于各自账户，不合并统计，也不互相替代。</p></div></div><div class="section-heading overview-filters"><div class="row">'+[['all','全部'],['llm','LLM'],['agent','Agent']].map(([id,name])=>'<button class="btn '+(filter===id?'':'quiet')+'" data-action="filter" data-filter="'+id+'" aria-pressed="'+(filter===id)+'">'+name+'</button>').join('')+'</div><span class="tiny faint" data-system-zone>系统时区 · '+esc(systemZone())+'</span></div><div class="ledger"><div class="ledger-labels"><span>Provider / 连接状态</span><span>主要窗口 · 剩余额度</span><span>配置</span></div><div id="provider-rows">'+visible.map(p=>'<div class="ledger-row" data-ledger-provider="'+p.id+'" data-sort-id="'+p.id+'"><div class="provider-cell">'+dragHandle(p.id,p.name)+identity(p)+'</div><div class="mini">'+quotaSummary(p)+'</div>'+btn('open-provider','详情',p.id)+'</div>').join('')+'</div></div>';
 }
 function renderDraftbar() {
   const p=getP();
-  if(sortState){$('#draftbar').innerHTML='<div class="grow"><strong>'+esc(sortState.type==='sort-models'?getP(sortState.provider).name+' · 模型排序':'Provider 排序')+'</strong><div class="tiny muted">取消保留原顺序，其他草稿不变</div></div><div class="actions">'+btn('cancel-sort','取消')+btn('commit-sort','完成排序','','primary')+'</div>';return;}
+  if(!detailC){$('#draftbar').innerHTML='';return;}
   $('#draftbar').innerHTML=dirty(p)||p.footerError?'<div class="grow"><div class="row"><span class="dot warn"></span><span>'+esc(p.name)+' · '+(p.saving?'正在保存演示配置':'有未保存的更改')+'</span></div>'+(p.footerError?'<div class="tiny danger-text" style="margin-top:4px">'+esc(p.footerError)+'</div>':'')+'</div><div class="actions">'+btn(p.conflict?'reload-config':'discard',p.conflict?'重新载入':'放弃更改',p.id,'',p.saving)+btn('save',p.saving?'保存中…':'保存更改',p.id,'primary',readOnly||p.saving)+'</div>':'';
 }
 function syncURL() {
   const url=new URL(location.href);url.searchParams.set('variant',variant);url.searchParams.set('frame',$('#frame').value);url.searchParams.set('theme',document.documentElement.dataset.theme||'light');
-  if(variant==='B'||(variant==='C'&&detailC)||(variant==='A'&&expanded.has(selected))) url.searchParams.set('provider',selected);else url.searchParams.delete('provider');
+  if(detailC)url.searchParams.set('provider',selected);else url.searchParams.delete('provider');
   history.replaceState(null,'',url);
 }
 function render(resetScroll=false) {
-  $('.settings').classList.toggle('sorting',!!sortState);
+
   const work=$('#workspace'),scroll=work.scrollTop,focus=document.activeElement?.dataset?.focus;
   const cursor=focus&&document.activeElement instanceof HTMLInputElement?document.activeElement.selectionStart:null;
   if(sortDrag)finishPointerSort(false);
-  work.innerHTML=sortState?.type==='sort-providers'?pageTitle('在原列表中调整顺序，暂时隐藏额度与配置。')+inlineSort():variant==='A'?VariantA():variant==='B'?VariantB():VariantC();
-  if(sortState){$$('button:not([data-drag]),input,select,textarea',work).forEach(el=>el.disabled=true);$$('details',work).forEach(el=>el.inert=true);}
+  work.innerHTML=VariantC();
+  syncSortUI();
+
   $$('[data-key]',work).forEach(input=>{input.value=keyDrafts.get(input.dataset.key)||'';});
   work.scrollTop=resetScroll?0:scroll;
   if(focus){const next=$('[data-focus="'+CSS.escape(focus)+'"]',work);next?.focus({preventScroll:true});if(next instanceof HTMLInputElement&&cursor!==null&&['text','password','search','url'].includes(next.type))next.setSelectionRange(cursor,cursor);}
   $$('[data-advanced]',work).forEach(d=>d.addEventListener('toggle',()=>{getP(d.dataset.advanced).advancedOpen=d.open;}));
-  $('#variant-label').innerHTML=variant+' · '+variantNames[variant]+'<small>'+({'A':'IN-PLACE LIST','B':'MASTER / DETAIL','C':'OVERVIEW / CONFIGURE'}[variant])+'</small>';
+  $('#variant-label').innerHTML='C · 额度总览<small>已选定方案 · 继续细化</small>';
   renderDraftbar();syncURL();
 }
 function stateSnapshot() {
-  return {variant,selected,expanded:[...expanded],collapsedModels:[...collapsedModels],sort:sortState?{type:sortState.type,provider:sortState.provider,items:sortState.items}:null,detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,demoTime:'2026-09-10 09:34 UTC+8',providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
+  return {variant,selected,expandedModels:[...expandedModels],sort:sortState?{type:sortState.type,provider:sortState.provider,items:sortState.items}:null,detailC,frame:$('#frame').value,theme:document.documentElement.dataset.theme,readOnly,order,systemTime:new Date().toISOString(),timeZone:systemZone(),providers:providers.map(p=>({id:p.id,scenario:p.scenario||'normal',connected:p.connected,authExpired:!!p.authExpired,installed:p.installed,conflict:!!p.conflict,saveFailure:!!p.saveFailure,footerError:p.footerError||'',dirty:dirty(p),pendingKey:!!p.pendingKey,quota:p.quota,config:config(p)}))};
 }
 function record(action) { console.info('[prototype state]',action,stateSnapshot()); }
 function toast(text, undo=false) { clearTimeout(toastTimer);$('#toast').innerHTML=esc(text)+(undo?' <button class="link-btn" style="color:inherit;margin-left:8px" data-action="undo-remove">撤销</button>':'');toastTimer=setTimeout(()=>{$('#toast').textContent='';},4500); }
-function openProvider(id) { selected=id;detailC=true;if(variant==='A'){if(expanded.has(id))expanded.delete(id);else expanded.add(id);}render(variant!=='A');record('select provider'); }
-function switchVariant(delta) { const keys=Object.keys(variantNames);variant=keys[(keys.indexOf(variant)+delta+keys.length)%keys.length];detailC=sortState?.type==='sort-models';render(true);if(sortState)$(document.documentElement.dataset.compact==='true'?'.sort-list':'.inline-sort')?.scrollIntoView({block:'start'});record('switch variant'); }
+function openProvider(id) { if(sortState)endSort(true);selected=id;detailC=true;render(true);record('select provider'); }
 function showModal(type, data={}) { modalState={type,...data};renderModal();if(!$('#modal').open)$('#modal').showModal();requestAnimationFrame(()=>{$('input:not([type=checkbox]),select,button',$('#modal'))?.focus();}); }
 function closeModal() { $('#modal').close();modalState=null; }
 function dialogFrame(title,body,footer='') { return '<div class="dialog-inner"><header class="dialog-header"><h2 id="modal-title">'+title+'</h2><button type="button" class="icon-btn" data-action="close-modal" aria-label="关闭对话框">'+icon('close')+'</button></header><div class="dialog-body">'+body+'</div>'+(footer?'<footer class="dialog-footer">'+footer+'</footer>':'')+'</div>'; }
-function sortRows() {
-  const modelMode=sortState.type==='sort-models',p=getP(sortState.provider);
-  return sortState.items.map((id,i)=>{const item=modelMode?p.models.find(m=>m.uid===id):getP(id);return '<div class="sort-row" data-sort-id="'+id+'"><button type="button" class="grip" data-drag="'+id+'" aria-label="移动 '+esc(modelMode?item.name||item.id:item.name)+'；可用上下方向键" aria-describedby="sort-help">'+icon('grip')+'</button>'+(modelMode?icon('model'):brand(item))+'<div class="grow"><div class="name">'+esc(modelMode?item.name||item.id||'未命名模型':item.name)+'</div>'+(modelMode?'<div class="tiny muted mono sort-model-id">'+esc(item.id)+'</div>':'')+'</div>'+(!modelMode?badge(item):'')+'<span class="position">'+(i+1)+' / '+sortState.items.length+'</span></div>';}).join('');
+function dragHandle(id,name) {
+  return '<button type="button" class="grip" data-drag="'+esc(id)+'" aria-label="移动 '+esc(name)+'；用上下方向键排序" title="拖动或用上下方向键排序；Esc 取消">'+icon('grip')+'</button>';
 }
-function inlineSort() {
-  const modelMode=sortState.type==='sort-models';
-  return '<section class="inline-sort" data-kind="'+sortState.type+'" aria-label="'+(modelMode?'模型':'Provider')+'排序"><div class="section-heading"><h3>'+(modelMode?'模型':'Provider')+'<span class="count">'+sortState.items.length+' 个</span></h3><span class="pill">排序中</span></div><p class="field-hint" id="sort-help">拖动手柄调整顺序；键盘 ↑ / ↓ 移动，Esc 取消。</p><div class="sort-list">'+sortRows()+'</div></section>';
+function sortIDs() { return sortState.type==='sort-providers'?sortState.items.filter(id=>filter==='all'||getP(id).role===filter):sortState.items; }
+function syncSortUI() {
+  $$('[data-action="sort-providers"],[data-action="sort-models"]').forEach(button=>{const active=sortState?.type===button.dataset.action;button.setAttribute('aria-pressed',String(active));button.innerHTML=icon(active?'check':'sort')+' '+(active?'完成排序':button.dataset.action==='sort-providers'?'Provider 排序':'排序');});
+  for(const list of [$('#provider-rows'),$('.model-list')].filter(Boolean)){
+    const active=sortState?.type===(list.id==='provider-rows'?'sort-providers':'sort-models');
+    list.classList.toggle('sort-list',active);
+    $$('[data-sort-id]',list).forEach(row=>{
+      row.classList.toggle('sort-row',active);
+      if(active&&row.dataset.modelRow){const m=getP(sortState.provider).models.find(m=>m.uid===row.dataset.modelRow);$('.sort-name',row).textContent=m.name||m.id||'新模型';$('.sort-model-id',row).textContent=m.id;}
+    });
+    const controls=list.id==='provider-rows'?$$('[data-action="open-provider"]',list):$$('.model-editor input,.model-editor select,.model-editor button,[data-action="catalog"],[data-action="add-model"],[data-action="toggle-models"]',list.closest('[data-model-catalog]'));
+    controls.forEach(el=>{if(active){if(el.dataset.sortDisabled===undefined)el.dataset.sortDisabled=String(el.disabled);el.disabled=true;}else if(el.dataset.sortDisabled!==undefined){el.disabled=el.dataset.sortDisabled==='true';delete el.dataset.sortDisabled;}});
+  }
+}
+function setSortOrder(items) {
+  sortState.items=[...items];
+  if(sortState.type==='sort-providers')order=[...items];
+  else{const p=getP(sortState.provider);p.models=items.map(id=>p.models.find(m=>m.uid===id));}
+  renderDraftbar();
+}
+function restoreSortOrder(items) {
+  setSortOrder(items);const list=$('.sort-list');for(const id of sortIDs())list.append($('[data-sort-id="'+id+'"]',list));
 }
 function beginSort(type,p) {
-  if(readOnly||sortState||p?.saving)return;
-  sortState={type,provider:type==='sort-models'?p.id:null,items:type==='sort-models'?p.models.map(m=>m.uid):[...order],scroll:$('#workspace').scrollTop};
-  if(type==='sort-models'){selected=p.id;expanded.add(p.id);detailC=true;}
-  render(type==='sort-providers');$(document.documentElement.dataset.compact==='true'?'.sort-list':'.inline-sort').scrollIntoView({block:'start'});$('[data-drag]')?.focus({preventScroll:true});record('begin inline sort');
+  if(sortState){if(sortState.type===type)endSort(true);return;}
+  if(readOnly||p?.saving)return;
+  const items=type==='sort-models'?p.models.map(m=>m.uid):[...order];
+  sortState={type,provider:type==='sort-models'?p.id:null,items,original:[...items]};
+  syncSortUI();record('begin in-place sort');
 }
 function endSort(commit) {
   if(!sortState)return;if(sortDrag)finishPointerSort(false);
-  const s=sortState;
-  if(commit){if(s.type==='sort-providers')order=[...s.items];else{const p=getP(s.provider);p.models=s.items.map(id=>p.models.find(m=>m.uid===id));}}
-  sortState=null;render();$('#workspace').scrollTop=s.scroll;
-  const button=$('[data-action="'+s.type+'"]'+(s.provider?'[data-provider="'+s.provider+'"]':''));button?.focus({preventScroll:true});button?.scrollIntoView({block:'nearest'});
-  toast(commit?(s.type==='sort-models'?'模型顺序已更新；保存更改后生效':'Provider 顺序已更新'):'已取消排序，原顺序与草稿保留');record(commit?'commit inline sort':'cancel inline sort');
+  const s=sortState;if(!commit)restoreSortOrder(s.original);
+  sortState=null;syncSortUI();renderDraftbar();
+  $('[data-action="'+s.type+'"]')?.focus({preventScroll:true});
+  toast(commit?(s.type==='sort-models'?'模型顺序已更新；保存更改后生效':'Provider 顺序已更新'):'已取消排序，原顺序与草稿保留');record(commit?'finish in-place sort':'cancel in-place sort');
 }
 function renderModal() {
   const s=modalState,p=getP(s.provider);
@@ -242,7 +259,7 @@ function authDialog(p) {
 function reviewDialog() {
   const p=getP();
   const scenarios=[['normal','正常数据'],['logged-out','未连接'],['reauth','授权失效'],['loading','额度加载中'],['low','额度偏低 · 8%'],['zero','额度已用尽 · 0%'],['unknown-reset','重置时间未知'],['empty','无额度数据'],['stale','刷新失败 · 保留缓存'],['error','读取失败 · 无缓存'],['readonly','只读配置'],['save-error','下一次保存失败'],['conflict','配置版本冲突'],['missing','Agent 运行环境未安装']];
-  return dialogFrame('状态与接入规范','<div class="review-grid"><label class="field"><span class="field-label">预览 Provider</span><select id="review-provider">'+providers.map(v=>'<option value="'+v.id+'" '+(v.id===selected?'selected':'')+'>'+esc(v.name)+'</option>').join('')+'</select></label><label class="field"><span class="field-label">预览状态</span><select id="review-scenario">'+scenarios.map(([id,label])=>'<option value="'+id+'" '+(p.scenario===id?'selected':'')+'>'+label+'</option>').join('')+'</select></label></div>'+btn('apply-scenario','应用预览状态','','primary')+'<div class="section-heading" style="margin:0"><h3>所有 Provider 遵守同一套规则</h3></div><ol class="design-rules"><li>账号 → 额度 → 模型 → 可选高级设置。没有能力时不伪造开关。</li><li>同层级进度条等宽；整数显示，原值保留用于填充和阈值判断。</li><li>重置时间统一为 UTC+8；精确时间缺失就说明，不用周期推算日期。</li><li>模型支持展开/收起，ID 与名称常显。高级设置默认收起。</li><li>排序留在原页面，临时精简列表；单一手柄支持鼠标、触摸和键盘。</li><li>Cursor ACP 只展示已实现能力；不借用 Cursor LLM 的额度或 Google 登录回调。</li></ol><p class="tiny muted">演示基准时间：2026-09-10 09:34（UTC+8）。刷新仅模拟状态；数值不是账户实时数据。</p><details><summary class="tiny muted" style="cursor:pointer">查看完整内存状态（无凭据）</summary><pre class="state-json" style="margin-top:10px">'+esc(JSON.stringify(stateSnapshot(),null,2))+'</pre></details>',btn('close-modal','返回原型'));
+  return dialogFrame('状态与接入规范','<div class="review-grid"><label class="field"><span class="field-label">预览 Provider</span><select id="review-provider">'+providers.map(v=>'<option value="'+v.id+'" '+(v.id===selected?'selected':'')+'>'+esc(v.name)+'</option>').join('')+'</select></label><label class="field"><span class="field-label">预览状态</span><select id="review-scenario">'+scenarios.map(([id,label])=>'<option value="'+id+'" '+(p.scenario===id?'selected':'')+'>'+label+'</option>').join('')+'</select></label></div>'+btn('apply-scenario','应用预览状态','','primary')+'<div class="section-heading" style="margin:0"><h3>所有 Provider 遵守同一套规则</h3></div><ol class="design-rules"><li>账号 → 额度 → 模型 → 可选高级设置。没有能力时不伪造开关。</li><li>同层级进度条等宽；整数显示，原值保留用于填充和阈值判断。</li><li>重置时间跟随浏览器系统时区与当前时间；精确时间缺失就说明，不用周期推算日期。</li><li>模型参数默认折叠；支持展开/收起，ID 与名称常显。高级设置默认收起。</li><li>排序按钮原位切换为完成排序，仅列表出现手柄；单一手柄支持鼠标、触摸和键盘。</li><li>Cursor ACP 只展示已实现能力；不借用 Cursor LLM 的额度或 Google 登录回调。</li></ol><p class="tiny muted">重置时间按系统时区显示，倒计时使用当前系统时间并自动更新；额度数值仍是演示数据。</p><details><summary class="tiny muted" style="cursor:pointer">查看完整内存状态（无凭据）</summary><pre class="state-json" style="margin-top:10px">'+esc(JSON.stringify(stateSnapshot(),null,2))+'</pre></details>',btn('close-modal','返回原型'));
 }
 function applyScenario() {
   if(sortState)endSort(false);
@@ -257,11 +274,11 @@ function applyScenario() {
   if(name==='save-error')p.saveFailure=true;
   if(name==='conflict')p.conflict=true;
   if(name==='missing'){if(p.role==='agent'){p.installed=false;p.connected=false;}else toast('运行环境安装状态只适用于原生 Agent。');}
-  expanded.add(selected);detailC=true;closeModal();render(true);record('scenario '+name);
+  detailC=true;closeModal();render(true);record('scenario '+name);
 }
 function refresh(p) {
   p.refreshing=true;render();
-  setTimeout(()=>{if(getP(p.id)!==p)return;const seed=window.PROVIDER_DEMO.find(v=>v.id===p.id);p.refreshing=false;if(p.quota.status!=='unsupported'){p.quota=copy(seed.quota);if(p.quota.status==='idle')p.quota.status=p.quota.windows.length?'ready':'empty';p.updated='09:35';}render();toast('已刷新演示额度；未发送实际请求');record('refresh quota');},650);
+  setTimeout(()=>{if(getP(p.id)!==p)return;const seed=window.PROVIDER_DEMO.find(v=>v.id===p.id);p.refreshing=false;if(p.quota.status!=='unsupported'){p.quota=copy(seed.quota);if(p.quota.status==='idle')p.quota.status=p.quota.windows.length?'ready':'empty';p.updated=new Date().toISOString();}render();toast('已刷新演示额度；未发送实际请求');record('refresh quota');},650);
 }
 function validate(p) {
   const ids=p.models.map(m=>m.id.trim());
@@ -274,55 +291,53 @@ function validate(p) {
 }
 function save(p) {
   if(readOnly)return;
+  if(sortState)endSort(true);
   p.validation=validate(p);p.footerError='';
-  if(p.validation){p.models.forEach(m=>collapsedModels.delete(modelKey(p,m)));render();toast(p.validation);$('[data-model-catalog="'+p.id+'"]')?.scrollIntoView({block:'start'});return;}
+  if(p.validation){p.models.forEach(m=>expandedModels.add(modelKey(p,m)));render();toast(p.validation);$('[data-model-catalog="'+p.id+'"]')?.scrollIntoView({block:'start'});return;}
   if(p.conflict){p.footerError='配置已被其他客户端更新。草稿保留；请重新载入或继续编辑。';render();return;}
   p.saving=true;render();
   setTimeout(()=>{if(getP(p.id)!==p)return;p.saving=false;if(p.saveFailure){p.saveFailure=false;p.footerError='保存失败，草稿已保留。恢复连接后可重试。';render();record('save failed');return;}p.models.forEach(m=>m.id=m.id.trim());saved.set(p.id,copy(config(p)));if(p.pendingKey){keyDrafts.delete(p.id);p.pendingKey=false;p.connected=true;p.authExpired=false;p.quota={status:'idle',windows:[],facts:[],activity:[]};}p.footerError='';render();toast('已保存到演示内存，真实配置未改变');record('save draft');},450);
 }
-function discard(p) { keyDrafts.delete(p.id);Object.assign(p,copy(saved.get(p.id)));p.pendingKey=false;p.validation='';p.footerError='';p.conflict=false;p.saveFailure=false; }
+function discard(p) { if(sortState)endSort(false);keyDrafts.delete(p.id);Object.assign(p,copy(saved.get(p.id)));p.pendingKey=false;p.validation='';p.footerError='';p.conflict=false;p.saveFailure=false; }
 function moveSort(id,to) {
-  const items=sortState.items,from=items.indexOf(id);to=Math.max(0,Math.min(items.length-1,to));if(from===to)return;
-  items.splice(to,0,items.splice(from,1)[0]);
+  const items=[...sortIDs()],from=items.indexOf(id);to=Math.max(0,Math.min(items.length-1,to));if(from<0||from===to)return;
+  items.splice(to,0,items.splice(from,1)[0]);const visible=new Set(items);let index=0;
+  setSortOrder(sortState.items.map(id=>visible.has(id)?items[index++]:id));
   const list=$('.sort-list'),node=$('[data-sort-id="'+id+'"]',list),nextId=items[to+1];list.insertBefore(node,nextId?$('[data-sort-id="'+nextId+'"]',list):null);
-  $$('.sort-row',list).forEach((n,i)=>$('.position',n).textContent=(i+1)+' / '+items.length);
   $('#announce').textContent='已移动到第 '+(to+1)+' 位，共 '+items.length+' 项。';
 }
 function dragOver(x,y) {
   const row=document.elementFromPoint(x,y)?.closest('[data-sort-id]');if(!row||row.dataset.sortId===sortDrag.id)return;
-  const items=sortState.items,from=items.indexOf(sortDrag.id),to=items.indexOf(row.dataset.sortId),r=row.getBoundingClientRect();
+  const items=sortIDs(),from=items.indexOf(sortDrag.id),to=items.indexOf(row.dataset.sortId),r=row.getBoundingClientRect();
   if((from<to&&y>r.top+r.height/2)||(from>to&&y<r.top+r.height/2))moveSort(sortDrag.id,to);
 }
 function startPointerSort(event,handle) {
   if(event.button!==0||sortDrag)return;event.preventDefault();handle.focus({preventScroll:true});
-  const row=handle.closest('.sort-row'),rect=row.getBoundingClientRect(),ghost=row.cloneNode(true);ghost.classList.add('sort-ghost');ghost.removeAttribute('data-sort-id');ghost.setAttribute('aria-hidden','true');$$('button',ghost).forEach(b=>b.tabIndex=-1);Object.assign(ghost.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px'});document.body.append(ghost);row.classList.add('grabbed');
+  const row=handle.closest('.sort-row'),rect=row.getBoundingClientRect(),ghost=row.cloneNode(true);ghost.classList.add('sort-ghost');ghost.removeAttribute('data-sort-id');if(row.classList.contains('ledger-row')){ghost.innerHTML='<div class="row">'+icon('grip')+identity(getP(handle.dataset.drag))+'</div>';}else{$('.model-editor',ghost)?.remove();}$$('[id],[data-drag],[data-model-row]',ghost).forEach(el=>{el.removeAttribute('id');el.removeAttribute('data-drag');el.removeAttribute('data-model-row');});ghost.removeAttribute('data-model-row');ghost.setAttribute('aria-hidden','true');$$('button',ghost).forEach(b=>b.tabIndex=-1);Object.assign(ghost.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px'});document.body.append(ghost);row.classList.add('grabbed');
   sortDrag={id:handle.dataset.drag,pointerId:event.pointerId,ghost,row,offset:event.clientY-rect.top,original:[...sortState.items],x:event.clientX,y:event.clientY,frame:0};
   try{handle.setPointerCapture(event.pointerId);}catch{/* prototype browser may not expose pointer capture */}
   function scrollEdge(){if(!sortDrag)return;const work=$('#workspace'),r=work.getBoundingClientRect(),y=sortDrag.y;const list=$('.sort-list').getBoundingClientRect(),band=Math.min(38,r.height/3);const dy=y<r.top+band?Math.max(-10,Math.min(0,list.top-r.top)):y>r.bottom-band?Math.min(10,Math.max(0,list.bottom-r.bottom)):0;if(dy){work.scrollTop+=dy;dragOver(sortDrag.x,y);}sortDrag.frame=requestAnimationFrame(scrollEdge);}
   sortDrag.frame=requestAnimationFrame(scrollEdge);
 }
 function finishPointerSort(commit) {
-  if(!sortDrag)return;const drag=sortDrag;sortDrag=null;cancelAnimationFrame(drag.frame);drag.ghost.remove();drag.row.classList.remove('grabbed');if(!commit){sortState.items=drag.original;$('.sort-list').innerHTML=sortRows();$('[data-drag="'+drag.id+'"]')?.focus({preventScroll:true});}record(commit?'pointer sort preview':'cancel pointer sort');
+  if(!sortDrag)return;const drag=sortDrag;sortDrag=null;cancelAnimationFrame(drag.frame);drag.ghost.remove();drag.row.classList.remove('grabbed');if(!commit){restoreSortOrder(drag.original);$('[data-drag="'+drag.id+'"]')?.focus({preventScroll:true});}record(commit?'pointer sort preview':'cancel pointer sort');
 }
 function authSuccess(p) { p.connected=true;p.authExpired=false;p.installed=true;p.account=p.auth==='google'?'design.demo@gmail.com':p.auth==='cursor-cli'?'cursor.demo@example.com':p.account||'design.demo@example.com';p.quota=copy(window.PROVIDER_DEMO.find(v=>v.id===p.id).quota);p.footerError='';closeModal();render();toast('演示账号已连接，未进行真实授权');record('auth success'); }
 document.addEventListener('click',async event=>{
   const target=event.target.closest('[data-action]');if(!target||target.disabled)return;
   const action=target.dataset.action,p=getP(target.dataset.provider||modalState?.provider);
   if(action==='open-provider')return openProvider(target.dataset.provider);
-  if(action==='previous-variant')return switchVariant(-1);
-  if(action==='next-variant')return switchVariant(1);
   if(action==='close-modal')return closeModal();
-  if(action==='overview'){detailC=false;render(true);return;}
+  if(action==='overview'){if(sortState)endSort(true);detailC=false;render(true);return;}
   if(action==='filter'){filter=target.dataset.filter;render(true);return;}
   if(action==='theme'){document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';$('#theme-button').textContent=document.documentElement.dataset.theme==='dark'?'浅色':'深色';syncURL();record('theme');return;}
   if(action==='close-settings'){$('.settings').hidden=true;$('#closed').hidden=false;return;}
   if(action==='reopen'){$('.settings').hidden=false;$('#closed').hidden=true;return;}
   if(action==='scope'||action==='review'||action==='config-preview')return showModal(action);
-  if(action==='reset-demo'){if(sortDrag)finishPointerSort(false);sortState=null;collapsedModels.clear();keyDrafts.clear();providers=copy(window.PROVIDER_DEMO);order=providers.map(v=>v.id);saved=new Map(providers.map(v=>[v.id,copy(config(v))]));expanded.clear();readOnly=false;detailC=false;selected='codex';filter='all';if($('#modal').open)closeModal();render(true);toast('已重置全部演示数据');record('reset');return;}
+  if(action==='reset-demo'){if(sortDrag)finishPointerSort(false);sortState=null;expandedModels.clear();keyDrafts.clear();providers=copy(window.PROVIDER_DEMO);order=providers.map(v=>v.id);saved=new Map(providers.map(v=>[v.id,copy(config(v))]));readOnly=false;detailC=false;selected='codex';filter='all';if($('#modal').open)closeModal();render(true);toast('已重置全部演示数据');record('reset');return;}
   if(action==='sort-providers'||action==='sort-models')return beginSort(action,p);
-  if(action==='commit-sort'||action==='cancel-sort')return endSort(action==='commit-sort');
-  if(action==='toggle-model'){const key=p.id+':'+target.dataset.model;if(collapsedModels.has(key))collapsedModels.delete(key);else collapsedModels.add(key);render();record('toggle model parameters');return;}
-  if(action==='toggle-models'){const allClosed=p.models.every(m=>collapsedModels.has(modelKey(p,m)));p.models.forEach(m=>allClosed?collapsedModels.delete(modelKey(p,m)):collapsedModels.add(modelKey(p,m)));render();$('[data-action="toggle-models"][data-provider="'+p.id+'"]')?.focus({preventScroll:true});record('toggle all model parameters');return;}
+  if(action==='toggle-model'){const key=p.id+':'+target.dataset.model;if(expandedModels.has(key))expandedModels.delete(key);else expandedModels.add(key);render();record('toggle model parameters');return;}
+  if(action==='toggle-models'){const allClosed=p.models.every(m=>!expandedModels.has(modelKey(p,m)));p.models.forEach(m=>allClosed?expandedModels.add(modelKey(p,m)):expandedModels.delete(modelKey(p,m)));render();$('[data-action="toggle-models"][data-provider="'+p.id+'"]')?.focus({preventScroll:true});record('toggle all model parameters');return;}
   if(action==='catalog')return showModal('catalog',{provider:p.id,picked:new Set(p.models.map(m=>m.id))});
   if(action==='apply-catalog'){const v=getP(modalState.provider);const chosen=modalState.picked;v.models=[...v.models.filter(m=>chosen.has(m.id)),...v.candidates.filter(m=>chosen.has(m.id)&&!v.models.some(old=>old.id===m.id)).map(m=>({...copy(m),uid:crypto.randomUUID()}))];selected=v.id;closeModal();render();toast('模型目录已更新；保存后生效');record('catalog selection');return;}
   if(action==='add-model'){p.models.push({uid:crypto.randomUUID(),id:'',name:'',context:'',vision:false,thinking:false,effort:''});selected=p.id;render();const row=$('[data-model-row="'+p.models.at(-1).uid+'"]');row?.scrollIntoView({block:'center'});$('input',row)?.focus();record('add model');return;}
@@ -368,9 +383,9 @@ document.addEventListener('keydown',event=>{
   // One Escape cancels sorting, even when the browser sends pointercancel before keydown.
   if(sortState&&!$('#modal').open&&event.key==='Escape'){event.preventDefault();event.stopPropagation();endSort(false);return;}
   const handle=event.target.closest?.('[data-drag]');
-  if(handle&&['ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();moveSort(handle.dataset.drag,sortState.items.indexOf(handle.dataset.drag)+(event.key==='ArrowDown'?1:-1));handle.focus();record('keyboard sort preview');return;}
-  if($('#modal').open||event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
-  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();switchVariant(event.key==='ArrowRight'?1:-1);}
+  if(handle&&sortState&&['ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();moveSort(handle.dataset.drag,sortIDs().indexOf(handle.dataset.drag)+(event.key==='ArrowDown'?1:-1));handle.focus();record('keyboard sort preview');return;}
+
+
 });
 $('#modal').addEventListener('cancel',event=>{event.preventDefault();closeModal();});
 $('#modal').addEventListener('click',event=>{if(event.target===$('#modal')){const r=$('#modal').getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closeModal();}});
@@ -383,4 +398,5 @@ const chromeSize=new ResizeObserver(entries=>entries.forEach(entry=>document.doc
 chromeSize.observe($('.prototype-bar'));chromeSize.observe($('#draftbar'));
 function fitViewport(){const v=window.visualViewport;if(v&&v.scale!==1)return;const h=v?.height||innerHeight;document.documentElement.style.setProperty('--viewport-height',h+'px');document.documentElement.style.setProperty('--viewport-bottom',Math.max(0,innerHeight-h-(v?.offsetTop||0))+'px');document.documentElement.dataset.compact=String(h<560);if(document.activeElement?.matches('input,textarea,select'))requestAnimationFrame(()=>document.activeElement?.scrollIntoView({block:'nearest'}));}
 window.visualViewport?.addEventListener('resize',fitViewport);window.addEventListener('resize',fitViewport);fitViewport();
+setInterval(refreshTimes,60000);window.addEventListener('focus',refreshTimes);
 render();record('initial');

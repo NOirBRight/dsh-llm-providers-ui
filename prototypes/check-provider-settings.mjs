@@ -1,48 +1,44 @@
-// THROWAWAY browser check. Start pnpm prototype:providers first. No test framework or new dependency.
+// THROWAWAY browser check. Run pnpm prototype:providers first; no new test dependency.
 import assert from 'node:assert/strict';
-// ponytail: reuse lab Playwright; set PLAYWRIGHT_MODULE to an installed module on another machine.
-const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || '/home/noirbright/.local/opt/dsh-staging/dsh-v0.1.2-rc.1-a66e470204/source/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs');
-const base=process.env.PROTOTYPE_URL || 'http://127.0.0.1:4186/provider-settings-system.html';
-const browser=await chromium.launch({headless:true});
-const page=await browser.newPage();
-const errors=[],external=[];
-page.on('pageerror',error=>errors.push(error.message));
-page.on('request',request=>{if(new URL(request.url()).origin!==new URL(base).origin)external.push(request.url());});
+// ponytail: reuse the installed lab browser; override PLAYWRIGHT_MODULE on other machines.
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'/home/noirbright/.local/opt/dsh-staging/dsh-v0.1.2-rc.1-a66e470204/source/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs');
+const base=process.env.PROTOTYPE_URL||'http://127.0.0.1:4186/provider-settings-system.html';
+const browser=await chromium.launch({headless:true}),errors=[],external=[];
+function observe(p){p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(new URL(r.url()).origin!==new URL(base).origin)external.push(r.url());});}
+const page=await browser.newPage();observe(page);
 const act=(action,root=page)=>root.locator('[data-action="'+action+'"]');
-const settle=(target=page)=>target.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+const settle=(p=page)=>p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
 async function scenario(provider,name){await act('review').click();await page.locator('#review-provider').selectOption(provider);await page.locator('#review-scenario').selectOption(name);await act('apply-scenario').click();}
-try {
-  for(const width of [1440,836,390,320])for(const theme of ['light','dark'])for(const variant of ['A','B','C']){
-    await page.setViewportSize({width,height:900});await page.goto(base+'?variant='+variant+'&theme='+theme+'&provider=codex');await settle();
-    const state=await page.evaluate(()=>{const w=document.querySelector('.workspace');return {overflow:document.documentElement.scrollWidth>innerWidth||w.scrollWidth>w.clientWidth,models:document.querySelectorAll('.model-card').length,parametersHidden:document.querySelectorAll('.model-parameters[hidden]').length,segmented:[...document.querySelectorAll('.track')].every(n=>getComputedStyle(n,'::after').backgroundImage.includes('repeating-linear-gradient')),equalTracks:(()=>{const widths=[...document.querySelectorAll('.quota-list .track')].map(n=>n.getBoundingClientRect().width);return Math.max(...widths)-Math.min(...widths)<1;})(),advancedOpen:document.querySelector('.advanced')?.open,decimal:/\d+\.\d+%/.test([...document.querySelectorAll('.meter-value')].map(n=>n.textContent).join(' '))};});
-    assert.equal(state.overflow,false,JSON.stringify({width,theme,variant,state}));assert.equal(state.models,4);assert.equal(state.parametersHidden,0);assert.equal(state.segmented,true);assert.equal(state.equalTracks,true);assert.equal(state.advancedOpen,false);assert.equal(state.decimal,false);
+async function remember(selectors,p=page){await p.evaluate(ss=>{window.kept=ss.map(s=>[s,document.querySelector(s)]);window.keptURL=location.href;},selectors);}
+async function unchanged(p=page){assert.equal(await p.evaluate(()=>location.href===window.keptURL&&window.kept.every(([s,n])=>n&&document.querySelector(s)===n)),true);}
+try{
+  for(const width of [1440,836,390,320])for(const theme of ['light','dark'])for(const detail of [false,true]){
+    await page.setViewportSize({width,height:900});await page.goto(base+'?variant=C&theme='+theme+(detail?'&provider=codex':''));await settle();
+    const state=await page.evaluate(()=>{const w=document.querySelector('.workspace');return {overflow:document.documentElement.scrollWidth>innerWidth||w.scrollWidth>w.clientWidth,models:document.querySelectorAll('.model-card').length,hidden:document.querySelectorAll('.model-parameters[hidden]').length,segmented:[...document.querySelectorAll('.track')].every(n=>getComputedStyle(n,'::after').backgroundImage.includes('repeating-linear-gradient')),decimal:[...document.querySelectorAll('.meter-value')].some(n=>/[0-9]+[.][0-9]+%/.test(n.textContent)),advancedOpen:document.querySelector('.advanced')?.open};});
+    assert.equal(state.overflow,false,JSON.stringify({width,theme,detail,state}));assert.equal(state.models,detail?4:0);assert.equal(state.hidden,state.models);assert.equal(state.segmented,true);assert.equal(state.decimal,false);if(detail)assert.equal(state.advancedOpen,false);
+    if(width===320&&!detail){await page.setViewportSize({width:320,height:640});await settle();await act('sort-providers').click();const visible=await page.locator('[data-drag]').first().evaluate(n=>{const r=n.getBoundingClientRect(),w=document.querySelector('#workspace').getBoundingClientRect();return Math.min(r.bottom,w.bottom)-Math.max(r.top,w.top);});assert.ok(visible>=44);await act('sort-providers').click();}
   }
-  console.log('PASS 24 layout / theme cases, native segmented meters, model parameters default open');
-  await page.setViewportSize({width:1440,height:1000});await page.goto(base+'?variant=B');
+  console.log('PASS C overview/details:16 width/theme layouts, segmented meters, models initially collapsed');
+  await page.setViewportSize({width:1440,height:1000});await page.goto(base+'?variant=A&provider=codex');assert.match(page.url(),/variant=C/);assert.equal(await act('next-variant').count(),0);
   const initialConfig=await page.evaluate(()=>JSON.stringify(config(getP('codex'))));
-  await act('toggle-model').first().click();assert.equal(await page.locator('[data-field=context]').first().isVisible(),false);assert.equal(await page.locator('[data-field=id]').first().isVisible(),true);
-  await act('toggle-models').click();assert.equal(await page.locator('.model-parameters[hidden]').count(),4);await act('toggle-models').click();assert.equal(await page.locator('.model-parameters[hidden]').count(),0);
-  assert.equal(await page.evaluate(()=>JSON.stringify(config(getP('codex')))),initialConfig);assert.equal(await page.locator('#draftbar').textContent(),'');await act('toggle-model').first().click();
-  const input=page.locator('[data-field=name]').first();await input.fill('Retained draft');await input.press('ArrowRight');assert.match(page.url(),/variant=B/);
-  await page.locator('[data-advanced] summary').click();await page.locator('[data-control=enableSearch]').check();
-  assert.equal(await page.locator('[data-control=searchMode]').isVisible(),true);await page.locator('[data-control=searchMode]').selectOption('live');
-  await page.locator('[data-control=enableImageGeneration]').check();assert.equal(await page.locator('[data-control=imageGenerationModel]').isVisible(),true);
-  const before=await page.locator('.rail-item').evaluateAll(ns=>ns.map(n=>n.dataset.provider));
-  await act('sort-providers').click();assert.equal(await page.locator('#modal').evaluate(n=>n.open),false);assert.equal(await page.locator('#workspace [data-drag]').count(),8);
-  await page.locator('[data-drag=codex]').press('ArrowDown');assert.equal(await page.locator('[data-sort-id]').first().getAttribute('data-sort-id'),'grok');
-  await act('cancel-sort').click();assert.deepEqual(await page.locator('.rail-item').evaluateAll(ns=>ns.map(n=>n.dataset.provider)),before);
-  await act('sort-providers').click();await page.locator('[data-drag=codex]').press('ArrowDown');await act('commit-sort').click();
-  assert.equal(await page.locator('.rail-item').first().getAttribute('data-provider'),'grok');assert.equal(await page.locator('[data-field=name]').first().inputValue(),'Retained draft');
-  await act('sort-providers').click();
-  const handle=await page.locator('[data-drag=grok]').boundingBox(),drop=await page.locator('[data-sort-id=codex]').boundingBox();
-  await page.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);await page.mouse.down();await page.mouse.move(drop.x+40,drop.y+drop.height*.8,{steps:10});await page.mouse.up();
-  assert.equal(await page.locator('[data-sort-id]').first().getAttribute('data-sort-id'),'codex');await act('commit-sort').click();
-  assert.equal(await page.locator('[data-field=name]').first().inputValue(),'Retained draft');
-  await act('sort-models').click();const modelIds=await page.locator('[data-sort-id]').evaluateAll(ns=>ns.map(n=>n.dataset.sortId));await page.locator('[data-drag]').first().press('ArrowDown');await act('commit-sort').click();assert.equal(await page.locator('.model-card').first().getAttribute('data-model-row'),modelIds[1]);assert.equal(await page.locator('[data-model-row="gpt-5.6-sol"] [data-action=toggle-model]').getAttribute('aria-expanded'),'false');
+  await act('toggle-model').first().click();assert.equal(await page.locator('[data-field=context]').first().isVisible(),true);await act('toggle-models').click();assert.equal(await page.locator('.model-parameters[hidden]').count(),4);await act('toggle-models').click();assert.equal(await page.locator('.model-parameters[hidden]').count(),0);await act('toggle-models').click();
+  assert.equal(await page.evaluate(()=>JSON.stringify(config(getP('codex')))),initialConfig);assert.equal(await page.locator('#draftbar').textContent(),'');
+  await page.locator('[data-field=name]').first().fill('Retained draft');await page.locator('[data-field=name]').first().press('ArrowRight');assert.match(page.url(),/variant=C/);
+  await page.locator('[data-advanced] summary').click();await page.locator('[data-control=enableSearch]').check();await page.locator('[data-control=searchMode]').selectOption('live');await page.locator('[data-control=enableImageGeneration]').check();assert.equal(await page.locator('[data-control=imageGenerationModel]').isVisible(),true);
+  await act('overview').click();const before=await page.locator('[data-ledger-provider]').evaluateAll(ns=>ns.map(n=>n.dataset.ledgerProvider));
+  await remember(['.settings','.nav','.shell-top','.page-title','.overview-note','.overview-filters','.ledger','#provider-rows','[data-ledger-provider=codex]','[data-ledger-provider=codex] .meter']);
+  await act('sort-providers').click();await unchanged();assert.equal(await act('sort-providers').textContent(),' 完成排序');assert.equal(await page.locator('#modal').evaluate(n=>n.open),false);assert.equal(await page.locator('#draftbar').textContent(),'');
+  await page.locator('[data-drag=codex]').press('ArrowDown');await page.keyboard.press('Escape');await unchanged();assert.deepEqual(await page.locator('[data-ledger-provider]').evaluateAll(ns=>ns.map(n=>n.dataset.ledgerProvider)),before);
+  await act('sort-providers').click();await page.locator('[data-drag=codex]').press('ArrowDown');await act('sort-providers').click();await unchanged();assert.equal(await page.locator('[data-ledger-provider]').first().getAttribute('data-ledger-provider'),'grok');
+  await act('sort-providers').click();const handle=await page.locator('[data-drag=grok]').boundingBox(),drop=await page.locator('[data-sort-id=codex]').boundingBox();await page.mouse.move(handle.x+22,handle.y+22);await page.mouse.down();await page.mouse.move(drop.x+40,drop.y+drop.height*.8,{steps:10});await page.mouse.up();assert.equal(await page.locator('[data-ledger-provider]').first().getAttribute('data-ledger-provider'),'codex');await act('sort-providers').click();
+  await page.locator('[data-filter=agent]').click();const slots=await page.evaluate(()=>[...order]);await act('sort-providers').click();await page.locator('[data-drag=antigravity]').press('ArrowDown');await act('sort-providers').click();const filtered=await page.evaluate(()=>[...order]);assert.deepEqual(filtered.slice(0,6),slots.slice(0,6));assert.deepEqual(filtered.slice(6),slots.slice(6).reverse());await page.locator('[data-filter=all]').click();
+  await page.locator('[data-action=open-provider][data-provider=codex]').click();assert.equal(await page.locator('[data-field=name]').first().inputValue(),'Retained draft');
+  await remember(['.settings','.nav','.shell-top','.breadcrumb','.detail-title','.provider-body>section:first-of-type','.provider-body>section:nth-of-type(2)','.advanced','.model-list','[data-model-row="gpt-5.6-sol"]']);
+  await act('sort-models').click();await unchanged();assert.equal(await page.locator('.model-sort-summary:visible').count(),4);assert.equal(await page.locator('.sort-name').first().textContent(),'Retained draft');await page.locator('[data-drag]').first().press('ArrowDown');await act('sort-models').click();await unchanged();assert.equal(await page.locator('.model-card').first().getAttribute('data-model-row'),'gpt-5.6-sol-fast');assert.equal(await page.locator('.model-parameters[hidden]').count(),4);
   await act('catalog').click();await page.locator('#catalog-search').fill('1m');assert.ok(await page.locator('.candidate').count()>0);await page.locator('.candidate input').first().check();await act('apply-catalog').click();assert.equal(await page.locator('.model-card').count(),5);
   await act('save').click();await page.waitForFunction(()=>document.querySelector('#draftbar').textContent==='');
   await act('remove-model').first().click();assert.equal(await page.locator('.model-card').count(),4);await act('undo-remove').click();assert.equal(await page.locator('.model-card').count(),5);
-  await page.locator('[data-field=thinking]').first().uncheck();assert.equal(await page.locator('[data-field=effort]').first().isDisabled(),true);assert.equal(await page.locator('[data-field=effort]').first().inputValue(),'');
+  await act('toggle-model').first().click();await page.locator('[data-field=thinking]').first().uncheck();assert.equal(await page.locator('[data-field=effort]').first().isDisabled(),true);assert.equal(await page.locator('[data-field=effort]').first().inputValue(),'');
   await act('discard').click();await act('confirm-action').click();assert.equal(await page.locator('[data-field=thinking]').first().isChecked(),true);
   const ids=page.locator('[data-field=id]');await ids.nth(1).fill(await ids.first().inputValue());await act('save').click();assert.match(await page.locator('#draftbar').textContent(),/未保存/);assert.match(await page.locator('[data-model-catalog]').textContent(),/不能重复/);
   await act('discard').click();await act('confirm-action').click();
@@ -52,39 +48,32 @@ try {
   await scenario('codex','empty');assert.equal(await page.locator('[role=meter]').count(),0);
   await scenario('codex','stale');assert.match(await page.locator('.provider-body').textContent(),/上次成功/);
   await scenario('codex','readonly');assert.equal(await page.locator('[data-field=id]').first().isDisabled(),true);assert.equal(await act('catalog').isDisabled(),true);
-  await act('reset-demo').click();await page.locator('.rail-item[data-provider=cursor-acp]').click();assert.equal(await page.locator('[role=meter]').count(),0);assert.match(await page.locator('.provider-body').textContent(),/暂未提供额度查询/);
+  await act('reset-demo').click();await page.locator('[data-action=open-provider][data-provider=cursor-acp]').click();assert.equal(await page.locator('[role=meter]').count(),0);assert.match(await page.locator('.provider-body').textContent(),/暂未提供额度查询/);
   await act('auth-start').click();assert.equal(await page.locator('#auth-input').count(),0);await act('auth-success').click();assert.equal(await page.locator('[role=meter]').count(),0);
-  await act('reset-demo').click();await page.locator('.rail-item[data-provider=opencode]').click();
-  const password=page.locator('[data-key=opencode]');await password.fill('prototype-not-a-secret');const thinking=page.locator('[data-field=thinking]').first();await thinking.setChecked(!(await thinking.isChecked()));
+  await act('reset-demo').click();await page.locator('[data-action=open-provider][data-provider=opencode]').click();
+  const password=page.locator('[data-key=opencode]');await password.fill('prototype-not-a-secret');await act('toggle-model').first().click();const thinking=page.locator('[data-field=thinking]').first();await thinking.setChecked(!(await thinking.isChecked()));
   assert.equal(await password.inputValue(),'prototype-not-a-secret');assert.equal(await password.getAttribute('type'),'password');
   assert.equal(await page.evaluate(()=>JSON.stringify(stateSnapshot()).includes('prototype-not-a-secret')||document.documentElement.outerHTML.includes('prototype-not-a-secret')),false);
   await act('save').click();await page.waitForFunction(()=>document.querySelector('#draftbar').textContent==='');assert.equal(await password.inputValue(),'');assert.equal(await page.locator('[role=meter]').count(),0);
   console.log('PASS password draft survives render, stays private, clears after save; old quota invalidated');
-  const mobile=await browser.newPage({isMobile:true,hasTouch:true});mobile.on('pageerror',e=>errors.push(e.message));
-  const cdp=await mobile.context().newCDPSession(mobile);
+
+  const mobile=await browser.newPage({isMobile:true,hasTouch:true});observe(mobile);const cdp=await mobile.context().newCDPSession(mobile);
   for(const [width,height] of [[320,640],[390,844],[430,932],[844,390],[390,350]]){
-    await mobile.setViewportSize({width,height});await mobile.goto(base+'?variant=B&provider=codex');
-    await mobile.evaluate(()=>{document.documentElement.style.setProperty('--safe-top','24px');document.documentElement.style.setProperty('--safe-bottom','34px');});
-    await act('toggle-model',mobile).first().click();await mobile.locator('[data-field=name]').first().fill('手机草稿');await act('sort-models',mobile).click();await settle(mobile);
-    const geometry=await mobile.evaluate(()=>{const w=document.querySelector('.workspace'),f=document.querySelector('.draftbar').getBoundingClientRect(),bar=document.querySelector('.prototype-bar').getBoundingClientRect(),grip=document.querySelector('[data-drag]').getBoundingClientRect();return {overflow:document.documentElement.scrollWidth>innerWidth||w.scrollWidth>w.clientWidth,space:w.clientHeight,footer:f.bottom,barTop:bar.top,barBottom:bar.bottom,gripWidth:grip.width,gripHeight:grip.height,visibleGrip:Math.min(w.getBoundingClientRect().bottom,grip.bottom)-Math.max(w.getBoundingClientRect().top,grip.top),dialog:document.querySelector('#modal').open};});
-    assert.equal(geometry.overflow,false,JSON.stringify({width,height,geometry}));assert.equal(geometry.dialog,false);assert.ok(geometry.space>=44);assert.ok(geometry.footer<geometry.barTop);assert.ok(geometry.barBottom<=height-34);assert.ok(geometry.gripWidth>=44&&geometry.gripHeight>=44);assert.ok(geometry.visibleGrip>=44,JSON.stringify({width,height,geometry}));
-    if(width===390&&height===844){
-      const from=await mobile.locator('[data-drag]').first().boundingBox(),to=await mobile.locator('[data-sort-id]').nth(1).boundingBox();
-      const x=from.x+from.width/2,y=from.y+from.height/2,end=to.y+to.height*.8;
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
-      for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+(end-y)*i/8}]});
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert.equal(await mobile.locator('[data-sort-id]').first().getAttribute('data-sort-id'),'gpt-5.6-sol-fast');
-    }
-    await act('cancel-sort',mobile).click();await settle(mobile);
-    const toastPosition=await mobile.evaluate(()=>({toast:document.querySelector('#toast').getBoundingClientRect().bottom,bar:document.querySelector('.prototype-bar').getBoundingClientRect().top,footer:document.querySelector('.draftbar').getBoundingClientRect().top}));assert.ok(toastPosition.toast<Math.min(toastPosition.bar,toastPosition.footer));
-    assert.equal(await mobile.locator('[data-field=name]').first().inputValue(),'手机草稿');assert.equal(await act('toggle-model',mobile).first().getAttribute('aria-expanded'),'false');assert.equal(await mobile.locator('[data-field=name]').first().evaluate(n=>getComputedStyle(n).fontSize),'16px');
+    await mobile.setViewportSize({width,height});await mobile.goto(base+'?variant=C&provider=codex');await mobile.evaluate(()=>{document.documentElement.style.setProperty('--safe-top','24px');document.documentElement.style.setProperty('--safe-bottom','34px');});
+    await mobile.locator('[data-field=name]').first().fill('手机草稿');await act('sort-models',mobile).scrollIntoViewIfNeeded();await remember(['.settings','.nav','.shell-top','.breadcrumb','.model-card'],mobile);await act('sort-models',mobile).click();await unchanged(mobile);
+    await mobile.locator('[data-drag]').first().scrollIntoViewIfNeeded();await settle(mobile);
+    const g=await mobile.evaluate(()=>{const w=document.querySelector('.workspace'),f=document.querySelector('.draftbar').getBoundingClientRect(),bar=document.querySelector('.prototype-bar').getBoundingClientRect(),r=document.querySelector('[data-drag]').getBoundingClientRect();return {overflow:document.documentElement.scrollWidth>innerWidth||w.scrollWidth>w.clientWidth,visible:Math.min(w.getBoundingClientRect().bottom,r.bottom)-Math.max(w.getBoundingClientRect().top,r.top),width:r.width,height:r.height,footer:f.bottom,barTop:bar.top,barBottom:bar.bottom};});
+    assert.equal(g.overflow,false,JSON.stringify({width,height,g}));assert.ok(g.width>=44&&g.height>=44&&g.visible>=44);assert.ok(g.footer<g.barTop);assert.ok(g.barBottom<=height-34);
+    if(width===390&&height===844){const from=await mobile.locator('[data-drag]').first().boundingBox(),to=await mobile.locator('[data-sort-id]').nth(1).boundingBox(),x=from.x+22,y=from.y+22,end=to.y+to.height*.8;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+(end-y)*i/8}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert.equal(await mobile.locator('[data-sort-id]').first().getAttribute('data-sort-id'),'gpt-5.6-sol-fast');}
+    await mobile.keyboard.press('Escape');await unchanged(mobile);assert.equal(await mobile.locator('[data-field=name]').first().inputValue(),'手机草稿');assert.equal(await act('toggle-model',mobile).first().getAttribute('aria-expanded'),'false');assert.equal(await mobile.locator('[data-field=name]').first().evaluate(n=>getComputedStyle(n).fontSize),'16px');
   }
-  await act('sort-providers',mobile).click();await settle(mobile);
-  const edgeHandle=await mobile.locator('[data-drag]').first().boundingBox(),sortViewport=await mobile.locator('#workspace').boundingBox(),startScroll=await mobile.locator('#workspace').evaluate(n=>n.scrollTop);
-  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:edgeHandle.x+22,y:edgeHandle.y+22}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:edgeHandle.x+22,y:sortViewport.y+sortViewport.height-6}]});
-  await mobile.waitForFunction(start=>document.querySelector('#workspace').scrollTop>start+50,startScroll,{timeout:5000});await mobile.keyboard.press('Escape');await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  assert.equal(await mobile.locator('.inline-sort,.sort-ghost').count(),0);assert.equal(await mobile.locator('[data-field=name]').first().inputValue(),'手机草稿');
-  await mobile.close();console.log('PASS phone portrait/landscape/short viewport, safe areas, 44px handles, touch sorting and view/draft preservation');
-  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);assert.equal(await page.evaluate(()=>localStorage.length+sessionStorage.length),0);
-  console.log('PASS quota states, read-only, Cursor ACP auth/unsupported quota; no page errors, external requests or persistence');
-} finally {await browser.close();}
+  await act('overview',mobile).click();await act('sort-providers',mobile).click();await mobile.locator('[data-drag]').first().scrollIntoViewIfNeeded();const edgeHandle=await mobile.locator('[data-drag]').first().boundingBox(),view=await mobile.locator('#workspace').boundingBox(),startScroll=await mobile.locator('#workspace').evaluate(n=>n.scrollTop);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:edgeHandle.x+22,y:edgeHandle.y+22}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:edgeHandle.x+22,y:view.y+view.height-6}]});await mobile.waitForFunction(start=>document.querySelector('#workspace').scrollTop>start+50,startScroll,{timeout:5000});await mobile.keyboard.press('Escape');await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert.equal(await mobile.locator('.sort-list,.sort-ghost').count(),0);await mobile.close();
+  console.log('PASS phone geometry, untouched chrome, touch/keyboard sorting and edge scrolling');
+  for(const [timezoneId,expected] of [['UTC','14/09, 16:00'],['America/New_York','14/09, 12:00'],['Asia/Tokyo','15/09, 01:00']]){
+    const local=await browser.newPage({timezoneId,locale:'en-GB'});observe(local);await local.clock.install({time:new Date('2026-09-14T15:30:00Z')});await local.goto(base+'?variant=C&provider=codex');assert.equal(await local.evaluate(()=>dateLabel('2026-09-15T00:00:00+08:00')),expected);
+    const stamp=local.locator('[data-reset="2026-09-15T00:00:00+08:00"]').first();assert.match(await stamp.textContent(),/30分钟后/);assert.ok((await stamp.getAttribute('title')).includes(timezoneId));
+    await local.locator('[data-field=name]').first().fill('time draft');await local.locator('[data-field=name]').first().evaluate(n=>{window.clockInput=n;n.setSelectionRange(2,5);});await local.clock.fastForward(60000);assert.match(await stamp.textContent(),/29分钟后/);assert.equal(await local.evaluate(()=>document.querySelector('[data-field=name]')===window.clockInput&&document.activeElement===window.clockInput&&window.clockInput.selectionStart===2&&window.clockInput.selectionEnd===5),true);assert.equal(await local.locator('[data-field=name]').first().inputValue(),'time draft');
+    if(timezoneId==='America/New_York')assert.deepEqual(await local.evaluate(()=>['2026-11-01T05:30:00Z','2026-11-01T06:30:00Z'].map(dateLabel)),['01/11, 01:30','01/11, 01:30']);await local.close();
+  }
+  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);assert.equal(await page.evaluate(()=>localStorage.length+sessionStorage.length),0);console.log('PASS system timezones, DST, live countdown without rerender, privacy and no external requests');
+}finally{await browser.close();}

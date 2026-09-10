@@ -1,6 +1,6 @@
 <!doctype html>
-<!-- THROWAWAY: Three structural settings variants in the existing Settings shell replica.
-     ?variant=A|B|C; isolated because the user explicitly forbids modifying the live 3080 GUI.
+<!-- THROWAWAY: Selected design C in the existing Settings shell replica.
+     ?variant=C; earlier comparisons remain in git history. No changes to the live 3080 GUI.
      No RPC, no persistence, no real login. See ../docs/specs/provider-settings-prototype-plan.md. -->
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"><meta name="color-scheme" content="light dark"><title>Provider Settings · 高保真交互原型</title>
 <style>
@@ -129,7 +129,7 @@ code{font-size:11px;overflow-wrap:anywhere}
 .fill{height:100%;background:color-mix(in srgb,var(--ink) 55%,var(--muted));border-radius:2px;min-width:0;transition:width .2s;position:relative}
 .fill::after{content:"";position:absolute;right:0;top:0;bottom:0;width:2px;background:var(--ink)}
 .fill.low{background:var(--amber)}
-.meter-caption{font-size:11px;color:var(--faint);line-height:16px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.meter-caption{display:block;font-size:11px;color:var(--faint);line-height:16px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .mini .meter-caption{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mini .meter-label{font-size:11px}
 .mini .meter-value{font-size:12px}
@@ -241,20 +241,23 @@ dialog::backdrop{background:#14171b55;backdrop-filter:blur(3px)}
 .candidate-name{font-size:13px;font-weight:500}
 .candidate-id{font-size:10px;color:var(--faint);margin-top:2px;overflow-wrap:anywhere}
 .candidate-hint{font-size:11px;color:var(--muted);margin-top:4px}
-.inline-sort{scroll-margin-top:8px;min-width:0}
-.inline-sort>.field-hint{margin-bottom:12px}
-.sort-list{display:flex;flex-direction:column;gap:7px;padding:3px}
-.inline-sort[data-kind=sort-providers] .sort-row{border-width:0 0 1px;border-radius:0}
-.sort-model-id{overflow-wrap:anywhere;margin-top:2px}
-.sort-row{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 4px;border:1px solid var(--line);border-radius:9px;background:var(--bg);min-height:55px}
+.provider-cell{display:flex;align-items:center;gap:8px;min-width:0}
+.provider-cell .identity{flex:1;min-width:0}
+.overview-filters{flex-wrap:wrap}
+[data-system-zone]{overflow-wrap:anywhere}
+.model-editor{display:grid;gap:10px;min-width:0}
+.grip,.model-sort-summary{display:none}
 .sort-row .grip{touch-action:none;cursor:grab;color:var(--faint);width:44px;min-height:44px;flex:none;display:grid;place-items:center}
-.sort-row .brand svg{width:20px;height:20px}
-.sort-row .name{font-size:13px;font-weight:500;overflow-wrap:anywhere}
-.sort-row .position{font-size:10px;color:var(--faint);margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
-.sort-row.grabbed{opacity:.3;border-style:dashed}
-.sort-ghost{position:fixed;z-index:10000;pointer-events:none;box-shadow:0 8px 24px #0003;transform:rotate(1deg);border-color:var(--faint)}
-.sort-ghost .position{display:none}
-.sort-row .grip[aria-pressed=true]{background:var(--hover);color:var(--ink);border-radius:7px}
+.model-card.sort-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center}
+.model-card.sort-row .model-editor{display:none}
+.model-card.sort-row .model-sort-summary{display:flex;align-items:center;min-width:0}
+.sort-name{font-size:13px;font-weight:500;overflow-wrap:anywhere}
+.sort-model-id{overflow-wrap:anywhere;margin-top:2px}
+.sort-row.grabbed{opacity:.3}
+.sort-ghost{position:fixed;z-index:10000;pointer-events:none;box-shadow:0 8px 24px #0003;transform:rotate(1deg);border:1px solid var(--faint);background:var(--bg);border-radius:10px}
+.sort-ghost.ledger-row{display:block;padding:12px}
+[data-action=sort-providers]{min-width:128px}
+[data-action=sort-models]{min-width:96px}
 .demo-strip{border:1px dashed color-mix(in srgb,var(--amber) 35%,var(--line));border-radius:9px;padding:12px;background:color-mix(in srgb,var(--amber) 4%,var(--bg));font-size:11px;color:var(--muted)}
 .auth-code{font-size:24px;letter-spacing:5px;padding:19px;text-align:center;border:1px solid var(--line);border-radius:10px;background:var(--subtle);font-variant-numeric:tabular-nums}
 .auth-progress{padding:10px 0}
@@ -303,7 +306,8 @@ dialog::backdrop{background:#14171b55;backdrop-filter:blur(3px)}
 .provider-head>.chevron{grid-column:2;grid-row:1}
 .provider-head .mini{grid-column:1 / -1;grid-row:2;padding-left:35px}
 .provider-head .mini .meter-caption{white-space:normal}
-.page-title{flex-wrap:wrap;margin-bottom:18px}
+.page-title{flex-wrap:nowrap;margin-bottom:12px}
+.page-title>div{min-width:0;flex:1}
 .page-title p{font-size:11px}
 .provider-body{padding:17px 7px}
 .model-options{grid-template-columns:minmax(90px,1fr) minmax(110px,1fr)}
@@ -380,7 +384,14 @@ dialog::backdrop{background:#14171b55;backdrop-filter:blur(3px)}
 
 [data-compact=true] .stage{--stage-top:calc(8px + var(--safe-top));--stage-bottom:calc(var(--controls-height) + 20px + var(--safe-bottom))}
 [data-compact=true] .prototype-caption,[data-compact=true] .prototype-bar>label,[data-compact=true] .prototype-bar>.bar-btn,[data-compact=true] .prototype-bar>.divider{display:none}
-[data-compact=true] .settings.sorting .nav,[data-compact=true] .settings.sorting .shell-top{display:none}
+[data-compact=true] .settings .nav,[data-compact=true] .settings .shell-top{display:none}
+[data-compact=true] .icon-label .control-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+[data-compact=true] .icon-label{min-width:44px;gap:0;padding:6px}
+[data-compact=true] .model-toolbar{flex-wrap:nowrap}
+[data-compact=true] [data-model-catalog]>.section-heading{flex-wrap:nowrap}
+[data-compact=true] .page-title p{display:none}
+[data-compact=true] .page-title{flex-wrap:nowrap;align-items:center}
+[data-compact=true] .page-title h1{font-size:16px}
 [data-compact=true] .settings.mobile-shell .nav{padding:3px 8px;gap:0}
 [data-compact=true] .settings.mobile-shell .nav-title{display:none}
 [data-compact=true] .settings.mobile-shell .shell-top{height:40px}
@@ -395,7 +406,7 @@ dialog::backdrop{background:#14171b55;backdrop-filter:blur(3px)}
 <div class="prototype-caption"><strong>DESIGN STUDY / 02</strong> 高保真交互原型 · 全部为演示数据 · 不写入真实配置</div>
 <div class="stage"><section class="settings" aria-label="设置原型"><nav class="nav" aria-label="设置导航"><div class="nav-title">设置</div><div class="nav-list" id="settings-nav"></div><div class="nav-note">DeepSeek Harness<br>账号、模型与原生 Agent</div></nav><div class="pane"><header class="shell-top"><button class="btn config-button" data-action="config-preview">查看演示配置</button><button class="icon-btn" data-action="close-settings" aria-label="关闭设置" id="close-settings">×</button></header><main class="workspace" id="workspace"></main><div id="draftbar" class="draftbar" aria-live="polite"></div></div></section></div>
 <div class="closed" id="closed" hidden><h2>设置已关闭</h2><p>原型里的草稿仍保留在内存中。</p><button class="btn" data-action="reopen">重新打开设置</button></div>
-<nav class="prototype-bar" aria-label="原型方案切换"><button class="arrow" data-action="previous-variant" aria-label="上一个方案">←</button><div class="variant-label" id="variant-label"></div><button class="arrow" data-action="next-variant" aria-label="下一个方案">→</button><span class="divider"></span><label><span class="sr-only">预览尺寸</span><select id="frame"><option value="1040">宽屏 1040</option><option value="800">原尺寸 800</option><option value="390">手机 APP 390</option></select></label><button class="bar-btn" data-action="theme" id="theme-button">深色</button><button class="bar-btn" data-action="review">状态与规范</button><button class="bar-btn" data-action="reset-demo">重置演示</button></nav>
+<nav class="prototype-bar" aria-label="方案 C 预览工具"><div class="variant-label" id="variant-label"></div><span class="divider"></span><label><span class="sr-only">预览尺寸</span><select id="frame"><option value="1040">宽屏 1040</option><option value="800">原尺寸 800</option><option value="390">手机 APP 390</option></select></label><button class="bar-btn" data-action="theme" id="theme-button">深色</button><button class="bar-btn" data-action="review">状态与规范</button><button class="bar-btn" data-action="reset-demo">重置演示</button></nav>
 <dialog id="modal" aria-labelledby="modal-title"></dialog><div class="toast" id="toast" role="status"></div><div class="sr-only" id="announce" aria-live="assertive"></div>
 <script src="provider-settings-marks.js"></script><script src="provider-settings-data.js"></script><script src="provider-settings-system.js"></script>
 </body></html>

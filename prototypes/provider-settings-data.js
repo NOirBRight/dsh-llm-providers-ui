@@ -1,5 +1,5 @@
 // THROWAWAY DEMO — not production, not live credentials, not a fetched quota snapshot.
-// Frozen clock: 2026-09-10T09:34:00+08:00. All account / quota / config values are DEMO.
+// Absolute fixture timestamps; presentation follows the current system clock and timezone. All values are DEMO.
 // Parent HTML/CSS/behavior consumes window.PROVIDER_DEMO. Do not import this file.
 // Parent banner already states ALL DEMO — user-facing labels/facts use production copy.
 //
