@@ -12,6 +12,7 @@ import {
   createOpenCodeGoUsageReader,
   createProviderUsageStore,
 } from '../src/client/usage.ts'
+import { readUsageCache } from '../src/usage-readers.ts'
 
 const cursorReader = createCursorUsageReader()
 const codexReader = createCodexUsageReader()
@@ -49,6 +50,12 @@ describe('Provider Usage readers', () => {
     const result = await cursorReader.read(rpc, false, new AbortController().signal)
     expect(reads).toBe(2)
     expect(result).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+  })
+
+  it('decodes the Ollama Cloud monthly window the provider actually reports', async () => {
+    const rpc = rpcFor(async () => ({ ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', monthly: { usage: 0.4, models: ['qwen3'] } } } }))
+    await expect(readers.get('llm-ollama')!.read(rpc, false, new AbortController().signal))
+      .resolves.toMatchObject({ status: 'ready', windows: [{ id: 'monthly', label: 'Month', remainingPercent: 60 }] })
   })
 
   it('normalizes Cursor windows and passes refresh without exposing raw data', async () => {
@@ -281,6 +288,26 @@ describe('Provider Usage readers', () => {
     await flush()
     expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
     store.refresh()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
+    store.dispose()
+  })
+
+  it('purges the stored quota when a read reports signed-out', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      return { ok: true, value: { status: 'logged-out' } }
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(readUsageCache().get('llm-cursor')).toMatchObject({ status: 'ready' })
+    store.refresh()
+    await flush()
+    expect(readUsageCache().has('llm-cursor')).toBe(false)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
     expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
     store.dispose()

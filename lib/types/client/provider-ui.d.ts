@@ -1,4 +1,4 @@
-/** Shared provider card header: monochrome role badge plus a segmented remaining-quota meter. Pure and UI-only: no RPC, no persistence, no provider knowledge. */
+/** Shared provider card header: monochrome role badge plus a segmented remaining-quota meter, and the header's binding to the shared quota cache. No RPC, no provider knowledge. */
 import type { ReactNode } from 'react';
 /** Card role shown as a monochrome badge. Unknown cards stay LLM. */
 export type ProviderCardRole = 'llm' | 'agent';
@@ -22,6 +22,32 @@ export interface ProviderQuotaState {
  * @returns the 0-100 remaining value, or undefined when unavailable.
  */
 export declare function normalizeQuotaRemaining(input: Pick<ProviderQuotaState, 'remainingPercent' | 'remainingFraction'>): number | undefined;
+/** Settled state of the account read that decides whether a card may show quota at all. */
+export interface ProviderAuthState {
+    /** False while the account read is still pending, so a cached quota may still paint. */
+    answered: boolean;
+    /** True only for a settled sign-out or re-authentication requirement, which also drops the stored entry. */
+    signedOut: boolean;
+    /**
+     * True when the provider's verdict forbids any header meter: a settled query that
+     * returned no usable quota, an unsupported endpoint, or an account switch in flight.
+     * Withholding keeps the truthful unavailable dash instead of a stale percent, and
+     * writes nothing to the shared cache.
+     */
+    withheld?: boolean;
+}
+/**
+ * Remaining quota for a provider card header, from one cache shared with the
+ * Provider Usage sidebar. The first frame paints the cached entry, a live answer
+ * wins and is written back, and a known sign-out drops the entry rather than
+ * leaving another account's quota behind.
+ * @param providerKey - usage cache key, identical to the sidebar reader's key.
+ * @param providerName - display name recorded with the cached quota.
+ * @param quota - the live answer, or null while none has arrived.
+ * @param auth - settled state of the account read.
+ * @returns the live quota, else the cached one; null when withheld or when neither is displayable.
+ */
+export declare function useProviderQuotaCache(providerKey: string, providerName: string, quota: ProviderQuotaState | null, auth: ProviderAuthState): ProviderQuotaState | null;
 /** Props of {@link ProviderQuotaMeter}. */
 export interface ProviderQuotaMeterProps {
     /** Remaining quota, 0-100. Values outside 0-100 are unavailable, never clamped. */

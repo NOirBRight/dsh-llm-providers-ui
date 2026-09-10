@@ -75,6 +75,10 @@ export function createProviderUsageStore(
   const notify = (): void => { for (const listener of listeners) listener() }
   const pending = (key: string): boolean => active.has(key) || queued.some(item => item.key === key)
   const publish = (): void => {
+    // A reader that reports signed-out revokes that account's windows. Drop their
+    // stored copies before writing, or writeUsageCache merges them straight back.
+    const signedOut = configuredKeys.filter(key => current.get(key)?.status === 'logged-out')
+    if (signedOut.length > 0) dropPersistedUsageKeys(signedOut)
     snapshot = {
       providers: configuredKeys.map(key => {
         const item = current.get(key)
@@ -165,7 +169,7 @@ export function createProviderUsageStore(
       }
       for (const key of configuredKeys) {
         const existing = current.get(key)
-        if (hasUsageData(existing)) continue
+        if (existing?.status === 'logged-out' || hasUsageData(existing)) continue
         const cached = persisted.get(key)
         if (hasUsageData(cached)) current.set(key, cached)
         else if (existing === undefined) {

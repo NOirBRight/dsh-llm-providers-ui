@@ -100,7 +100,7 @@ Usage 卡片顺序保存在独立的 `usageOrder`，只影响侧栏 Usage，不�
 - 之后每 15 分钟轮询可见 Provider。
 - 5 分钟内的成功快照不因配置重入或轮询重复请求；工具栏刷新强制重读。
 - 成功快照写入 localStorage/sessionStorage（secret-free 数字），刷新失败或 reload 时先显示上次成功值。
-- 设置页暂不接入；若接入则先读快照，超过 5 分钟再单票重读。
+- 设置页与侧边栏共用同一份 last-good 快照缓存：卡片首帧读缓存，拿到实时额度后写回，已知退出登录或凭据失效时删除该条。
 
 ### 移动端
 
@@ -181,6 +181,8 @@ interface ProviderUsageSummary {
 - 每个 Provider 独立失败，一个失败不能清空或阻止其他 Provider。
 - 有旧数据时读取失败进入 `stale`，保留旧值并标记过期。
 - 无旧数据时分别展示未登录、不支持或失败状态。
+- 侧边栏与设置页卡片共用一份快照：任一方的成功结果都写回缓存，双方首帧都用它覆盖“尚未拿到答案”的空窗。
+- 刷新失败保留上次可用值并标为过期；只有已知退出登录、重新认证要求或凭据失效（`INVALID_CREDENTIAL`）才删除该条，避免上个账户的额度残留。
 - 卸载时中止未完成请求。
 - 浏览器只接收 secret-free usage view，凭据继续留在 Host。
 
@@ -195,7 +197,7 @@ interface ProviderUsageSummary {
 - TTFT、Tokens/s、错误率等实时负载。
 - 历史曲线或数据库持久化（侧栏 last-good 快照除外）。
 - 对现有 StatsLine、composer 或 model picker 的修改。
-- 修改各 Provider 插件的设置卡片。
+- 在 Provider 设置卡片内新增侧边栏 UI（卡片只绑定共享快照缓存作为卡片头部额度）。
 
 ## 8. 可访问性
 

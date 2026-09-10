@@ -346,7 +346,7 @@ export function createGrokUsageReader(): ProviderUsageReader {
 
 /** Create the Ollama Cloud quota reader declared by the Ollama client plugin. */
 export function createOllamaUsageReader(): ProviderUsageReader {
-  return { providerKey: 'llm-ollama', name: 'Ollama Cloud', read: (rpc, _refresh, signal) => readUsage(rpc, '/ollama-cloud', {}, signal, value => decodeFractionUsage(['session', 'weekly'], value)) }
+  return { providerKey: 'llm-ollama', name: 'Ollama Cloud', read: (rpc, _refresh, signal) => readUsage(rpc, '/ollama-cloud', {}, signal, value => decodeFractionUsage(['session', 'weekly', 'monthly'], value)) }
 }
 
 /** Create the CommandCode quota reader declared by the CommandCode client plugin. */
