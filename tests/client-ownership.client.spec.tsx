@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { apply as applyOwner, inject as ownerInject } from '../src/client/index.ts'
 import { disposeAfterSetup, disposeReverse } from '../src/client/cleanup.ts'
@@ -209,6 +209,11 @@ function installProvider(ctx: Context, key: string) {
   })
 }
 
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
+
 describe('providers-ui Web ownership', () => {
   it('waits for settings.section and declares the keyed child slot', async () => {
     const { ctx, slots, locale } = await makeContext()
@@ -229,29 +234,61 @@ describe('providers-ui Web ownership', () => {
     await ctx.fiber.dispose()
   })
 
-  it('warns once when settings.section stays undeclared', async () => {
-    const { ctx } = await makeContext()
+  it('withholds the diagnostic when settings.section declares inside the grace window', async () => {
+    const { ctx, slots } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.useFakeTimers()
     const owner = installOwner(ctx)
     await owner.await()
-    await new Promise<void>(resolve => setTimeout(resolve, 0))
-    await new Promise<void>(resolve => setTimeout(resolve, 0))
-    expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn.mock.calls[0]?.[0]).toContain('settings.section')
+    vi.advanceTimersByTime(1)
+    expect(warn).not.toHaveBeenCalled()
+
+    slots.declare('settings.section')
+    vi.advanceTimersByTime(60_000)
+    expect(warn).not.toHaveBeenCalled()
+
     await owner.dispose()
+    vi.useRealTimers()
     warn.mockRestore()
     await ctx.fiber.dispose()
   })
 
-  it('suppresses the diagnostic when settings.section declares later', async () => {
+  it('keeps the diagnostic cancelled once settings.section has declared and collapsed', async () => {
     const { ctx, slots } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.useFakeTimers()
     const owner = installOwner(ctx)
     await owner.await()
-    slots.declare('settings.section')
-    await new Promise<void>(resolve => setTimeout(resolve, 0))
+    vi.advanceTimersByTime(1)
+    const declaring = slots.register({ name: 'root', children: { 'settings.section': {} } }, () => null)
+    declaring()
+
+    vi.advanceTimersByTime(60_000)
     expect(warn).not.toHaveBeenCalled()
+
     await owner.dispose()
+    vi.useRealTimers()
+    warn.mockRestore()
+    await ctx.fiber.dispose()
+  })
+
+  it('warns once when settings.section stays undeclared past the grace', async () => {
+    const { ctx } = await makeContext()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.useFakeTimers()
+    const owner = installOwner(ctx)
+    await owner.await()
+    vi.advanceTimersByTime(1)
+    expect(warn).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(60_000)
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]?.[0]).toContain('settings.section')
+    vi.advanceTimersByTime(60_000)
+    expect(warn).toHaveBeenCalledTimes(1)
+
+    await owner.dispose()
+    vi.useRealTimers()
     warn.mockRestore()
     await ctx.fiber.dispose()
   })
