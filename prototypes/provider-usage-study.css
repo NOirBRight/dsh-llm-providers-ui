@@ -37,5 +37,5 @@
 .usage-lab-menu details{margin-top:10px}.usage-lab-menu summary{min-height:44px;display:flex;align-items:center;cursor:pointer}.usage-lab-menu pre{font-size:10px;white-space:pre-wrap;overflow-wrap:anywhere}
 .usage-study[data-compact=true] .prototype-bar>.bar-btn{display:none}
 @container settings (max-width:950px){.usage-study #closed[data-usage-variant=C][data-usage-open=true] .task-chat{display:none}.usage-surface[data-variant=C]{flex:1;min-width:0}}
-@container settings (max-width:620px){.usage-study .task-chat{padding:0}.usage-study .task-chat>*{display:none}.usage-study #closed[data-usage-variant=C][data-usage-open=true] .task-panel{display:none}.usage-surface[data-variant=C]{border:0}.usage-study .task-panel{max-width:100%}}
+@container settings (max-width:620px){.usage-study .task-chat{display:none;padding:0}.usage-study .task-chat>*{display:none}.usage-study #closed[data-usage-variant=C][data-usage-open=true] .task-panel{display:none}.usage-surface[data-variant=C]{border:0}.usage-study .task-panel{max-width:100%}}
 @media(max-width:420px){.usage-study .variant-label{width:122px}.usage-study .prototype-bar{padding:6px;gap:4px}.usage-content{padding:12px}}

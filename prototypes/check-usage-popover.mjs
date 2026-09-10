@@ -14,6 +14,7 @@ try{
     const p=await pageFor(variant,width,height,theme),surface=p.locator('#usage-inspector');assert.equal(await surface.isVisible(),true,[variant,width,height,theme].join(' '));
     assert.equal(await p.evaluate(()=>usageVariant),variant);assert.equal(new URL(p.url()).searchParams.get('variant'),variant);assert.equal(await p.locator('.task-usage-card[title]').count(),0);
     const shape=await surface.boundingBox(),bar=await p.locator('.prototype-bar').boundingBox();assert.ok(shape.x>=0&&shape.x+shape.width<=width+1,JSON.stringify({variant,width,height,shape}));assert.ok(shape.y>=0&&shape.y+shape.height<=bar.y+1,JSON.stringify({variant,width,height,shape,bar}));
+    if(width<=620)assert.equal(await p.locator('.task-chat').isVisible(),false,'hide narrow conversation chrome');
     assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);assert.equal(await surface.evaluate(n=>n.scrollWidth>n.clientWidth+1),false);
     assert.equal(await p.locator('.usage-content [data-system-zone]').count(),1);assert.equal(await p.locator('.usage-content [role=meter]').count(),3);
     for(const action of ['usage-refresh','usage-close','usage-settings']){const box=await act(p,action).boundingBox();assert.ok(box.height>=44&&box.width>=44,action);assert.ok(box.y>=0&&box.y+box.height<=bar.y+1,JSON.stringify({variant,width,height,action,box}));}

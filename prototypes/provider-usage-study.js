@@ -54,13 +54,13 @@ function updateUsageStudy(){
   $('#closed').dataset.usageVariant=usageVariant;$('#closed').dataset.usageOpen=String(usageOpen);
   $('#task-usage-cards').hidden=usageOpen&&usageVariant==='B';
   $$('.task-usage-card').forEach(button=>{button.removeAttribute('title');button.setAttribute('aria-expanded',String(usageOpen&&button.dataset.provider===usageId));button.setAttribute('aria-controls','usage-inspector');if(usageVariant==='A')button.setAttribute('aria-haspopup','dialog');else button.removeAttribute('aria-haspopup');});
-  $('#variant-label').innerHTML=usageVariant+' · '+usageLayouts[usageVariant].name+'<small>← / → 比较 · 设置设计已锁定</small>';
+  $('#variant-label').innerHTML=usageVariant+' · '+usageLayouts[usageVariant].name+'<small>← / → 切换 · 设置已锁定</small>';
   $('#usage-layout-note').textContent=usageLayouts[usageVariant].note;
   $('#usage-provider-select').value=usageId;$('#usage-scenario-select').value=p.scenario in usageScenarios?p.scenario:'normal';$('#usage-scenario-select').disabled=!!p.refreshing;
   if(usageOpen){
     if(surface.dataset.provider!==p.id){
       surface.dataset.provider=p.id;
-      surface.innerHTML='<header class="usage-head">'+brand(p)+'<div class="grow"><h2 id="usage-title">'+esc(p.name)+'</h2><div class="tiny muted" id="usage-account-status"></div></div><button type="button" class="icon-btn" data-action="usage-refresh" aria-label="刷新 '+esc(p.name)+' 额度"></button><button type="button" class="icon-btn" data-action="usage-close" aria-label="'+(usageVariant==='B'?'返回额度列表':'关闭额度详情')+'">'+icon(usageVariant==='B'?'back':'close')+'</button></header><div class="usage-content" tabindex="-1"></div><footer class="usage-foot"><span class="tiny muted" id="usage-live" role="status"></span>'+btn('usage-settings','前往设置 '+icon('external'),p.id,'quiet')+'</footer>';
+      surface.innerHTML='<header class="usage-head">'+brand(p)+'<div class="grow"><h2 id="usage-title">'+esc(p.name)+'</h2><div class="tiny muted" id="usage-account-status"></div></div><button type="button" class="icon-btn" data-action="usage-refresh" aria-label="刷新 '+esc(p.name)+' 额度"></button><button type="button" class="icon-btn" data-action="usage-close" aria-label="'+(usageVariant==='A'?'关闭额度详情':'返回额度列表')+'">'+icon(usageVariant==='A'?'close':'back')+'</button></header><div class="usage-content" tabindex="-1"></div><footer class="usage-foot"><span class="tiny muted" id="usage-live" role="status"></span>'+btn('usage-settings','前往设置 '+icon('external'),p.id,'quiet')+'</footer>';
     }
     $('#usage-account-status').textContent=status(p)+' · 账户额度';
     const refreshButton=$('[data-action=usage-refresh]',surface),blocked=readOnly||!p.connected||p.quota.status==='unsupported'||p.refreshing;
