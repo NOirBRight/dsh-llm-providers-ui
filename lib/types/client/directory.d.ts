@@ -3,6 +3,8 @@ import type { ProviderUsageReader } from './usage.ts';
 export type ProviderRole = 'llm' | 'agent';
 /** Who renders the provider card header. Shared cards use the provider-ui header; legacy cards keep the shell fallback badge. */
 export type ProviderHeaderOwnership = 'shared' | 'legacy';
+/** Who owns the expanded Provider detail layout. */
+export type ProviderDetailOwnership = 'shared' | 'legacy';
 export interface ProviderAccountSnapshot {
     state: 'connected' | 'configured' | 'unconnected';
 }
@@ -12,6 +14,8 @@ export interface ProviderDeclaration {
     name?: string;
     role?: ProviderRole;
     header?: ProviderHeaderOwnership;
+    /** Who renders the expanded detail: the shared template, or the legacy card. */
+    detail?: ProviderDetailOwnership;
     usage?: ProviderUsageReader;
     account?: () => ProviderAccountSnapshot;
     /** Active model count for the overview subline; omit when the plugin reports none. */
@@ -47,6 +51,12 @@ export declare class ProviderDirectory {
      * @returns The published reader, if any.
      */
     reader(key: string): ProviderUsageReader | undefined;
+    /**
+     * Read who renders the expanded detail.
+     * @param key - Provider card key.
+     * @returns shared for migrated cards, legacy otherwise.
+     */
+    detailOf(key: string): ProviderDetailOwnership;
     /** Display name for the overview and detail title. */
     nameOf(key: string): string | undefined;
     /** Active model count, or undefined when the plugin does not report one. */

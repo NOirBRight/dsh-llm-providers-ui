@@ -57,6 +57,20 @@ export function DeviceCard(props: PropsRuntime<'settings.provider.item'> & Devic
 - 插件自己的模型标题栏与三个按钮（改用模板的 `models` 字段）；
 - 自绘的分区间距与图标。
 
+## 4b. 打包注意（否则线上直接加载失败）
+
+插件把共享 UI 打进自己的 bundle。新增子路径后，必须在插件 `tsdown.config.ts` 的 `alwaysBundle` 里放行，否则运行时会出现：
+
+```
+client-modules: require("dsh-llm-providers-ui/provider-detail") missed the module table
+```
+
+```ts
+alwaysBundle: id => id === 'dsh-llm-providers-ui/provider-detail' || id.startsWith('dsh-llm-providers-ui/provider-detail/'),
+```
+
+另外：lab 里用 `file:` 预览 tarball 时，**必须换文件名**（`-preview.1` → `-preview.2`），否则 pnpm 认为 spec 未变而沿用旧包。
+
 ## 5. 验收（每个插件都要过）
 
 1. 该仓库 `pnpm test` / `build` 全绿；

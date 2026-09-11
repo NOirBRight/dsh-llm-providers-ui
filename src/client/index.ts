@@ -198,6 +198,7 @@ function installSectionTransaction(
       key => { key === undefined ? usageRef.current?.refresh() : usageRef.current?.refresh([key]) },
       key => directory.detailOf(key),
       key => directory.nameOf(key),
+      key => directory.modelCountOf(key),
     )))
     stopSection = section
     try {

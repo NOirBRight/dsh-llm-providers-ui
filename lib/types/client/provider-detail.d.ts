@@ -86,6 +86,8 @@ export interface ProviderItemSlotContext {
     };
     /** Business account state the plugin published on the directory. */
     readonly accountState?: 'connected' | 'configured' | 'unconnected';
+    /** Shared copy in the page's active locale, so every provider reads the same. */
+    readonly copy?: ProviderDetailCopy;
     /** Manual quota refresh; only the detail surface offers it. */
     readonly onRefresh?: () => void;
 }

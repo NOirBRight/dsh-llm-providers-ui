@@ -5,7 +5,7 @@ import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-setti
 import type { ProviderSectionLocaleKey } from './provider-section.js';
 import { PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js';
 import { type ProviderUsageSummary } from './usage.js';
-import type { ProviderHeaderOwnership, ProviderRole } from './directory.js';
+import type { ProviderDetailOwnership, ProviderHeaderOwnership, ProviderRole } from './directory.js';
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps = PropsRuntime<'settings.section'> & PropsRenderSlots<typeof PROVIDERS_ITEM_SLOT> & PropsLocale<typeof PROVIDERS_LOCALE_NS>;
 type ProviderRenderSlot = ProvidersSectionSlotProps['renderSlot'];
@@ -28,6 +28,12 @@ export interface ProvidersSectionProps {
     roleOf?: (key: string) => ProviderRole;
     /** Resolve who renders a Provider header. Shared cards own their badge; legacy cards keep the shell fallback. */
     headerOf?: (key: string) => ProviderHeaderOwnership;
+    /** Resolve who renders the expanded detail. Shared cards render it themselves. */
+    detailOf?: (key: string) => ProviderDetailOwnership;
+    /** Resolve the provider display name the plugin published. */
+    nameOf?: (key: string) => string | undefined;
+    /** Resolve the active model count the plugin published. */
+    modelCountOf?: (key: string) => number | undefined;
     showSidebarUsage?: boolean;
     onShowSidebarUsage?: (show: boolean) => void;
     usageSummaries?: readonly ProviderUsageSummary[];
@@ -43,7 +49,7 @@ export declare function bindProvidersSection(listRegisteredKeys: () => readonly 
     showSidebarUsage: boolean;
 }, onReorder: (keys: string[]) => void, roleOf: (key: string) => ProviderRole, onShowSidebarUsage: (show: boolean) => void, headerOf?: (key: string) => ProviderHeaderOwnership, readUsage?: () => readonly ProviderUsageSummary[], subscribeUsage?: (listener: () => void) => () => void, accountOf?: (key: string) => {
     state: 'connected' | 'configured' | 'unconnected';
-} | undefined, onRefresh?: (key?: string) => void): (props: ProvidersSectionSlotProps) => ReactNode;
+} | undefined, onRefresh?: (key?: string) => void, detailOf?: (key: string) => ProviderDetailOwnership, nameOf?: (key: string) => string | undefined, modelCountOf?: (key: string) => number | undefined): (props: ProvidersSectionSlotProps) => ReactNode;
 /**
  * Settings C: compact quota ledger on overview; the plugin item slot mounts
  * only in the independent detail view. Sorting reorders ledger rows in place.

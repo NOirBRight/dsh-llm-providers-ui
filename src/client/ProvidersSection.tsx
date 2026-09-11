@@ -50,6 +50,8 @@ export interface ProvidersSectionProps {
   detailOf?: (key: string) => ProviderDetailOwnership
   /** Resolve the provider display name the plugin published. */
   nameOf?: (key: string) => string | undefined
+  /** Resolve the active model count the plugin published. */
+  modelCountOf?: (key: string) => number | undefined
   showSidebarUsage?: boolean
   onShowSidebarUsage?: (show: boolean) => void
   usageSummaries?: readonly ProviderUsageSummary[]
@@ -476,6 +478,7 @@ export function bindProvidersSection(
   onRefresh?: (key?: string) => void,
   detailOf?: (key: string) => ProviderDetailOwnership,
   nameOf?: (key: string) => string | undefined,
+  modelCountOf?: (key: string) => number | undefined,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
@@ -499,6 +502,7 @@ export function bindProvidersSection(
         {...(onRefresh === undefined ? {} : { onRefresh })}
         {...(detailOf === undefined ? {} : { detailOf })}
         {...(nameOf === undefined ? {} : { nameOf })}
+        {...(modelCountOf === undefined ? {} : { modelCountOf })}
       />
     )
   }
@@ -625,7 +629,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         </div>
       )
     const linked = linkState(item.key, account, summary)
-    const models = modelCounts[item.key]
+    // Prefer the count the plugin publishes; the hidden probe is the legacy fallback.
+    const models = props.modelCountOf?.(item.key) ?? modelCounts[item.key]
     const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }
     const identity = (
       <div className="c-identity">
@@ -645,17 +650,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     )
     if (detail !== undefined) {
       if (migrated) {
-        // The migrated card owns the detail body; the page only contributes the breadcrumb.
-        return (
-          <article className="c-full">
-            <div className="c-crumb">
-              <button type="button" onClick={() => { setDetail(undefined) }}>{t('breadcrumbOverview')}</button>
-              <span>/</span>
-              <span>{summary?.name ?? props.nameOf?.(detail) ?? detail}</span>
-            </div>
-            {card}
-          </article>
-        )
+        // The migrated card owns the detail body; the page already renders the breadcrumb.
+        return <article className="c-full">{card}</article>
       }
       const windows = summary?.windows ?? []
       return (
@@ -797,7 +793,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           <div className="c-crumb">
             <button type="button" onClick={() => { setDetail(undefined) }}><IconBack /> {t('breadcrumbOverview')}</button>
             <span>/</span>
-            <span>{props.usageSummaries?.find(entry => entry.providerKey === detail)?.name ?? detail}</span>
+            <span>{props.usageSummaries?.find(entry => entry.providerKey === detail)?.name ?? props.nameOf?.(detail) ?? detail}</span>
           </div>
         )}
       {body}

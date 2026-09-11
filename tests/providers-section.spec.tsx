@@ -229,7 +229,7 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     expect(detail?.props.mode).toBe('detail')
     expect(typeof detail?.props.onRefresh).toBe('function')
   })
-  it('lets a migrated card own the detail body and only adds the breadcrumb', () => {
+  it('lets a migrated card own the detail body without page chrome', () => {
     const capture = (_name: string, _props: object, opts?: { entryKey?: string }): ReactElement =>
       createElement('div', { 'data-migrated-card': opts?.entryKey }, 'migrated card body')
     const host = mount(createElement(ProvidersSection, {
@@ -241,10 +241,21 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     }))
     act(() => { host.querySelector('[data-action="open-provider"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
 
-    const full = host.querySelector('.c-full')
     expect(host.querySelector('[data-migrated-card="llm-grok"]')).not.toBeNull()
-    expect(full?.querySelector('[data-c-quota]')).toBeNull()
-    expect(full?.querySelector('.c-crumb')?.textContent).toContain('Grok')
-    expect(full?.textContent).toContain('migrated card body')
+    // The page keeps only the breadcrumb: no page-owned quota section, no normalising.
+    expect(host.querySelector('.c-crumb')?.textContent).toContain('Grok')
+    expect(host.querySelector('[data-c-quota]')).toBeNull()
+    expect(host.querySelector('.c-full')?.textContent).toContain('migrated card body')
+  })
+  it('prefers the model count the plugin publishes over the hidden probe', () => {
+    // Render the real copy template so the assertion proves the number, not the key.
+    const tCount = ((key: TKey) => (key === 'modelCount' ? '{n} models' : key)) as typeof t
+    const host = mount(createElement(ProvidersSection, {
+      t: tCount,
+      registeredKeys: ['llm-grok'],
+      renderSlot,
+      modelCountOf: () => 7,
+    }))
+    expect(host.textContent).toContain('7 models')
   })
 })
