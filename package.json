@@ -55,6 +55,7 @@
     "lib/order.js",
     "lib/usage-readers.js",
     "lib/model-catalog.js",
+    "lib/provider-detail.js",
     "lib/types/**/*.d.ts",
     "cordis.patch.yml",
     "LICENSE",
