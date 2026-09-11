@@ -49,6 +49,7 @@ export interface ProvidersSectionProps {
   onShowSidebarUsage?: (show: boolean) => void
   usageSummaries?: readonly ProviderUsageSummary[]
   accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined
+  onRefresh?: (key: string) => void
 }
 
 // ponytail: the native dialog lives inside the sidebar; remove ancestry overrides once the host portals settings.
@@ -78,6 +79,7 @@ export function bindProvidersSection(
   readUsage?: () => readonly ProviderUsageSummary[],
   subscribeUsage?: (listener: () => void) => () => void,
   accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined,
+  onRefresh?: (key: string) => void,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
@@ -98,6 +100,7 @@ export function bindProvidersSection(
         usageSummaries={usageSummaries}
         {...(headerOf === undefined ? {} : { headerOf })}
         {...(accountOf === undefined ? {} : { accountOf })}
+        {...(onRefresh === undefined ? {} : { onRefresh })}
       />
     )
   }
@@ -113,6 +116,23 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const [sorting, setSorting] = useState(false)
   const [filter, setFilter] = useState<'all' | 'llm' | 'agent'>('all')
   const [detail, setDetail] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    if (detail === undefined) return
+    props.onRefresh?.(detail)
+    const id = requestAnimationFrame(() => {
+      const root = document.querySelector('[data-providers-section] .c-full')
+      if (!(root instanceof HTMLElement)) return
+      const header = root.querySelector('[data-provider-card-header]')
+      if (header instanceof HTMLElement && header.getAttribute('aria-expanded') === 'false') header.click()
+      root.querySelectorAll('[data-provider-model] [aria-expanded="false"]').forEach(node => {
+        if (node instanceof HTMLElement) node.click()
+      })
+      root.querySelectorAll('details:not(.advanced):not([data-advanced]):not([open]) > summary').forEach(node => {
+        if (node instanceof HTMLElement) node.click()
+      })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [detail, props])
   const showToggle = keys.length > 1 && props.disabled !== true && detail === undefined
   const sortable = sorting && showToggle
   const orderBeforeSort = useRef<readonly string[] | undefined>(undefined)
@@ -148,7 +168,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       )
     const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
     const account = props.accountOf?.(item.key)
-    const linked = account?.state === 'connected' || account?.state === 'configured' || summary?.status === 'ready' || summary?.status === 'stale'
+    const linked = account?.state === 'connected' || account?.state === 'configured' || (summary !== undefined && summary.status !== 'logged-out')
     const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }
     const identity = (
       <div className="c-identity">
@@ -171,10 +191,13 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         <article className="c-full">
           <div className="c-detail-title">{identity}</div>
           <section>
-            <div className="c-quota-head"><h3>{t('quotaHeading')}</h3></div>
+            <div className="c-quota-head">
+              <h3>{t('quotaHeading')}</h3>
+              <button type="button" className="c-btn quiet" disabled={props.disabled === true || summary?.refreshing === true} onClick={() => { props.onRefresh?.(item.key) }}>{summary?.refreshing === true ? t('refreshing') : t('refresh')}</button>
+            </div>
             <div className="c-quota-list">
               {windows.length === 0
-                ? <div className="c-missing">{summary?.status === 'unsupported' ? t('unsupportedQuota') : t('connectToSee')}</div>
+                ? <div className="c-missing">{summary?.status === 'unsupported' ? t('unsupportedQuota') : summary?.status === 'error' ? t('errorQuota') : summary?.status === 'loading' ? t('loadingQuota') : t('connectToSee')}</div>
                 : windows.map(quotaWindow => {
                   const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, copy)
                   return (
@@ -198,15 +221,17 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       )
     }
     const primary = summary === undefined ? undefined : pickPrimaryWindow(summary.windows)
-    const missing = summary === undefined || summary.status === 'logged-out'
-      ? t('connectToSee')
-      : summary.status === 'unsupported'
-        ? t('unsupportedQuota')
-        : summary.status === 'loading'
-          ? t('loadingQuota')
-          : summary.status === 'error'
-            ? t('errorQuota')
-            : primary === undefined ? t('connectToSee') : undefined
+    const missing = primary !== undefined
+      ? undefined
+      : summary === undefined || summary.status === 'logged-out'
+        ? t('connectToSee')
+        : summary.status === 'unsupported'
+          ? t('unsupportedQuota')
+          : summary.status === 'loading'
+            ? t('loadingQuota')
+            : summary.status === 'error'
+              ? t('errorQuota')
+              : t('connectToSee')
     const reset = primary === undefined ? undefined : formatResetLabel(primary.resetsAt, primary.label, copy)
     return (
       <div className="c-row-grid" data-provider-row={item.key} data-provider-role={role}>
@@ -228,7 +253,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const linkedCount = keys.filter(key => {
     const account = props.accountOf?.(key)
     const summary = props.usageSummaries?.find(entry => entry.providerKey === key)
-    return account?.state === 'connected' || account?.state === 'configured' || summary?.status === 'ready' || summary?.status === 'stale'
+    return account?.state === 'connected' || account?.state === 'configured' || (summary !== undefined && summary.status !== 'logged-out')
   }).length
   const body = keys.length === 0
     ? <p className="c-empty">{t('empty')}</p>

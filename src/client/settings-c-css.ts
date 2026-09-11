@@ -47,6 +47,9 @@ export const settingsCCss = `
 [data-providers-section] .c-quota-list{display:grid;gap:17px}
 [data-providers-section] .c-quota-meta{margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;color:var(--c-faint);font-size:10px;flex-wrap:wrap}
 [data-providers-section] .c-empty{color:var(--c-faint);font-size:13px}
+[data-providers-section] .c-full [data-provider-card-header]{display:none!important}
+[data-providers-section] .c-full [data-provider-body],[data-providers-section] .c-full [data-provider-body][hidden]{display:flex!important;border-top:0;padding-top:8px}
+[data-providers-section] .c-full [data-provider-model] [hidden]{display:block!important}
 [data-providers-section] .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (max-width:560px){
  [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{grid-template-columns:minmax(0,1fr);gap:10px}

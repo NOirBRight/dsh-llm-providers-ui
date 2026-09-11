@@ -54,6 +54,8 @@ export const copy = {
     resetAt: '重置于 ',
     resetOverdue: '已到期，等待更新 · ',
     resetMissing: '{period} · 重置时间未提供',
+    refresh: '刷新',
+    refreshing: '刷新中',
   },
   en: {
     nav: 'LLM Providers',
@@ -91,6 +93,8 @@ export const copy = {
     resetAt: 'Resets ',
     resetOverdue: 'Expired, waiting for update · ',
     resetMissing: '{period} · reset time not provided',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing',
   },
 } as const
 
