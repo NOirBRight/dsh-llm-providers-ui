@@ -8,7 +8,7 @@ import { readUsageCache, writeUsageCache, dropPersistedUsageKeys, hasUsageData }
 export { peekCachedUsage, rememberCachedUsage, rememberHeadlineQuota, headerQuotaFromCache, clearProviderUsageCache } from '../usage-readers.js'
 
 export type { ProviderUsageReader, ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js'
-export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow } from '../usage-readers.js'
+export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow, formatResetLabel } from '../usage-readers.js'
 export interface ProviderUsageStoreSnapshot {
   providers: readonly ProviderUsageSummary[]
   hiddenKeys: readonly string[]

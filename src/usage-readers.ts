@@ -110,7 +110,28 @@ export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): Usage
     if (quotaWindow.remainingPercent === undefined) continue
     if (best === undefined || periodRank(quotaWindow.shortLabel) > periodRank(best.shortLabel)) best = quotaWindow
   }
-  return best ?? windows[0]
+  return best
+}
+
+function formatRemainingDuration(ms: number): string {
+  const days = Math.round(ms / 86_400_000)
+  if (Math.abs(days) >= 1) return days + '天后'
+  const hours = Math.round(ms / 3_600_000)
+  if (Math.abs(hours) >= 1) return hours + '小时后'
+  return Math.max(1, Math.round(ms / 60_000)) + '分钟后'
+}
+
+/** Format a window reset in the browser system time zone. Missing ISO stays a period, never a fake date. */
+export function formatResetLabel(resetsAt: string | undefined, period?: string): string | undefined {
+  if (nonEmptyString(resetsAt)) {
+    const time = Date.parse(resetsAt)
+    if (Number.isFinite(time)) {
+      const when = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(time))
+      const delta = time - Date.now()
+      return '重置于 ' + when + ' · ' + (delta <= 0 ? '已到期，等待更新' : formatRemainingDuration(delta))
+    }
+  }
+  return period === undefined || period.length === 0 ? undefined : period + ' · 重置时间未提供'
 }
 
 function windowLabel(id: string, period: unknown): string {
@@ -192,6 +213,24 @@ function decodeFractionUsage(keys: readonly ('session' | 'weekly' | 'monthly')[]
   return { fetchedAt: usage.fetchedAt, windows }
 }
 
+// Published Command Code plan allotments (commandcode.ai/docs/plans). Longest prefix wins.
+const COMMAND_CODE_MONTHLY_USD: ReadonlyArray<readonly [string, number]> = [
+  ['individual-max-20', 300],
+  ['individual-goat', 70],
+  ['individual-pro', 80],
+  ['individual-max', 150],
+  ['individual-go', 10],
+  ['max-20', 300],
+  ['20x', 300],
+]
+
+function commandCodeMonthlyCap(planId: string | undefined): number | undefined {
+  if (planId === undefined) return undefined
+  const id = planId.toLowerCase()
+  const match = [...COMMAND_CODE_MONTHLY_USD].sort((left, right) => right[0].length - left[0].length).find(([key]) => id.startsWith(key) || id.includes(key))
+  return match?.[1]
+}
+
 function decodeCommandCodeUsage(usage: UsageRecordValue): { fetchedAt: string, windows: readonly UsageWindowSummary[] } | undefined {
   if (!nonEmptyString(usage.fetchedAt)) return undefined
   if (usage.failures !== undefined && (!Array.isArray(usage.failures) || usage.failures.some(item => typeof item !== 'string'))) return undefined
@@ -201,9 +240,15 @@ function decodeCommandCodeUsage(usage: UsageRecordValue): { fetchedAt: string, w
   if (value === undefined) return undefined
   const windows: UsageWindowSummary[] = []
   const monthly = value.monthlyCredits
+  const plan = recordUsageValue(usage.plan)
+  const planId = plan !== undefined && nonEmptyString(plan.planId) ? plan.planId : undefined
   if (monthly !== undefined) {
     if (!nonNegativeNumber(monthly)) return undefined
-    windows.push({ id: 'monthly-credits', label: 'Credits', shortLabel: 'Cr', valueText: displayNumber(monthly) })
+    const cap = commandCodeMonthlyCap(planId)
+    if (cap !== undefined && cap > 0) {
+      const remaining = Math.min(cap, monthly)
+      windows.push(remainingWindow({ id: 'monthly', label: 'Month', used: cap - remaining, limit: cap }))
+    }
   }
   for (const [key, label] of [['fiveHour', '5-hour'], ['weekly', 'Week']] as const) {
     const raw = value[key]
@@ -256,17 +301,6 @@ function decodeCodexAuthStatus(value: unknown): ProviderUsageRead {
         ...(quotaWindow.resetsAt === undefined ? {} : { resetsAt: quotaWindow.resetsAt }),
       })
     }
-  }
-  const credits = recordUsageValue(usage.credits)
-  if (usage.credits !== undefined && (credits === undefined || typeof credits.unlimited !== 'boolean' || (credits.balance !== undefined && !nonEmptyString(credits.balance)))) return { status: 'error', message: 'malformed usage response' }
-  if (credits !== undefined) windows.push({ id: 'credits', label: 'Credits', shortLabel: 'Cr', valueText: credits.unlimited ? 'Unlimited' : String(credits.balance ?? 'Credits') })
-  const individual = recordUsageValue(usage.individualLimit)
-  if (usage.individualLimit !== undefined && individual === undefined) return { status: 'error', message: 'malformed usage response' }
-  if (individual !== undefined) {
-    const remainingPercent = individual.remainingPercent
-    const remainingText = individual.remaining
-    if (!nonNegativeNumber(remainingPercent) || remainingPercent > 100 || !nonEmptyString(remainingText)) return { status: 'error', message: 'malformed usage response' }
-    if (credits === undefined) windows.push({ id: 'individual', label: 'Credits', shortLabel: 'Cr', remainingPercent: percentage(remainingPercent), valueText: remainingText })
   }
   return { status: 'ready', fetchedAt: new Date().toISOString(), windows }
 }
@@ -550,6 +584,6 @@ export function headerQuotaFromCache(summary: ProviderUsageSummary | undefined):
   return {
     label: quotaWindow.shortLabel || quotaWindow.label,
     ...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent }),
-    ...(quotaWindow.resetsAt === undefined ? {} : { detail: quotaWindow.resetsAt }),
+    ...(quotaWindow.resetsAt === undefined ? {} : { detail: formatResetLabel(quotaWindow.resetsAt) }),
   }
 }
