@@ -175,7 +175,7 @@ function installSectionTransaction(
       () => usageRef.current?.getSnapshot().providers ?? [],
       listener => usageRef.current?.subscribe(listener) ?? (() => undefined),
       key => directory.accountOf(key),
-      key => { usageRef.current?.refresh([key]) },
+      key => { key === undefined ? usageRef.current?.refresh() : usageRef.current?.refresh([key]) },
     )))
     stopSection = section
     try {

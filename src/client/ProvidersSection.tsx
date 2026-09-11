@@ -49,7 +49,7 @@ export interface ProvidersSectionProps {
   onShowSidebarUsage?: (show: boolean) => void
   usageSummaries?: readonly ProviderUsageSummary[]
   accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined
-  onRefresh?: (key: string) => void
+  onRefresh?: (key?: string) => void
 }
 
 // ponytail: the native dialog lives inside the sidebar; remove ancestry overrides once the host portals settings.
@@ -138,10 +138,10 @@ function orderOf(item: HTMLElement): number {
   if (item.matches('.c-account-head')) return 5
   if (item.classList.contains('c-account')) return 6
   if (item.hasAttribute('data-c-quota')) return 7
+  if (item.hasAttribute('data-c-hide')) return 99
   if (item.tagName === 'SECTION') {
-    const label = item.getAttribute('aria-label') ?? ''
-    if (/usage|用量/iu.test(label)) return 99
-    if (/model|模型|catalog|目录/iu.test(label)) return 8
+    if (isUsageBlock(item)) return 99
+    if (isModelBlock(item)) return 8
     if (item.classList.contains('c-account')) return 6
     return 9
   }
@@ -160,26 +160,81 @@ function paintOrder(root: HTMLElement): void {
   }
 }
 
-function paintSections(root: HTMLElement, t: (key: ProviderSectionLocaleKey) => string, linked: 'connected' | 'configured' | 'unconnected'): void {
+const USAGE_TEXT = /usage|quota|额度|用量/iu
+const ACCOUNT_TEXT = /account|connection|账号|连接|signed in|configured|not connected/iu
+const MODEL_TEXT = /model|模型|catalog|目录/iu
+const ACCOUNT_ACTION = /sign in|sign out|log in|log out|登录|退出|manage|管理/iu
+const READING_TEXT = /reading quota|reading sign-in|正在读取|读取额度/iu
+
+function hideBlock(node: HTMLElement): void {
+  if (node.getAttribute('data-c-hide') !== '') node.setAttribute('data-c-hide', '')
+  if (node.hidden !== true) node.hidden = true
+}
+
+/** Plugin block that only exists to show quota; ours always wins. */
+function isUsageBlock(node: HTMLElement): boolean {
+  if (USAGE_TEXT.test(node.getAttribute('aria-label') ?? '')) return true
+  if (node.querySelector('[data-provider-quota],[data-provider-quota-mini],[data-provider-quota-missing]') !== null) return true
+  return READING_TEXT.test(node.textContent ?? '')
+}
+
+function isModelBlock(node: HTMLElement): boolean {
+  return node.querySelector('[data-provider-model]') !== null || MODEL_TEXT.test(node.getAttribute('aria-label') ?? '')
+}
+
+/** Account or API-key block: signs in/out, a secret field, or a provider URL. */
+function isAccountBlock(node: HTMLElement): boolean {
+  if (ACCOUNT_TEXT.test(node.getAttribute('aria-label') ?? '')) return true
+  if (node.querySelector('input[type=password],input[type=url]') !== null) return true
+  return [...node.querySelectorAll('button')].some(button => ACCOUNT_ACTION.test(button.textContent ?? ''))
+}
+
+/** Fold any remaining plugin section into a closed prototype advanced block. */
+function foldAdvanced(node: HTMLElement, t: (key: ProviderSectionLocaleKey) => string): void {
+  const existing = node.closest('details[data-c-advanced]')
+  if (existing instanceof HTMLDetailsElement) {
+    if (existing.open) existing.open = false
+    return
+  }
+  const details = document.createElement('details')
+  details.className = 'c-advanced'
+  details.setAttribute('data-c-advanced', '')
+  const summary = document.createElement('summary')
+  const heading = document.createElement('span')
+  heading.textContent = t('advancedHeading')
+  const note = document.createElement('span')
+  note.className = 'c-advanced-note'
+  note.textContent = t('advancedNote')
+  summary.append(svgIcon('M6 3l5 5-5 5'), heading, note)
+  details.append(summary)
+  const parent = node.parentElement
+  if (parent === null) return
+  parent.insertBefore(details, node)
+  details.append(node)
+}
+
+/** One pass that turns any plugin card into the prototype C detail layout. */
+function normalizeDetail(root: HTMLElement, t: (key: ProviderSectionLocaleKey) => string, linked: 'connected' | 'configured' | 'unconnected'): void {
+  for (const node of root.querySelectorAll('section')) {
+    if (!(node instanceof HTMLElement)) continue
+    if (node.hasAttribute('data-c-quota') || node.closest('[data-c-quota]') !== null) continue
+    if (node.closest('[data-c-hide]') !== null) continue
+    if (node.parentElement?.closest('section') !== null) continue
+    if (isUsageBlock(node)) { hideBlock(node); continue }
+    if (isModelBlock(node)) continue
+    if (isAccountBlock(node)) { paintAccount(node, t, linked); continue }
+    foldAdvanced(node, t)
+  }
+  root.querySelectorAll('details[data-c-advanced]').forEach(node => {
+    if (node instanceof HTMLDetailsElement && node.open) node.open = false
+  })
+  // Plugin quota meters and card headers are ours to own, wherever they render.
+  root.querySelectorAll('[data-provider-quota],[data-provider-quota-mini],[data-provider-quota-missing],[data-provider-card-header]').forEach(node => {
+    if (node instanceof HTMLElement) hideBlock(node)
+  })
   root.querySelectorAll('.c-account-head').forEach(head => {
     const next = head.nextElementSibling
     if (!(next instanceof HTMLElement) || !next.classList.contains('c-account')) head.remove()
-  })
-  root.querySelectorAll('section').forEach(node => {
-    if (!(node instanceof HTMLElement) || node.hasAttribute('data-c-quota')) return
-    const label = node.getAttribute('aria-label') ?? ''
-    if (/usage|用量/iu.test(label)) {
-      node.hidden = true
-      return
-    }
-    if (/model|模型|catalog|目录/iu.test(label)) return
-    const isAccount = /signed in|account|账号|已连接|已配置|未连接|configured|not connected/iu.test(label)
-      || [...node.querySelectorAll('button')].some(button => /sign in|sign out|log in|log out|登录|退出|manage|管理/iu.test(button.textContent ?? ''))
-    if (!isAccount) {
-      node.classList.remove('c-account')
-      return
-    }
-    paintAccount(node, t, linked)
   })
 }
 
@@ -231,7 +286,7 @@ function setOwnButton(button: HTMLButtonElement, icon: string, label: string, di
   const span = button.querySelector('.c-label')
   if (span instanceof HTMLElement && span.textContent !== label) span.textContent = label
   const path = button.querySelector('svg path')
-  if (path instanceof SVGPathElement && path.getAttribute('d') !== icon) path.setAttribute('d', icon)
+  if (path !== null && path.getAttribute('d') !== icon) path.setAttribute('d', icon)
   if (button.disabled !== disabled) button.disabled = disabled
 }
 
@@ -240,13 +295,22 @@ function setOwnButton(button: HTMLButtonElement, icon: string, label: string, di
  * provider shows the same copy, icons and geometry. */
 function paintModelsChrome(section: HTMLElement): void {
   const rows = rowToggles(section)
-  const sectionToggle = [...section.querySelectorAll('button[aria-expanded]')].find(node => node instanceof HTMLElement && node.closest('[data-provider-model]') === null)
-  if (rows.length === 0 && sectionToggle instanceof HTMLElement) sectionToggle.click()
-  markChrome(sectionToggle instanceof HTMLElement ? sectionToggle : null, 'toggle')
+  const root = section.closest('.c-full') ?? section
+  const sectionToggle = [...section.querySelectorAll('button[aria-expanded]')].find(node => node instanceof HTMLElement && node.closest('[data-provider-model]') === null) as HTMLElement | undefined
+  // Open the catalog exactly once: a zero-model provider used to be re-toggled on every
+  // repaint, which is what flickered (Codex).
+  if (sectionToggle !== undefined && sectionToggle.dataset.cOpened !== '1') {
+    sectionToggle.dataset.cOpened = '1'
+    if (sectionToggle.getAttribute('aria-expanded') === 'false') sectionToggle.click()
+  }
+  markChrome(sectionToggle ?? null, 'toggle')
 
   const sortButton = pluginAction(section, SORT_TEXT)
   const catalogButton = pluginAction(section, CATALOG_TEXT)
-  const addButton = pluginAction(section, ADD_TEXT)
+  const addButton = [...root.querySelectorAll('button')].find(node => node instanceof HTMLElement
+    && node.getAttribute('data-c-own') === null
+    && node.closest('[data-provider-model]') === null
+    && ADD_TEXT.test((node.textContent ?? '').replace(/\s+/gu, ' ').trim())) as HTMLElement | undefined
   markChrome(sortButton, 'sort')
   markChrome(catalogButton, 'catalog')
   markChrome(addButton, 'add')
@@ -391,7 +455,7 @@ export function bindProvidersSection(
   readUsage?: () => readonly ProviderUsageSummary[],
   subscribeUsage?: (listener: () => void) => () => void,
   accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined,
-  onRefresh?: (key: string) => void,
+  onRefresh?: (key?: string) => void,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
@@ -429,6 +493,10 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const [filter, setFilter] = useState<'all' | 'llm' | 'agent'>('all')
   const [detail, setDetail] = useState<string | undefined>(undefined)
   const [modelCounts, setModelCounts] = useState<Readonly<Record<string, number>>>({})
+  // Settings policy: the overview paints from cache, then refreshes once when the page opens.
+  const refreshRef = useRef(props.onRefresh)
+  refreshRef.current = props.onRefresh
+  useEffect(() => { refreshRef.current?.() }, [])
   useLayoutEffect(() => {
     if (detail === undefined) return
     const root = document.querySelector('[data-providers-section] .c-full')
@@ -441,7 +509,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         const expander = root.querySelector('button[aria-expanded="false"]')
         if (expander instanceof HTMLElement && expander.closest('[data-provider-card-header]') === null) expander.click()
       }
-      paintSections(root, t, linked)
+      normalizeDetail(root, t, linked)
       paintModels(root)
       paintOrder(root)
       if (root.querySelector('[data-provider-body]')) root.setAttribute('data-ready', '')

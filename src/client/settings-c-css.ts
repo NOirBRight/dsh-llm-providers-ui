@@ -66,7 +66,15 @@ export const settingsCCss = `
 [data-providers-section] .c-account-name{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px;font-size:13px;font-weight:600;text-align:left!important}
 [data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint);text-align:left!important}
 [data-providers-section] .c-account button{flex:none;min-height:34px}
-[data-providers-section] .c-full [data-c-plugin-chrome]{display:none!important}
+[data-providers-section] .c-full [data-c-plugin-chrome],[data-providers-section] .c-full [data-c-hide]{display:none!important}
+[data-providers-section] .c-full details.c-advanced{border:1px solid var(--c-line);border-radius:12px;margin:6px 0 0;background:transparent}
+[data-providers-section] .c-full details.c-advanced>summary{display:flex;align-items:center;gap:8px;padding:12px 14px;min-height:44px;list-style:none;cursor:pointer;font-size:13px;font-weight:650}
+[data-providers-section] .c-full details.c-advanced>summary::-webkit-details-marker{display:none}
+[data-providers-section] .c-full details.c-advanced>summary .c-ico{flex:none;transition:transform .15s}
+[data-providers-section] .c-full details.c-advanced[open]>summary .c-ico{transform:rotate(90deg)}
+[data-providers-section] .c-full details.c-advanced>summary .c-advanced-note{margin-left:auto;font-size:11px;font-weight:400;color:var(--c-faint)}
+[data-providers-section] .c-full details.c-advanced>section{padding:0 14px 16px}
+[data-providers-section] .c-full details.c-advanced>section>section{padding:0}
 [data-providers-section] .c-models-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px 12px;flex-wrap:wrap!important;margin:0 0 10px}
 [data-providers-section] .c-models-title{display:flex;align-items:baseline;gap:7px;min-width:0}
 [data-providers-section] .c-models-title h3{margin:0;font-size:13px;font-weight:650}
