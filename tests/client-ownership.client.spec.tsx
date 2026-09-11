@@ -276,8 +276,8 @@ describe('providers-ui Web ownership', () => {
     await ctx.fiber.dispose()
   })
 
-  it('keeps the diagnostic cancelled once settings.section has declared and collapsed', async () => {
-    const { ctx, slots } = await makeContext()
+  it('keeps the diagnostic cancelled for its lifetime once settings.section has declared and collapsed', async () => {
+    const { ctx, slots, settingsScope } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.useFakeTimers()
     const owner = installOwner(ctx)
@@ -286,6 +286,12 @@ describe('providers-ui Web ownership', () => {
     const declaring = slots.register({ name: 'root', children: { 'settings.section': {} } }, () => null)
     declaring()
 
+    // A declared seat that collapses is a shell reload, not a missing shell.
+    vi.advanceTimersByTime(60_000)
+    expect(warn).not.toHaveBeenCalled()
+
+    // Even a snapshot turning the page visible again does not reopen the diagnostic.
+    settingsScope.setStatus('ready')
     vi.advanceTimersByTime(60_000)
     expect(warn).not.toHaveBeenCalled()
 
