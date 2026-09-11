@@ -20,9 +20,10 @@ describe('decodeProviderOrder', () => {
       order: ['llm-grok', 'llm-cursor'],
       hiddenUsageProviders: [],
       usageOrder: [],
+      showSidebarUsage: true,
     })
-    expect(decodeProviderOrder(null)).toEqual({ order: [], hiddenUsageProviders: [], usageOrder: [] })
-    expect(decodeProviderOrder(undefined)).toEqual({ order: [], hiddenUsageProviders: [], usageOrder: [] })
+    expect(decodeProviderOrder(null)).toEqual({ order: [], hiddenUsageProviders: [], usageOrder: [], showSidebarUsage: true })
+    expect(decodeProviderOrder(undefined)).toEqual({ order: [], hiddenUsageProviders: [], usageOrder: [], showSidebarUsage: true })
   })
 
   it('defaults a missing hidden list so old saves keep showing every provider', () => {
@@ -30,6 +31,7 @@ describe('decodeProviderOrder', () => {
       order: ['llm-grok'],
       hiddenUsageProviders: [],
       usageOrder: [],
+      showSidebarUsage: true,
     })
     expect(decodeProviderOrder({
       order: ['llm-grok'],
@@ -39,7 +41,14 @@ describe('decodeProviderOrder', () => {
       order: ['llm-grok'],
       hiddenUsageProviders: ['llm-cursor', 'llm-codex'],
       usageOrder: ['llm-codex', 'llm-grok'],
+      showSidebarUsage: true,
     })
+  })
+
+  it('defaults showSidebarUsage on so old saves keep the Task Panel quota block', () => {
+    expect(decodeProviderOrder({ order: ['llm-grok'] }).showSidebarUsage).toBe(true)
+    expect(decodeProviderOrder({ showSidebarUsage: false }).showSidebarUsage).toBe(false)
+    expect(decodeProviderOrder({ showSidebarUsage: 'no' }).showSidebarUsage).toBe(true)
   })
 })
 

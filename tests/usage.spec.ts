@@ -11,6 +11,8 @@ import {
   createOllamaUsageReader,
   createOpenCodeGoUsageReader,
   createProviderUsageStore,
+  formatResetLabel,
+  pickPrimaryWindow,
 } from '../src/client/usage.ts'
 import { readUsageCache } from '../src/usage-readers.ts'
 
@@ -131,7 +133,6 @@ describe('Provider Usage readers', () => {
       windows: [
         { label: 'Codex · 5h', shortLabel: '5h', remainingPercent: 72, valueText: '72%' },
         { label: 'Codex · Week', shortLabel: 'W', remainingPercent: 38, valueText: '38%' },
-        { label: 'Credits', shortLabel: 'Cr', valueText: '$8.42' },
       ],
     })
   })
@@ -194,6 +195,69 @@ describe('Provider Usage readers', () => {
   it('keeps CommandCode ready when credits is an empty object', async () => {
     const rpc = rpcFor(async () => ({ ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', credits: {} } } }))
     await expect(commandCodeReader.read(rpc, false, new AbortController().signal)).resolves.toEqual({ status: 'ready', fetchedAt: 'now', windows: [] })
+  })
+
+  it('maps CommandCode GOAT remaining credits onto a monthly remaining-percent window', async () => {
+    const rpc = rpcFor(async () => ({
+      ok: true,
+      value: {
+        status: 'ok',
+        usage: {
+          fetchedAt: 'now',
+          plan: { planId: 'individual-goat' },
+          credits: { monthlyCredits: 4.74, fiveHour: { used: 0, cap: 14 }, weekly: { used: 1.29, cap: 14 } },
+        },
+      },
+    }))
+    const result = await commandCodeReader.read(rpc, false, new AbortController().signal)
+    expect(result).toMatchObject({
+      status: 'ready',
+      windows: [
+        { id: 'monthly', shortLabel: 'M', remainingPercent: 7 },
+        { id: 'fiveHour', remainingPercent: 100 },
+        { id: 'weekly', remainingPercent: 91 },
+      ],
+    })
+  })
+
+  it('picks the longest remaining-percent window and skips text-only credits', () => {
+    expect(pickPrimaryWindow([
+      { id: '5h', label: '5h', shortLabel: '5h', remainingPercent: 100, valueText: '100%' },
+      { id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 40, valueText: '40%' },
+      { id: 'month', label: 'Month', shortLabel: 'M', remainingPercent: 7, valueText: '7%' },
+    ])?.id).toBe('month')
+    expect(pickPrimaryWindow([
+      { id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 40, valueText: '40%', resetsAt: '2026-09-18T00:00:00.000Z' },
+      { id: 'month', label: 'Month', shortLabel: 'M', remainingPercent: 100, valueText: '100%' },
+    ])?.id).toBe('week')
+    expect(pickPrimaryWindow([{ id: 'credits', label: 'Credits', shortLabel: 'Cr', valueText: '$8' }])).toBeUndefined()
+  })
+
+  it('formats reset timestamps in the system zone without inventing a date', () => {
+    const copy = { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' }
+    expect(formatResetLabel(undefined, '每周', copy)).toBe('每周 · 重置时间未提供')
+    expect(formatResetLabel('not-a-date', '每周', copy)).toBe('每周 · 重置时间未提供')
+    expect(formatResetLabel('2001-09-12T02:37:00.000Z', '5h', copy)).toBe('5h · 重置时间未提供')
+    expect(formatResetLabel('Resets Sep 12, 02:37', '5h', copy)).toBe('Resets Sep 12, 02:37')
+    const label = formatResetLabel('2026-09-17T00:00:00.000Z', undefined, copy)
+    expect(label).toMatch(/2026|9/)
+    expect(label).not.toMatch(/重置时间未提供/)
+  })
+
+  it('omits a CommandCode monthly bar when remaining credits exceed the plan cap', async () => {
+    const rpc = rpcFor(async () => ({
+      ok: true,
+      value: { status: 'ok', usage: { fetchedAt: 'now', plan: { planId: 'individual-goat' }, credits: { monthlyCredits: 80 } } },
+    }))
+    await expect(commandCodeReader.read(rpc, false, new AbortController().signal)).resolves.toMatchObject({ status: 'ready', windows: [] })
+  })
+
+  it('omits a CommandCode monthly bar when the plan allotment is unknown', async () => {
+    const rpc = rpcFor(async () => ({
+      ok: true,
+      value: { status: 'ok', usage: { fetchedAt: 'now', plan: { planId: 'teams-pro' }, credits: { monthlyCredits: 4.74 } } },
+    }))
+    await expect(commandCodeReader.read(rpc, false, new AbortController().signal)).resolves.toMatchObject({ status: 'ready', windows: [] })
   })
 
   it('maps the documented Agent, Day and Local labels', async () => {

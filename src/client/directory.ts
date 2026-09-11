@@ -7,17 +7,23 @@ export type ProviderRole = 'llm' | 'agent'
 /** Who renders the provider card header. Shared cards use the provider-ui header; legacy cards keep the shell fallback badge. */
 export type ProviderHeaderOwnership = 'shared' | 'legacy'
 
+export interface ProviderAccountSnapshot {
+  state: 'connected' | 'configured' | 'unconnected'
+}
+
 export interface ProviderDeclaration {
   key: string
   role?: ProviderRole
   header?: ProviderHeaderOwnership
   usage?: ProviderUsageReader
+  account?: () => ProviderAccountSnapshot
 }
 
 interface ProviderEntry {
   role: ProviderRole
   header: ProviderHeaderOwnership
   usage?: ProviderUsageReader
+  account?: () => ProviderAccountSnapshot
 }
 
 /** Lets client plugins publish their Provider card role and optional quota reader. */
@@ -36,6 +42,7 @@ export class ProviderDirectory {
       role: declaration.role ?? 'llm',
       header: declaration.header ?? 'legacy',
       ...(declaration.usage === undefined ? {} : { usage: declaration.usage }),
+      ...(declaration.account === undefined ? {} : { account: declaration.account }),
     })
     this.notify()
     return () => {
@@ -70,6 +77,11 @@ export class ProviderDirectory {
    */
   reader(key: string): ProviderUsageReader | undefined {
     return this.entries.get(key)?.usage
+  }
+
+  /** Overview connection only. Never returns an email. */
+  accountOf(key: string): ProviderAccountSnapshot | undefined {
+    return this.entries.get(key)?.account?.()
   }
 
   /**
