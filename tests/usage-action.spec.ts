@@ -30,7 +30,7 @@ describe('Provider Usage directory registration', () => {
       },
     }
     const orderScope = {
-      getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [] } }),
+      getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [], showSidebarUsage: true } }),
       subscribe: () => () => undefined,
       set: async () => undefined,
     }
@@ -73,7 +73,7 @@ describe('Provider Usage sign-out invalidation', () => {
       },
     }
     const orderScope = {
-      getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [] } }),
+      getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [], showSidebarUsage: true } }),
       subscribe: () => () => undefined,
       set: async () => undefined,
     }

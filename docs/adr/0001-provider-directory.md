@@ -1,6 +1,6 @@
 # Provider directory is an open port
 
-Plugins declare `{ key, role, quota reader }` on the client Provider directory. The shell draws Role badges (default LLM) and Provider Usage tiles from that directory only. There is no builtin reader fallback.
+Plugins declare `{ key, role, header, quota reader, account? }` on the client Provider directory. The shell draws Role badges (default LLM), the settings C ledger, and Provider Usage tiles from that directory only. There is no builtin reader fallback. `account()` is a connected boolean for the overview; it never carries an email.
 
 This change migrates Codex, Cursor, Grok, Ollama Cloud, CommandCode, and OpenCode Go in the same pass: each client plugin registers. Decode helpers stay in this repo and are exported so those plugins do not copy quota JSON parsing. Antigravity registers as Agent with its own reader.
 

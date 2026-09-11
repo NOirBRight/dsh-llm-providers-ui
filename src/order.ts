@@ -37,6 +37,7 @@ export interface ProviderOrderSettings {
   order: string[]
   hiddenUsageProviders: string[]
   usageOrder: string[]
+  showSidebarUsage: boolean
 }
 
 function decodeStringList(value: unknown): string[] {
@@ -47,12 +48,13 @@ function decodeStringList(value: unknown): string[] {
 
 /** Decode the llm-providers settings section. Unknown input becomes an empty order with nothing hidden. */
 export function decodeProviderOrder(value: unknown): ProviderOrderSettings {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { order: [], hiddenUsageProviders: [], usageOrder: [] }
-  const record = value as { order?: unknown; hiddenUsageProviders?: unknown; usageOrder?: unknown }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { order: [], hiddenUsageProviders: [], usageOrder: [], showSidebarUsage: true }
+  const record = value as { order?: unknown; hiddenUsageProviders?: unknown; usageOrder?: unknown; showSidebarUsage?: unknown }
   return {
     order: decodeStringList(record.order),
     hiddenUsageProviders: decodeStringList(record.hiddenUsageProviders),
     usageOrder: decodeStringList(record.usageOrder),
+    showSidebarUsage: record.showSidebarUsage !== false,
   }
 }
 

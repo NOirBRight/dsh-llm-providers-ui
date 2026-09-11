@@ -127,6 +127,7 @@ function installSectionTransaction(
   orderScope: SettingsScope<ProviderOrderSettings>,
   t: () => string,
   directory: ProviderDirectory,
+  usageRef: { current?: import('./usage.js').ProviderUsageStore },
 ): Disposer {
   let stopSection: Disposer | undefined
   let stopNav: Disposer | undefined
@@ -164,11 +165,17 @@ function installSectionTransaction(
         return {
           keys: snapshot.value?.order ?? [],
           disabled: snapshot.status !== 'ready' || !snapshot.writable,
+          showSidebarUsage: snapshot.value?.showSidebarUsage ?? true,
         }
       },
       keys => { void orderScope.set('order', keys) },
       key => directory.roleOf(key),
+      show => { void orderScope.set('showSidebarUsage', show) },
       key => directory.headerOf(key),
+      () => usageRef.current?.getSnapshot().providers ?? [],
+      listener => usageRef.current?.subscribe(listener) ?? (() => undefined),
+      key => directory.accountOf(key),
+      key => { key === undefined ? usageRef.current?.refresh() : usageRef.current?.refresh([key]) },
     )))
     stopSection = section
     try {
@@ -215,12 +222,13 @@ export function apply(ctx: ClientContext, _config: Config = {}): void {
 
       disposers.push(installMissingOwnerDiagnostic(orderScope))
       disposers.push(installMissingSectionDiagnostic(ctx, orderScope))
-      disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav'), directory))
+      const usageRef: { current?: import('./usage.js').ProviderUsageStore } = {}
       try {
-        disposers.push(installProviderUsage(ctx, orderScope, directory))
+        disposers.push(installProviderUsage(ctx, orderScope, directory, store => { usageRef.current = store }))
       } catch (error) {
         console.warn('[dsh-llm-providers-ui] Provider Usage widget failed; keeping the Providers settings page', error)
       }
+      disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav'), directory, usageRef))
     } catch (error) {
       disposeAfterSetup(error, disposers, 'dsh-llm-providers-ui: setup failed and cleanup failed')
     }
