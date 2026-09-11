@@ -173,9 +173,14 @@ function hideBlock(node: HTMLElement): void {
 
 /** Plugin block that only exists to show quota; ours always wins. */
 function isUsageBlock(node: HTMLElement): boolean {
+  // Never hide a block that carries the sign-in control; only its quota chrome goes.
+  if ([...node.querySelectorAll('button')].some(button => ACCOUNT_ACTION.test(button.textContent ?? ''))) return false
   if (USAGE_TEXT.test(node.getAttribute('aria-label') ?? '')) return true
   if (node.querySelector('[data-provider-quota],[data-provider-quota-mini],[data-provider-quota-missing]') !== null) return true
-  return READING_TEXT.test(node.textContent ?? '')
+  const text = node.textContent ?? ''
+  if (READING_TEXT.test(text)) return true
+  // Some plugins ship an unlabeled quota block; its own heading is the only signal.
+  return USAGE_TEXT.test(text.replace(/\s+/gu, ' ').trim().slice(0, 30))
 }
 
 function isModelBlock(node: HTMLElement): boolean {
@@ -184,6 +189,7 @@ function isModelBlock(node: HTMLElement): boolean {
 
 /** Account or API-key block: signs in/out, a secret field, or a provider URL. */
 function isAccountBlock(node: HTMLElement): boolean {
+  if (node.querySelector('[data-provider-model],[data-provider-quota],[data-provider-quota-mini]') !== null) return false
   if (ACCOUNT_TEXT.test(node.getAttribute('aria-label') ?? '')) return true
   if (node.querySelector('input[type=password],input[type=url]') !== null) return true
   return [...node.querySelectorAll('button')].some(button => ACCOUNT_ACTION.test(button.textContent ?? ''))
@@ -219,7 +225,11 @@ function normalizeDetail(root: HTMLElement, t: (key: ProviderSectionLocaleKey) =
     if (!(node instanceof HTMLElement)) continue
     if (node.hasAttribute('data-c-quota') || node.closest('[data-c-quota]') !== null) continue
     if (node.closest('[data-c-hide]') !== null) continue
-    if (node.parentElement?.closest('section') !== null) continue
+    // A plugin body/card is a wrapper, not one of the prototype blocks.
+    if (node.hasAttribute('data-provider-body') || node.hasAttribute('data-provider-card')) continue
+    const parent = node.parentElement
+    if (parent !== null && parent.closest('section') === parent) continue
+    if (node.querySelectorAll('section').length > 1) continue
     if (isUsageBlock(node)) { hideBlock(node); continue }
     if (isModelBlock(node)) continue
     if (isAccountBlock(node)) { paintAccount(node, t, linked); continue }
@@ -230,7 +240,10 @@ function normalizeDetail(root: HTMLElement, t: (key: ProviderSectionLocaleKey) =
   })
   // Plugin quota meters and card headers are ours to own, wherever they render.
   root.querySelectorAll('[data-provider-quota],[data-provider-quota-mini],[data-provider-quota-missing],[data-provider-card-header]').forEach(node => {
-    if (node instanceof HTMLElement) hideBlock(node)
+    if (!(node instanceof HTMLElement)) return
+    // Our own quota meters carry the same attributes; never hide ourselves.
+    if (node.closest('[data-c-quota]') !== null) return
+    hideBlock(node)
   })
   root.querySelectorAll('.c-account-head').forEach(head => {
     const next = head.nextElementSibling
