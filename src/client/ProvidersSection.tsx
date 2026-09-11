@@ -447,9 +447,17 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       if (root.querySelector('[data-provider-body]')) root.setAttribute('data-ready', '')
     }
     paint()
-    const observer = new MutationObserver(paint)
-    observer.observe(root, { childList: true, subtree: true })
-    return () => observer.disconnect()
+    // Repaint on user intent and on the plugin's async mount, not on every DOM
+    // mutation: an observer turned a provider's own re-render into a loop (Codex froze).
+    const timers = [60, 250, 600, 1200].map(ms => window.setTimeout(paint, ms))
+    const later = (): void => { window.setTimeout(paint, 60); window.setTimeout(paint, 300) }
+    root.addEventListener('click', later, true)
+    root.addEventListener('keydown', later, true)
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer)
+      root.removeEventListener('click', later, true)
+      root.removeEventListener('keydown', later, true)
+    }
   }, [detail])
   useLayoutEffect(() => {
     const next: Record<string, number> = {}

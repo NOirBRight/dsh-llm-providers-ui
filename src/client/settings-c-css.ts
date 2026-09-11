@@ -82,17 +82,18 @@ export const settingsCCss = `
 [data-providers-section] .c-full [data-c-own=add] .c-ico{display:block;flex:none;width:14px;height:14px}
 [data-providers-section] .c-plugin .c-sort{min-width:96px}
 [data-providers-section] .c-full [data-sortable-move]{display:none!important}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:44px minmax(0,1fr)!important;align-items:center}
-[data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 32px auto!important;align-items:center!important;column-gap:8px;row-gap:4px;padding:10px 8px!important}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:32px minmax(0,1fr)!important;align-items:center}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-sortable-handle]{width:32px!important;min-width:32px!important;min-height:32px;align-self:center}
+[data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 32px 32px!important;align-items:center!important;column-gap:8px;row-gap:4px;padding:10px 8px!important}
 [data-providers-section] .c-full [data-provider-model]>.c-field-label{grid-row:1;font-size:11px;color:var(--c-muted);line-height:1.2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 [data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(1){grid-column:1}
 [data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(2){grid-column:2}
 [data-providers-section] .c-full [data-provider-model]>input:nth-of-type(1){grid-column:1;grid-row:2}
 [data-providers-section] .c-full [data-provider-model]>input:nth-of-type(2){grid-column:2;grid-row:2}
-[data-providers-section] .c-full [data-provider-model]>button{grid-row:1/span 2;align-self:center}
+[data-providers-section] .c-full [data-provider-model]>button{grid-row:2;align-self:center;justify-self:center;width:32px;height:32px;min-height:32px}
 [data-providers-section] .c-full [data-provider-model]>button[aria-expanded]{grid-column:3}
 [data-providers-section] .c-full [data-provider-model]>button:not([aria-expanded]){grid-column:4}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto!important}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 32px!important}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]>button[aria-expanded]{display:none!important}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]>button:not([aria-expanded]){grid-column:3}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model] input{pointer-events:none;background:var(--c-subtle);color:var(--c-muted);border-color:var(--c-line)}
