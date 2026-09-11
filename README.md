@@ -47,7 +47,7 @@ This package is a bundle and must be listed in the profile. Until DSH mounts tra
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
 ```
 
 No strict load order with providers is required. See `cordis.patch.yml`.
@@ -74,19 +74,19 @@ dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 ~~~
 
-Fixed-version installation (0.1.12-015rc1d):
+Fixed-version installation (`v0.1.12-015rc1e`):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1e/dsh-llm-providers-ui-0.1.12.tgz
 ~~~
 
 Update, uninstall, and verify:
 
 ~~~sh
-# Update to the pinned 015rc1d release
+# Update to Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
