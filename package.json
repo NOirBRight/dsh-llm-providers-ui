@@ -41,6 +41,10 @@
     "./model-catalog": {
       "types": "./lib/types/model-catalog.d.ts",
       "default": "./lib/model-catalog.js"
+    },
+    "./provider-detail": {
+      "types": "./lib/types/client/provider-detail.d.ts",
+      "default": "./lib/provider-detail.js"
     }
   },
   "files": [

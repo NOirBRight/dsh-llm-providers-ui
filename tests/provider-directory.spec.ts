@@ -43,6 +43,29 @@ describe('ProviderDirectory', () => {
     expect(directory.accountOf('llm-grok')).toBeUndefined()
   })
 
+  it('publishes the display name and model count the plugin reports', () => {
+    const directory = new ProviderDirectory()
+    let models = 2
+    const stop = directory.register({ key: 'llm-grok', name: 'Grok', modelCount: () => models })
+
+    expect(directory.nameOf('llm-grok')).toBe('Grok')
+    expect(directory.modelCountOf('llm-grok')).toBe(2)
+    expect(directory.nameOf('llm-codex')).toBeUndefined()
+    expect(directory.modelCountOf('llm-codex')).toBeUndefined()
+
+    models = 5
+    const notify = vi.fn()
+    const unsubscribe = directory.subscribe(notify)
+    directory.update('llm-grok')
+    expect(directory.modelCountOf('llm-grok')).toBe(5)
+    expect(notify).toHaveBeenCalledTimes(1)
+
+    directory.update('llm-unknown')
+    expect(notify).toHaveBeenCalledTimes(1)
+    unsubscribe()
+    stop()
+  })
+
   it('notifies usage-invalidation listeners per key until disposed', () => {
     const directory = new ProviderDirectory()
     const seen: string[] = []

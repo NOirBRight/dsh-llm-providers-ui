@@ -8,10 +8,14 @@ export interface ProviderAccountSnapshot {
 }
 export interface ProviderDeclaration {
     key: string;
+    /** Display name for the overview and detail title; falls back to the card key. */
+    name?: string;
     role?: ProviderRole;
     header?: ProviderHeaderOwnership;
     usage?: ProviderUsageReader;
     account?: () => ProviderAccountSnapshot;
+    /** Active model count for the overview subline; omit when the plugin reports none. */
+    modelCount?: () => number | undefined;
 }
 /** Lets client plugins publish their Provider card role and optional quota reader. */
 export declare class ProviderDirectory {
@@ -43,6 +47,15 @@ export declare class ProviderDirectory {
      * @returns The published reader, if any.
      */
     reader(key: string): ProviderUsageReader | undefined;
+    /** Display name for the overview and detail title. */
+    nameOf(key: string): string | undefined;
+    /** Active model count, or undefined when the plugin does not report one. */
+    modelCountOf(key: string): number | undefined;
+    /**
+     * Tell listeners a provider's reported state changed (auth, models, label).
+     * @param key - provider card key whose metadata changed.
+     */
+    update(key: string): void;
     /** Overview connection only. Never returns an email. */
     accountOf(key: string): ProviderAccountSnapshot | undefined;
     /**

@@ -122,6 +122,24 @@ const sortable: UserConfig = {
   },
 }
 
+const providerDetail: UserConfig = {
+  name: `${PACKAGE_ID}/provider-detail`,
+  entry: { 'provider-detail': 'lib/types/client/provider-detail.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [
+      'react',
+      'react/jsx-runtime',
+      'react-dom',
+    ],
+  },
+}
+
 export default ({ env }: Pick<UserConfig, 'env'>): UserConfig[] => {
   const face = env?.DSH_BUILD_FACE
   if (face === 'host') return [host]
@@ -130,6 +148,7 @@ export default ({ env }: Pick<UserConfig, 'env'>): UserConfig[] => {
   if (face === 'provider-ui') return [providerUi]
   if (face === 'usage-readers') return [usageReaders]
   if (face === 'model-catalog') return [modelCatalog]
+  if (face === 'provider-detail') return [providerDetail]
   if (face !== undefined) throw new Error(`unknown DSH build face: ${String(face)}`)
-  return [host, client, sortable, usageReaders, providerUi, modelCatalog]
+  return [host, client, sortable, usageReaders, providerUi, modelCatalog, providerDetail]
 }

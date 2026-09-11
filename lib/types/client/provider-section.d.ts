@@ -49,6 +49,12 @@ export declare const copy: {
         readonly accountApiMeta: "API Key · 不会回显已保存的密钥";
         readonly expandAll: "全部展开";
         readonly collapseAll: "全部收起";
+        readonly modelsHeading: "模型";
+        readonly modelsCount: "{n} 个";
+        readonly modelsHint: "名称和 ID 始终显示；展开箭头查看容量与能力参数。";
+        readonly sortModels: "排序";
+        readonly chooseFromAccount: "从账户目录选取";
+        readonly addModel: "手动添加模型";
     };
     readonly en: {
         readonly nav: "LLM Providers";
@@ -96,6 +102,12 @@ export declare const copy: {
         readonly accountApiMeta: "API Key · saved keys are never echoed";
         readonly expandAll: "Expand all";
         readonly collapseAll: "Collapse all";
+        readonly modelsHeading: "Models";
+        readonly modelsCount: "{n}";
+        readonly modelsHint: "Names and IDs always show; expand a row for capacity and capability parameters.";
+        readonly sortModels: "Sort";
+        readonly chooseFromAccount: "Choose from account";
+        readonly addModel: "Add model manually";
     };
 };
 export type ProviderSectionLocaleKey = keyof typeof copy.en;

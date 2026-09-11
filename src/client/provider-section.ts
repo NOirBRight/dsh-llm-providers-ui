@@ -64,6 +64,12 @@ export const copy = {
     accountApiMeta: 'API Key · 不会回显已保存的密钥',
     expandAll: '全部展开',
     collapseAll: '全部收起',
+    modelsHeading: '模型',
+    modelsCount: '{n} 个',
+    modelsHint: '名称和 ID 始终显示；展开箭头查看容量与能力参数。',
+    sortModels: '排序',
+    chooseFromAccount: '从账户目录选取',
+    addModel: '手动添加模型',
   },
   en: {
     nav: 'LLM Providers',
@@ -111,6 +117,12 @@ export const copy = {
     accountApiMeta: 'API Key · saved keys are never echoed',
     expandAll: 'Expand all',
     collapseAll: 'Collapse all',
+    modelsHeading: 'Models',
+    modelsCount: '{n}',
+    modelsHint: 'Names and IDs always show; expand a row for capacity and capability parameters.',
+    sortModels: 'Sort',
+    chooseFromAccount: 'Choose from account',
+    addModel: 'Add model manually',
   },
 } as const
 

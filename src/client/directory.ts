@@ -13,17 +13,23 @@ export interface ProviderAccountSnapshot {
 
 export interface ProviderDeclaration {
   key: string
+  /** Display name for the overview and detail title; falls back to the card key. */
+  name?: string
   role?: ProviderRole
   header?: ProviderHeaderOwnership
   usage?: ProviderUsageReader
   account?: () => ProviderAccountSnapshot
+  /** Active model count for the overview subline; omit when the plugin reports none. */
+  modelCount?: () => number | undefined
 }
 
 interface ProviderEntry {
+  name?: string
   role: ProviderRole
   header: ProviderHeaderOwnership
   usage?: ProviderUsageReader
   account?: () => ProviderAccountSnapshot
+  modelCount?: () => number | undefined
 }
 
 /** Lets client plugins publish their Provider card role and optional quota reader. */
@@ -39,10 +45,12 @@ export class ProviderDirectory {
    */
   register(declaration: ProviderDeclaration): () => void {
     this.entries.set(declaration.key, {
+      ...(declaration.name === undefined ? {} : { name: declaration.name }),
       role: declaration.role ?? 'llm',
       header: declaration.header ?? 'legacy',
       ...(declaration.usage === undefined ? {} : { usage: declaration.usage }),
       ...(declaration.account === undefined ? {} : { account: declaration.account }),
+      ...(declaration.modelCount === undefined ? {} : { modelCount: declaration.modelCount }),
     })
     this.notify()
     return () => {
@@ -77,6 +85,25 @@ export class ProviderDirectory {
    */
   reader(key: string): ProviderUsageReader | undefined {
     return this.entries.get(key)?.usage
+  }
+
+  /** Display name for the overview and detail title. */
+  nameOf(key: string): string | undefined {
+    return this.entries.get(key)?.name
+  }
+
+  /** Active model count, or undefined when the plugin does not report one. */
+  modelCountOf(key: string): number | undefined {
+    return this.entries.get(key)?.modelCount?.()
+  }
+
+  /**
+   * Tell listeners a provider's reported state changed (auth, models, label).
+   * @param key - provider card key whose metadata changed.
+   */
+  update(key: string): void {
+    if (!this.entries.has(key)) return
+    this.notify()
   }
 
   /** Overview connection only. Never returns an email. */
