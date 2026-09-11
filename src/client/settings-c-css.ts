@@ -6,6 +6,8 @@ export const settingsCCss = `
 [data-providers-section] .c-btn:hover{background:var(--c-hover);border-color:var(--c-faint)}
 [data-providers-section] .c-btn.quiet{background:transparent;border-color:transparent}
 [data-providers-section] .c-btn.quiet:hover{background:var(--c-hover)}
+[data-providers-section] .c-sort{min-width:128px}
+[data-providers-section] .c-ico{width:14px;height:14px;flex:none}
 [data-providers-section] .c-page-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:3px 0 24px}
 [data-providers-section] .c-page-title h2{margin:0;font-size:20px;line-height:28px;font-weight:600;letter-spacing:-.5px}
 [data-providers-section] .c-page-title p{margin:5px 0 0;color:var(--c-muted);font-size:12px}
@@ -25,7 +27,8 @@ export const settingsCCss = `
 [data-providers-section] .c-ledger{display:flex;flex-direction:column}
 [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{display:grid;--quota-column:minmax(170px,calc((100% - 90px)/2.05));grid-template-columns:minmax(140px,1fr) var(--quota-column) 72px;gap:20px;align-items:center}
 [data-providers-section] .c-labels{padding:0 12px 10px;font-size:10px;color:var(--c-faint);border-bottom:1px solid var(--c-line)}
-[data-providers-section] .c-row-grid{padding:19px 12px;border-bottom:1px solid var(--c-line);min-height:96px;box-sizing:border-box}
+[data-providers-section] .c-row-grid{position:relative;padding:19px 12px;border-bottom:1px solid var(--c-line);min-height:96px;box-sizing:border-box}
+[data-providers-section] .c-probe{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);pointer-events:none}
 [data-providers-section] .c-row-grid:last-child{border-bottom:0}
 [data-providers-section][data-sorting] .c-labels,[data-providers-section][data-sorting] .c-row-grid{grid-template-columns:minmax(0,1fr) var(--quota-column)}
 [data-providers-section][data-sorting] .c-labels>span:last-child,[data-providers-section][data-sorting] [data-action=open-provider]{display:none}
@@ -49,7 +52,8 @@ export const settingsCCss = `
 [data-providers-section] .c-empty{color:var(--c-faint);font-size:13px}
 [data-providers-section] .c-full [data-provider-card-header]{display:none!important}
 [data-providers-section] .c-full [data-provider-body],[data-providers-section] .c-full [data-provider-body][hidden]{display:flex!important;border-top:0;padding-top:8px}
-[data-providers-section] .c-full [data-provider-model] [hidden]{display:block!important}
+[data-providers-section] .c-plugin [data-provider-quota],[data-providers-section] .c-plugin [data-provider-quota-mini],[data-providers-section] .c-plugin [data-provider-quota-missing]{display:none!important}
+[data-providers-section] .c-plugin *:has(> [data-provider-quota]),[data-providers-section] .c-plugin *:has(> [data-provider-quota-mini]){display:none!important}
 [data-providers-section] .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (max-width:560px){
  [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{grid-template-columns:minmax(0,1fr);gap:10px}

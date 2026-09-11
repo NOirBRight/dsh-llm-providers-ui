@@ -220,6 +220,7 @@ describe('Provider Usage readers', () => {
     const copy = { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' }
     expect(formatResetLabel(undefined, '每周', copy)).toBe('每周 · 重置时间未提供')
     expect(formatResetLabel('not-a-date', '每周', copy)).toBe('每周 · 重置时间未提供')
+    expect(formatResetLabel('2001-09-12T02:37:00.000Z', '5h', copy)).toBe('5h · 重置时间未提供')
     const label = formatResetLabel('2026-09-17T00:00:00.000Z', undefined, copy)
     expect(label).toMatch(/2026|9/)
     expect(label).not.toMatch(/重置时间未提供/)

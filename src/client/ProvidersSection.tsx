@@ -1,6 +1,6 @@
 /** Settings > LLM Providers page shell. Provider cards arrive through settings.provider.item. */
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type {
   PropsLocale,
@@ -67,6 +67,35 @@ div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility
 const fallbackWrapStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }
 const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 
+const API_KEY_AUTH = /(?:ollama|opencode-go|commandcode)$/u
+
+function linkState(key: string, account: { state: 'connected' | 'configured' | 'unconnected' } | undefined, summary: ProviderUsageSummary | undefined): 'connected' | 'configured' | 'unconnected' {
+  if (account !== undefined) return account.state
+  if (summary === undefined || summary.status === 'logged-out') return 'unconnected'
+  return API_KEY_AUTH.test(key) ? 'configured' : 'connected'
+}
+
+function countModels(root: ParentNode): number | undefined {
+  const rows = root.querySelectorAll('[data-provider-model]').length
+  if (rows > 0) return rows
+  const text = [...root.querySelectorAll('[data-provider-header-summary]')].map(node => node.textContent ?? '').join(' ')
+  const match = /(\d+)\s*(?:models?|个模型)/iu.exec(text)
+  return match === null ? undefined : Number(match[1])
+}
+
+function IconSort(): ReactNode {
+  return <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 2v12m-3-3 3 3 3-3M11 14V2m-3 3 3-3 3 3" /></svg>
+}
+function IconCheck(): ReactNode {
+  return <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8l3 3 7-7" /></svg>
+}
+function IconBack(): ReactNode {
+  return <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
+}
+function IconRefresh(): ReactNode {
+  return <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 6a5.2 5.2 0 1 0 .1 4M13 2v4H9" /></svg>
+}
+
 /** Bind the shared page to live keyed-slot and settings snapshots. */
 export function bindProvidersSection(
   listRegisteredKeys: () => readonly string[],
@@ -116,6 +145,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const [sorting, setSorting] = useState(false)
   const [filter, setFilter] = useState<'all' | 'llm' | 'agent'>('all')
   const [detail, setDetail] = useState<string | undefined>(undefined)
+  const [modelCounts, setModelCounts] = useState<Readonly<Record<string, number>>>({})
   const onRefresh = props.onRefresh
   useEffect(() => {
     if (detail === undefined) return
@@ -128,7 +158,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         const header = root.querySelector('[data-provider-card-header]')
         if (header instanceof HTMLElement && header.getAttribute('aria-expanded') !== 'true') header.click()
         root.querySelectorAll('button[aria-expanded="false"]').forEach(node => {
-          if (!(node instanceof HTMLElement) || node.closest('[data-provider-card-header]')) return
+          if (!(node instanceof HTMLElement) || node.closest('[data-provider-card-header]') || node.closest('[data-provider-model]')) return
           node.click()
         })
       }
@@ -138,6 +168,30 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     tick()
     return () => { window.clearTimeout(timer) }
   }, [detail, onRefresh])
+  useLayoutEffect(() => {
+    const next: Record<string, number> = {}
+    document.querySelectorAll('[data-model-probe]').forEach(node => {
+      if (!(node instanceof HTMLElement) || node.dataset.modelProbe === undefined) return
+      const count = countModels(node)
+      if (count !== undefined) next[node.dataset.modelProbe] = count
+    })
+    const full = document.querySelector('[data-providers-section] .c-full')
+    if (full instanceof HTMLElement && detail !== undefined) {
+      const count = countModels(full)
+      if (count !== undefined) next[detail] = count
+    }
+    setModelCounts(prev => {
+      let changed = false
+      const merged = { ...prev }
+      for (const [key, count] of Object.entries(next)) {
+        if (merged[key] !== count) {
+          merged[key] = count
+          changed = true
+        }
+      }
+      return changed ? merged : prev
+    })
+  })
   const showToggle = keys.length > 1 && props.disabled !== true && detail === undefined
   const sortable = sorting && showToggle
   const orderBeforeSort = useRef<readonly string[] | undefined>(undefined)
@@ -174,7 +228,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
       ?? props.usageSummaries?.find(entry => item.key.endsWith(entry.providerKey) || entry.providerKey.endsWith(item.key))
     const account = props.accountOf?.(item.key)
-    const linked = account?.state === 'connected' || account?.state === 'configured' || (summary !== undefined && summary.status !== 'logged-out')
+    const linked = linkState(item.key, account, summary)
+    const models = modelCounts[item.key]
     const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }
     const identity = (
       <div className="c-identity">
@@ -185,8 +240,9 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
             <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
           </div>
           <div className="c-sub">
-            <span className={'c-dot' + (linked ? ' good' : '')} />
-            {account === undefined ? (linked ? t('connected') : t('unconnected')) : t(account.state)}
+            <span className={'c-dot' + (linked === 'unconnected' ? '' : ' good')} />
+            {t(linked)}
+            {models === undefined ? null : <><span aria-hidden="true">·</span>{t('modelCount').replace('{n}', String(models))}</>}
           </div>
         </div>
       </div>
@@ -199,7 +255,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           <section>
             <div className="c-quota-head">
               <h3>{t('quotaHeading')}</h3>
-              <button type="button" className="c-btn quiet" disabled={props.disabled === true || summary?.refreshing === true} onClick={() => { props.onRefresh?.(item.key) }}>{summary?.refreshing === true ? t('refreshing') : t('refresh')}</button>
+              <button type="button" className="c-btn quiet" disabled={props.disabled === true || summary?.refreshing === true} onClick={() => { props.onRefresh?.(item.key) }}>{summary?.refreshing === true ? t('refreshing') : <><IconRefresh /> {t('refresh')}</>}</button>
             </div>
             <div className="c-quota-list">
               {windows.length === 0
@@ -222,8 +278,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
               <span>{t('systemZone')} · {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
             </div>
           </section>
-          {card}
-          <style>{'[data-providers-section] .c-full [data-provider-body],[data-providers-section] .c-full [data-provider-body][hidden]{display:flex!important;border-top:0}[data-providers-section] .c-full [data-provider-card-header]{display:none!important}[data-providers-section] .c-full [data-provider-model] [hidden]{display:block!important}'}</style>
+          <div className="c-plugin">{card}</div>
         </article>
       )
     }
@@ -242,6 +297,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     const reset = primary === undefined ? undefined : formatResetLabel(primary.resetsAt, primary.label, copy)
     return (
       <div className="c-row-grid" data-provider-row={item.key} data-provider-role={role}>
+        <div className="c-probe" data-model-probe={item.key} aria-hidden="true">{card}</div>
         <div className="c-cell">{identity}</div>
         <div className="c-mini">
           {missing === undefined && primary !== undefined
@@ -261,7 +317,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     const account = props.accountOf?.(key)
     const summary = props.usageSummaries?.find(entry => entry.providerKey === key)
       ?? props.usageSummaries?.find(entry => key.endsWith(entry.providerKey) || entry.providerKey.endsWith(key))
-    return account?.state === 'connected' || account?.state === 'configured' || (summary !== undefined && summary.status !== 'logged-out')
+    return linkState(key, account, summary) !== 'unconnected'
   }).length
   const body = keys.length === 0
     ? <p className="c-empty">{t('empty')}</p>
@@ -296,7 +352,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
                 <p>{t('subtitle')}</p>
               </div>
               {showToggle
-                ? <button type="button" className="c-btn" aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>{sorting ? t('done') : t('sort')}</button>
+                ? <button type="button" className="c-btn c-sort" aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>{sorting ? <><IconCheck /> {t('done')}</> : <><IconSort /> {t('sort')}</>}</button>
                 : null}
             </header>
             <div className="c-note">
@@ -333,7 +389,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         )
         : (
           <div className="c-crumb">
-            <button type="button" onClick={() => { setDetail(undefined) }}>{t('breadcrumbOverview')}</button>
+            <button type="button" onClick={() => { setDetail(undefined) }}><IconBack /> {t('breadcrumbOverview')}</button>
             <span>/</span>
             <span>{props.usageSummaries?.find(entry => entry.providerKey === detail)?.name ?? detail}</span>
           </div>

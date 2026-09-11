@@ -129,13 +129,23 @@ export interface ResetCopy {
   missing: string
 }
 
+function parseResetTime(resetsAt: string): number | undefined {
+  const iso = Date.parse(resetsAt)
+  if (Number.isFinite(iso)) return iso
+  if (!/^\d+(?:\.\d+)?$/u.test(resetsAt)) return undefined
+  const n = Number(resetsAt)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return n < 1e12 ? n * 1000 : n
+}
+
 /** System-zone instant for a reset ISO. Language copy stays in the UI. */
 export function formatResetInstant(resetsAt: string | undefined): { when: string, overdue: boolean, relative: string } | undefined {
   if (!nonEmptyString(resetsAt)) return undefined
-  const time = Date.parse(resetsAt)
-  if (!Number.isFinite(time)) return undefined
-  const when = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(time))
+  const time = parseResetTime(resetsAt)
+  if (time === undefined) return undefined
   const delta = time - Date.now()
+  if (delta < -400 * 86400000 || delta > 800 * 86400000) return undefined
+  const when = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(time))
   return { when, overdue: delta <= 0, relative: formatRemainingDuration(delta) }
 }
 
