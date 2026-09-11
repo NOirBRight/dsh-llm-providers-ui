@@ -6,7 +6,7 @@ Mounted owner of the **LLM Providers** Settings page for DeepSeek Harness.
 
 ## Compatibility
 
-Verified runtimes are DeepSeek Harness `0.1.2-alpha.4` and `0.1.2-rc.1` on Cordis `4.0.2`; this record is evidence, not an allowlist.
+Current verified/compatible runtime is DeepSeek Harness `0.1.5-rc.1` on Cordis `4.0.2`. Historical evidence also covers `0.1.2-alpha.4` and `0.1.2-rc.1`; this record is evidence, not an allowlist.
 
 Unknown newer runtimes are attempted on a best-effort basis after one warning, and the plugin keeps its normal mount path.
 
@@ -47,7 +47,7 @@ This package is a bundle and must be listed in the profile. Until DSH mounts tra
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz
 ```
 
 No strict load order with providers is required. See `cordis.patch.yml`.
@@ -65,7 +65,7 @@ Until this package is published to npm, lab checkouts may use `link:../dsh-llm-p
 
 ## Release installation (Latest)
 
-Shared LLM Providers settings page, navigation, card order, and picker sort owner. The release artifact targets DeepSeek Harness 0.1.2-alpha.4 and contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency.
+Shared LLM Providers settings page, navigation, card order, and picker sort owner. The release artifact targets DeepSeek Harness 0.1.5-rc.1 and contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency.
 
 Latest installation (the URL never contains a version):
 
@@ -74,19 +74,19 @@ dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 ~~~
 
-Fixed-version installation:
+Fixed-version installation (0.1.12-015rc1d):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz
 ~~~
 
 Update, uninstall, and verify:
 
 ~~~sh
-# Update to the latest Release
+# Update to the pinned 015rc1d release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
