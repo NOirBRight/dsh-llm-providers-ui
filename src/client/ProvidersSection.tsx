@@ -14,7 +14,7 @@ import { formatResetLabel, pickPrimaryWindow, type ProviderUsageSummary } from '
 import { ProviderQuotaMeter } from './provider-ui.js'
 import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
-import type { ProviderHeaderOwnership, ProviderRole } from './directory.js'
+import type { ProviderDetailOwnership, ProviderHeaderOwnership, ProviderRole } from './directory.js'
 import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
 import { settingsCCss } from './settings-c-css.js'
 
@@ -45,6 +45,10 @@ export interface ProvidersSectionProps {
   roleOf?: (key: string) => ProviderRole
   /** Resolve who renders a Provider header. Shared cards own their badge; legacy cards keep the shell fallback. */
   headerOf?: (key: string) => ProviderHeaderOwnership
+  /** Resolve who renders the expanded detail. Shared cards render it themselves. */
+  detailOf?: (key: string) => ProviderDetailOwnership
+  /** Resolve the provider display name the plugin published. */
+  nameOf?: (key: string) => string | undefined
   showSidebarUsage?: boolean
   onShowSidebarUsage?: (show: boolean) => void
   usageSummaries?: readonly ProviderUsageSummary[]
@@ -469,6 +473,8 @@ export function bindProvidersSection(
   subscribeUsage?: (listener: () => void) => () => void,
   accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined,
   onRefresh?: (key?: string) => void,
+  detailOf?: (key: string) => ProviderDetailOwnership,
+  nameOf?: (key: string) => string | undefined,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
@@ -490,6 +496,8 @@ export function bindProvidersSection(
         {...(headerOf === undefined ? {} : { headerOf })}
         {...(accountOf === undefined ? {} : { accountOf })}
         {...(onRefresh === undefined ? {} : { onRefresh })}
+        {...(detailOf === undefined ? {} : { detailOf })}
+        {...(nameOf === undefined ? {} : { nameOf })}
       />
     )
   }
@@ -512,6 +520,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   useEffect(() => { refreshRef.current?.() }, [])
   useLayoutEffect(() => {
     if (detail === undefined) return
+    // Migrated cards render the prototype layout themselves; no DOM normalising.
+    if ((props.detailOf?.(detail) ?? 'legacy') === 'shared') return
     const root = document.querySelector('[data-providers-section] .c-full')
     if (!(root instanceof HTMLElement)) return
     const linked = linkState(detail, props.accountOf?.(detail), props.usageSummaries?.find(entry => entry.providerKey === detail))
@@ -590,6 +600,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
       ?? props.usageSummaries?.find(entry => item.key.endsWith(entry.providerKey) || entry.providerKey.endsWith(item.key))
     const account = props.accountOf?.(item.key)
+    const migrated = detail !== undefined && (props.detailOf?.(item.key) ?? 'legacy') === 'shared'
     // Migrated cards read this context and render the shared template; older cards ignore it.
     const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {
       mode: detail === undefined ? 'overview' : 'detail',
@@ -630,6 +641,19 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       </div>
     )
     if (detail !== undefined) {
+      if (migrated) {
+        // The migrated card owns the detail body; the page only contributes the breadcrumb.
+        return (
+          <article className="c-full">
+            <div className="c-crumb">
+              <button type="button" onClick={() => { setDetail(undefined) }}>{t('breadcrumbOverview')}</button>
+              <span>/</span>
+              <span>{summary?.name ?? props.nameOf?.(detail) ?? detail}</span>
+            </div>
+            {card}
+          </article>
+        )
+      }
       const windows = summary?.windows ?? []
       return (
         <article className="c-full">

@@ -229,4 +229,22 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     expect(detail?.props.mode).toBe('detail')
     expect(typeof detail?.props.onRefresh).toBe('function')
   })
+  it('lets a migrated card own the detail body and only adds the breadcrumb', () => {
+    const capture = (_name: string, _props: object, opts?: { entryKey?: string }): ReactElement =>
+      createElement('div', { 'data-migrated-card': opts?.entryKey }, 'migrated card body')
+    const host = mount(createElement(ProvidersSection, {
+      t,
+      registeredKeys: ['llm-grok'],
+      renderSlot: capture,
+      detailOf: () => 'shared' as const,
+      nameOf: () => 'Grok',
+    }))
+    act(() => { host.querySelector('[data-action="open-provider"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+
+    const full = host.querySelector('.c-full')
+    expect(host.querySelector('[data-migrated-card="llm-grok"]')).not.toBeNull()
+    expect(full?.querySelector('[data-c-quota]')).toBeNull()
+    expect(full?.querySelector('.c-crumb')?.textContent).toContain('Grok')
+    expect(full?.textContent).toContain('migrated card body')
+  })
 })

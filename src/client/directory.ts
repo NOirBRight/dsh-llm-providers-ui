@@ -7,6 +7,9 @@ export type ProviderRole = 'llm' | 'agent'
 /** Who renders the provider card header. Shared cards use the provider-ui header; legacy cards keep the shell fallback badge. */
 export type ProviderHeaderOwnership = 'shared' | 'legacy'
 
+/** Who owns the expanded Provider detail layout. */
+export type ProviderDetailOwnership = 'shared' | 'legacy'
+
 export interface ProviderAccountSnapshot {
   state: 'connected' | 'configured' | 'unconnected'
 }
@@ -17,6 +20,8 @@ export interface ProviderDeclaration {
   name?: string
   role?: ProviderRole
   header?: ProviderHeaderOwnership
+  /** Who renders the expanded detail: the shared template, or the legacy card. */
+  detail?: ProviderDetailOwnership
   usage?: ProviderUsageReader
   account?: () => ProviderAccountSnapshot
   /** Active model count for the overview subline; omit when the plugin reports none. */
@@ -27,6 +32,7 @@ interface ProviderEntry {
   name?: string
   role: ProviderRole
   header: ProviderHeaderOwnership
+  detail: ProviderDetailOwnership
   usage?: ProviderUsageReader
   account?: () => ProviderAccountSnapshot
   modelCount?: () => number | undefined
@@ -48,6 +54,7 @@ export class ProviderDirectory {
       ...(declaration.name === undefined ? {} : { name: declaration.name }),
       role: declaration.role ?? 'llm',
       header: declaration.header ?? 'legacy',
+      detail: declaration.detail ?? 'legacy',
       ...(declaration.usage === undefined ? {} : { usage: declaration.usage }),
       ...(declaration.account === undefined ? {} : { account: declaration.account }),
       ...(declaration.modelCount === undefined ? {} : { modelCount: declaration.modelCount }),
@@ -85,6 +92,15 @@ export class ProviderDirectory {
    */
   reader(key: string): ProviderUsageReader | undefined {
     return this.entries.get(key)?.usage
+  }
+
+  /**
+   * Read who renders the expanded detail.
+   * @param key - Provider card key.
+   * @returns shared for migrated cards, legacy otherwise.
+   */
+  detailOf(key: string): ProviderDetailOwnership {
+    return this.entries.get(key)?.detail ?? 'legacy'
   }
 
   /** Display name for the overview and detail title. */

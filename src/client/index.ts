@@ -196,6 +196,8 @@ function installSectionTransaction(
       listener => usageRef.current?.subscribe(listener) ?? (() => undefined),
       key => directory.accountOf(key),
       key => { key === undefined ? usageRef.current?.refresh() : usageRef.current?.refresh([key]) },
+      key => directory.detailOf(key),
+      key => directory.nameOf(key),
     )))
     stopSection = section
     try {
