@@ -1,6 +1,8 @@
 /** Browser owner of the LLM Providers Settings page. */
 import z from '@deepseek-ai/schemastery';
 import type { Context as ClientContext } from '@deepseek-ai/cordis';
+export { ProviderDirectory, type ProviderDeclaration, type ProviderRole } from './directory.js';
+export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, type ProviderUsageReader, } from './usage.js';
 export declare const name = "dsh-llm-providers-ui-client";
 export declare const inject: string[];
 /**
