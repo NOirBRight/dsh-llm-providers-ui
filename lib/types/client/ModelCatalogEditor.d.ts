@@ -50,6 +50,8 @@ export interface ModelCatalogLabels {
     readonly unsupported?: string;
     readonly restoreAuto?: string;
     readonly source?: string;
+    readonly expandAll?: string;
+    readonly collapseAll?: string;
 }
 /** Patch that may delete a field by sending explicit undefined. */
 export type CatalogPatch<T> = {

@@ -31,6 +31,7 @@ export declare const catalogStyles: {
     readonly selectStyle: CSSProperties;
     readonly rowStyle: CSSProperties;
     readonly modelContentStyle: CSSProperties;
+    readonly modelContentSortingStyle: CSSProperties;
     readonly modelDetailStyle: CSSProperties;
     readonly capabilitiesStyle: CSSProperties;
     readonly fieldStyle: CSSProperties;

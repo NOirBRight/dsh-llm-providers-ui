@@ -3,7 +3,7 @@ import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/cli
 import type { ProviderUsageReader, ProviderUsageSummary } from '../usage-readers.js';
 export { peekCachedUsage, rememberCachedUsage, rememberHeadlineQuota, headerQuotaFromCache, clearProviderUsageCache } from '../usage-readers.js';
 export type { ProviderUsageReader, ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js';
-export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow } from '../usage-readers.js';
+export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow, formatResetLabel, formatResetInstant } from '../usage-readers.js';
 export interface ProviderUsageStoreSnapshot {
     providers: readonly ProviderUsageSummary[];
     hiddenKeys: readonly string[];

@@ -43,8 +43,21 @@ export declare function recordUsageValue(value: unknown): UsageRecordValue | und
 export declare function nonEmptyString(value: unknown): value is string;
 /** Non-negative finite number guard shared by the reader factories and the sidebar cache validator. */
 export declare function nonNegativeNumber(value: unknown): value is number;
-/** Headline window: longest percentage period, else the first text-only window. */
+/** Headline window: longest remaining-percent period. Text-only windows are skipped. */
 export declare function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined;
+export interface ResetCopy {
+    at: string;
+    overdue: string;
+    missing: string;
+}
+/** System-zone instant for a reset ISO. Language copy stays in the UI. */
+export declare function formatResetInstant(resetsAt: string | undefined): {
+    when: string;
+    overdue: boolean;
+    relative: string;
+} | undefined;
+/** Compose a reset caption. Missing ISO never becomes a fake calendar date. */
+export declare function formatResetLabel(resetsAt: string | undefined, period?: string, copy?: ResetCopy): string | undefined;
 /** Create the Codex quota reader declared by the Codex client plugin. */
 export declare function createCodexUsageReader(): ProviderUsageReader;
 /** Create the Cursor quota reader declared by the Cursor client plugin. */

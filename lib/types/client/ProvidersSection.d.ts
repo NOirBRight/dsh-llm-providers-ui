@@ -4,6 +4,7 @@ import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/d
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client';
 import type { ProviderSectionLocaleKey } from './provider-section.js';
 import { PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js';
+import { type ProviderUsageSummary } from './usage.js';
 import type { ProviderHeaderOwnership, ProviderRole } from './directory.js';
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps = PropsRuntime<'settings.section'> & PropsRenderSlots<typeof PROVIDERS_ITEM_SLOT> & PropsLocale<typeof PROVIDERS_LOCALE_NS>;
@@ -27,17 +28,25 @@ export interface ProvidersSectionProps {
     roleOf?: (key: string) => ProviderRole;
     /** Resolve who renders a Provider header. Shared cards own their badge; legacy cards keep the shell fallback. */
     headerOf?: (key: string) => ProviderHeaderOwnership;
+    showSidebarUsage?: boolean;
+    onShowSidebarUsage?: (show: boolean) => void;
+    usageSummaries?: readonly ProviderUsageSummary[];
+    accountOf?: (key: string) => {
+        state: 'connected' | 'configured' | 'unconnected';
+    } | undefined;
+    onRefresh?: (key?: string) => void;
 }
 /** Bind the shared page to live keyed-slot and settings snapshots. */
-export declare function bindProvidersSection(listRegisteredKeys: () => readonly string[], subscribe: (listener: () => void) => () => void, readOrder: () => {
+export declare function bindProvidersSection(listRegisteredKeys: () => readonly string[], subscribe: (listener: () => void) => () => void, readPage: () => {
     keys: readonly string[];
     disabled: boolean;
-}, onReorder: (keys: string[]) => void, roleOf: (key: string) => ProviderRole, headerOf?: (key: string) => ProviderHeaderOwnership): (props: ProvidersSectionSlotProps) => ReactNode;
+    showSidebarUsage: boolean;
+}, onReorder: (keys: string[]) => void, roleOf: (key: string) => ProviderRole, onShowSidebarUsage: (show: boolean) => void, headerOf?: (key: string) => ProviderHeaderOwnership, readUsage?: () => readonly ProviderUsageSummary[], subscribeUsage?: (listener: () => void) => () => void, accountOf?: (key: string) => {
+    state: 'connected' | 'configured' | 'unconnected';
+} | undefined, onRefresh?: (key?: string) => void): (props: ProvidersSectionSlotProps) => ReactNode;
 /**
- * Render installed provider cards as a plain divider list. Sorting is an
- * explicit mode: one SortableList stays mounted in both modes with the same
- * keyed rows, so live slot state (authentication, drafts) survives the mode
- * toggle and every reorder.
+ * Settings C: compact quota ledger on overview; the plugin item slot mounts
+ * only in the independent detail view. Sorting reorders ledger rows in place.
  */
 export declare function ProvidersSection(props: ProvidersSectionProps): ReactNode;
 export {};

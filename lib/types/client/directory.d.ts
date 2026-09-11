@@ -3,11 +3,15 @@ import type { ProviderUsageReader } from './usage.ts';
 export type ProviderRole = 'llm' | 'agent';
 /** Who renders the provider card header. Shared cards use the provider-ui header; legacy cards keep the shell fallback badge. */
 export type ProviderHeaderOwnership = 'shared' | 'legacy';
+export interface ProviderAccountSnapshot {
+    state: 'connected' | 'configured' | 'unconnected';
+}
 export interface ProviderDeclaration {
     key: string;
     role?: ProviderRole;
     header?: ProviderHeaderOwnership;
     usage?: ProviderUsageReader;
+    account?: () => ProviderAccountSnapshot;
 }
 /** Lets client plugins publish their Provider card role and optional quota reader. */
 export declare class ProviderDirectory {
@@ -39,6 +43,8 @@ export declare class ProviderDirectory {
      * @returns The published reader, if any.
      */
     reader(key: string): ProviderUsageReader | undefined;
+    /** Overview connection only. Never returns an email. */
+    accountOf(key: string): ProviderAccountSnapshot | undefined;
     /**
      * Subscribe to changes in registered Providers.
      * @param listener - Called after a declaration is added or removed.
