@@ -71,6 +71,24 @@ export interface ProviderDetailCopy {
     readonly loadingQuota: string;
     readonly errorQuota: string;
 }
+/**
+ * What the settings page hands to a provider card through the item slot.
+ * Plugins that migrate to the shared template read this; older cards ignore it.
+ */
+export interface ProviderItemSlotContext {
+    /** Which surface renders the card right now. */
+    readonly mode: 'overview' | 'detail';
+    /** Live shared usage snapshot for this provider, when one exists. */
+    readonly usage?: {
+        readonly status: 'ready' | 'stale' | 'loading' | 'error' | 'unsupported' | 'logged-out';
+        readonly windows: readonly UsageWindowSummary[];
+        readonly fetchedAt?: string;
+    };
+    /** Business account state the plugin published on the directory. */
+    readonly accountState?: 'connected' | 'configured' | 'unconnected';
+    /** Manual quota refresh; only the detail surface offers it. */
+    readonly onRefresh?: () => void;
+}
 /** Shared detail copy so every plugin renders the same words. */
 export declare const providerDetailCopy: Readonly<Record<'zh' | 'en', ProviderDetailCopy>>;
 export interface ProviderDetailProps {

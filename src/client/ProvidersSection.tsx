@@ -586,9 +586,22 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const visibleKeys = keys.filter(key => filter === 'all' || (props.roleOf?.(key) ?? 'llm') === filter)
   const items = (detail === undefined ? visibleKeys : keys.filter(key => key === detail)).map(key => ({ key }))
   const renderCard = (item: { key: string }): ReactNode => {
-    const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {}, { entryKey: item.key })
-    if (node == null) return null
     const role = props.roleOf?.(item.key) ?? 'llm'
+    const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
+      ?? props.usageSummaries?.find(entry => item.key.endsWith(entry.providerKey) || entry.providerKey.endsWith(item.key))
+    const account = props.accountOf?.(item.key)
+    // Migrated cards read this context and render the shared template; older cards ignore it.
+    const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {
+      mode: detail === undefined ? 'overview' : 'detail',
+      ...(summary === undefined
+        ? {}
+        : { usage: { status: summary.status, windows: summary.windows, ...(summary.fetchedAt === undefined ? {} : { fetchedAt: summary.fetchedAt }) } }),
+      ...(account === undefined ? {} : { accountState: account.state }),
+      ...(detail === undefined || props.onRefresh === undefined
+        ? {}
+        : { onRefresh: () => { props.onRefresh?.(item.key) } }),
+    }, { entryKey: item.key })
+    if (node == null) return null
     const card = props.headerOf?.(item.key) === 'shared'
       ? <div data-provider-slot="" data-provider-role={role}>{node}</div>
       : (
@@ -597,9 +610,6 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           {node}
         </div>
       )
-    const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
-      ?? props.usageSummaries?.find(entry => item.key.endsWith(entry.providerKey) || entry.providerKey.endsWith(item.key))
-    const account = props.accountOf?.(item.key)
     const linked = linkState(item.key, account, summary)
     const models = modelCounts[item.key]
     const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }

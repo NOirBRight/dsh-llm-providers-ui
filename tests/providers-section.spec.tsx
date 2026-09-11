@@ -195,4 +195,38 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     expect(addButtons.filter(button => button.getAttribute('data-c-plugin-chrome') === 'add')).toHaveLength(1)
     expect(tallies.toggle).toBeLessThanOrEqual(1)
   })
+  it('hands a migrated card its mode, usage snapshot, and refresh callback', () => {
+    const seen: Array<{ props: Record<string, unknown>, entryKey?: string }> = []
+    const capture = (_name: string, props: object, opts?: { entryKey?: string }): ReactElement => {
+      seen.push({ props: props as Record<string, unknown>, ...(opts?.entryKey === undefined ? {} : { entryKey: opts.entryKey }) })
+      return createElement('li', { 'data-card': opts?.entryKey }, opts?.entryKey)
+    }
+    const usageSummaries = [{
+      providerKey: 'llm-grok',
+      name: 'Grok',
+      status: 'ready' as const,
+      fetchedAt: '2026-09-12T00:00:00.000Z',
+      windows: [{ id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 83, valueText: '83%' }],
+    }]
+    const host = mount(createElement(ProvidersSection, {
+      t,
+      registeredKeys: ['llm-grok'],
+      renderSlot: capture,
+      usageSummaries,
+      accountOf: () => ({ state: 'connected' }),
+      onRefresh: () => undefined,
+    }))
+
+    const overview = seen.find(entry => entry.entryKey === 'llm-grok')
+    expect(overview?.props.mode).toBe('overview')
+    expect(overview?.props.accountState).toBe('connected')
+    expect((overview?.props.usage as { status?: string } | undefined)?.status).toBe('ready')
+    expect(overview?.props.onRefresh).toBeUndefined()
+
+    seen.length = 0
+    act(() => { host.querySelector('[data-action="open-provider"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    const detail = seen.find(entry => entry.entryKey === 'llm-grok')
+    expect(detail?.props.mode).toBe('detail')
+    expect(typeof detail?.props.onRefresh).toBe('function')
+  })
 })
