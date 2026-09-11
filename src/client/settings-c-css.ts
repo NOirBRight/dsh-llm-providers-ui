@@ -69,7 +69,12 @@ export const settingsCCss = `
 [data-providers-section] .c-account-name{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
 [data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint)}
 [data-providers-section] .c-account button{flex:none;min-height:34px}
-[data-providers-section] .c-plugin section[aria-label*=model i] button,[data-providers-section] .c-plugin section[aria-label*=模型] button{min-width:96px}
+[data-providers-section] .c-plugin .c-sort{min-width:96px}
+[data-providers-section] .c-full [data-sortable-move]{display:none!important}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:44px minmax(0,1fr)!important;align-items:center}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto!important;align-items:center;gap:8px}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model] button[aria-expanded]{display:none!important}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model] input{pointer-events:none;opacity:.55;background:var(--c-subtle);color:var(--c-muted)}
 [data-providers-section] .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (max-width:560px){
  [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{grid-template-columns:minmax(0,1fr);gap:10px}

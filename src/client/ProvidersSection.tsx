@@ -96,6 +96,31 @@ function IconRefresh(): ReactNode {
   return <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 6a5.2 5.2 0 1 0 .1 4M13 2v4H9" /></svg>
 }
 
+function paintCatalogSort(root: HTMLElement): void {
+  root.querySelectorAll('section[aria-label] button').forEach(node => {
+    if (!(node instanceof HTMLButtonElement) || node.closest('[data-provider-model]') !== null) return
+    const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim()
+    const sort = /^(Sort|排序)$/u.test(text)
+    const done = /^(Done|Done sorting|完成排序)$/u.test(text)
+    if (!sort && !done) return
+    node.classList.add('c-sort')
+    if (node.querySelector('svg.c-ico') !== null) return
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('class', 'c-ico')
+    svg.setAttribute('viewBox', '0 0 16 16')
+    svg.setAttribute('fill', 'none')
+    svg.setAttribute('stroke', 'currentColor')
+    svg.setAttribute('stroke-width', '1.3')
+    svg.setAttribute('stroke-linecap', 'round')
+    svg.setAttribute('stroke-linejoin', 'round')
+    svg.setAttribute('aria-hidden', 'true')
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    path.setAttribute('d', sort ? 'M5 2v12m-3-3 3 3 3-3M11 14V2m-3 3 3-3 3 3' : 'M3 8l3 3 7-7')
+    svg.append(path)
+    node.insertBefore(svg, node.firstChild)
+  })
+}
+
 function paintAccount(section: HTMLElement, t: (key: ProviderSectionLocaleKey) => string, linked: 'connected' | 'configured' | 'unconnected'): void {
   section.classList.add('c-account')
   if (section.previousElementSibling?.getAttribute('data-c-account-head') !== '') {
@@ -197,6 +222,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         if (/model|模型|catalog/i.test(label)) return
         paintAccount(section, t, linkState(detail, props.accountOf?.(detail), props.usageSummaries?.find(entry => entry.providerKey === detail)))
       })
+      paintCatalogSort(root)
       if (root.querySelector('[data-provider-body]')) root.setAttribute('data-ready', '')
     }
     paint()
