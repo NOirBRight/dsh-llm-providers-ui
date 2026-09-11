@@ -164,10 +164,12 @@ function installSectionTransaction(
         return {
           keys: snapshot.value?.order ?? [],
           disabled: snapshot.status !== 'ready' || !snapshot.writable,
+          showSidebarUsage: snapshot.value?.showSidebarUsage !== false,
         }
       },
       keys => { void orderScope.set('order', keys) },
       key => directory.roleOf(key),
+      show => { void orderScope.set('showSidebarUsage', show) },
       key => directory.headerOf(key),
     )))
     stopSection = section

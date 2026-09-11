@@ -41,6 +41,8 @@ export interface ProvidersSectionProps {
   roleOf?: (key: string) => ProviderRole
   /** Resolve who renders a Provider header. Shared cards own their badge; legacy cards keep the shell fallback. */
   headerOf?: (key: string) => ProviderHeaderOwnership
+  showSidebarUsage?: boolean
+  onShowSidebarUsage?: (show: boolean) => void
 }
 
 const pageStyle: CSSProperties = {
@@ -75,9 +77,10 @@ const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 export function bindProvidersSection(
   listRegisteredKeys: () => readonly string[],
   subscribe: (listener: () => void) => () => void,
-  readOrder: () => { keys: readonly string[], disabled: boolean },
+  readOrder: () => { keys: readonly string[], disabled: boolean, showSidebarUsage: boolean },
   onReorder: (keys: string[]) => void,
   roleOf: (key: string) => ProviderRole,
+  onShowSidebarUsage: (show: boolean) => void,
   headerOf?: (key: string) => ProviderHeaderOwnership,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
@@ -93,6 +96,8 @@ export function bindProvidersSection(
         disabled={order.disabled}
         onReorder={onReorder}
         roleOf={roleOf}
+        showSidebarUsage={order.showSidebarUsage}
+        onShowSidebarUsage={onShowSidebarUsage}
         {...(headerOf === undefined ? {} : { headerOf })}
       />
     )
@@ -108,19 +113,30 @@ export function bindProvidersSection(
 export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const t = props.t ?? ((key: ProviderSectionLocaleKey) => key)
   const keys = applySavedOrder(props.registeredKeys ?? [], props.savedOrder ?? [])
-  const items = keys.map(key => ({ key }))
   const [sorting, setSorting] = useState(false)
-  const showToggle = keys.length > 1 && props.disabled !== true
+  const [filter, setFilter] = useState<'all' | 'llm' | 'agent'>('all')
+  const [detail, setDetail] = useState<string | undefined>(undefined)
+  const showToggle = keys.length > 1 && props.disabled !== true && detail === undefined
   const sortable = sorting && showToggle
+  const visibleKeys = keys.filter(key => filter === 'all' || (props.roleOf?.(key) ?? 'llm') === filter)
+  const items = (detail === undefined ? visibleKeys : keys.filter(key => key === detail)).map(key => ({ key }))
   const renderCard = (item: { key: string }): ReactNode => {
     const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {}, { entryKey: item.key })
     if (node == null) return null
     const role = props.roleOf?.(item.key) ?? 'llm'
-    if (props.headerOf?.(item.key) === 'shared') return <div data-provider-slot="" data-provider-role={role}>{node}</div>
+    const card = props.headerOf?.(item.key) === 'shared'
+      ? <div data-provider-slot="" data-provider-role={role}>{node}</div>
+      : (
+        <div data-provider-slot="" data-provider-role={role} style={fallbackWrapStyle}>
+          <span style={fallbackBadgeAlign}><ProviderRoleBadge {...(role === 'llm' ? {} : { role })} /></span>
+          {node}
+        </div>
+      )
+    if (detail !== undefined) return card
     return (
-      <div data-provider-slot="" data-provider-role={role} style={fallbackWrapStyle}>
-        <span style={fallbackBadgeAlign}><ProviderRoleBadge {...(role === 'llm' ? {} : { role })} /></span>
-        {node}
+      <div>
+        {card}
+        <button type="button" style={sortButtonStyle} data-action="open-provider" onClick={() => { setDetail(item.key) }}>{t('details')}</button>
       </div>
     )
   }
@@ -150,15 +166,37 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       <header>
         <h2 style={titleStyle}>{t('title')}</h2>
       </header>
-      {showToggle
+      {detail === undefined
         ? (
           <div style={toolbarStyle}>
-            <button type="button" style={sortButtonStyle} aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>
-              {sorting ? t('done') : t('sort')}
-            </button>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, fontSize: 13 }}>
+              <span>{t('sidebarToggle')}</span>
+              <input
+                type="checkbox"
+                role="switch"
+                aria-label={t('sidebarToggle')}
+                aria-describedby="sidebar-usage-hint"
+                checked={props.showSidebarUsage !== false}
+                disabled={props.disabled === true}
+                onChange={event => { props.onShowSidebarUsage?.(event.target.checked) }}
+              />
+            </label>
+            <span id="sidebar-usage-hint" style={{ fontSize: 11, color: 'var(--dsw-alias-label-tertiary)' }}>{t('sidebarToggleHint')}</span>
+            {(['all', 'llm', 'agent'] as const).map(id => (
+              <button key={id} type="button" style={sortButtonStyle} aria-pressed={filter === id} onClick={() => { setFilter(id) }}>
+                {t(id === 'all' ? 'filterAll' : id === 'llm' ? 'filterLlm' : 'filterAgent')}
+              </button>
+            ))}
+            {showToggle
+              ? <button type="button" style={sortButtonStyle} aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>{sorting ? t('done') : t('sort')}</button>
+              : null}
           </div>
         )
-        : null}
+        : (
+          <div style={toolbarStyle}>
+            <button type="button" style={sortButtonStyle} onClick={() => { setDetail(undefined) }}>{t('overview')}</button>
+          </div>
+        )}
       {body}
     </div>
   )

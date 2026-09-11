@@ -28,6 +28,13 @@ export const copy = {
     done: '完成排序',
     moveUp: '上移',
     moveDown: '下移',
+    sidebarToggle: '在侧边栏显示',
+    sidebarToggleHint: '仅控制 Task Panel 的额度区域',
+    filterAll: '全部',
+    filterLlm: 'LLM',
+    filterAgent: 'Agent',
+    details: '详情',
+    overview: '返回总览',
   },
   en: {
     nav: 'LLM Providers',
@@ -39,6 +46,13 @@ export const copy = {
     done: 'Done',
     moveUp: 'Move up',
     moveDown: 'Move down',
+    sidebarToggle: 'Show in sidebar',
+    sidebarToggleHint: 'Only the Task Panel quota block',
+    filterAll: 'All',
+    filterLlm: 'LLM',
+    filterAgent: 'Agent',
+    details: 'Details',
+    overview: 'Back to overview',
   },
 } as const
 

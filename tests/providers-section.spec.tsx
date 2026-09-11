@@ -38,7 +38,7 @@ describe('ProvidersSection', () => {
       renderSlot,
     }))
     expect(html).toContain('empty')
-    expect(html).not.toContain('aria-label')
+    expect(html).toContain('role="switch"')
   })
 
   it('renders one card with a static fallback badge and no sort toggle', () => {
@@ -78,6 +78,7 @@ describe('ProvidersSection', () => {
     }))
     expect(html).toContain('data-card="llm-codex"')
     expect(html).toContain('data-provider-role="llm"')
+    expect(html).toContain('role="switch"')
     expect(html).not.toContain('>LLM</span>')
   })
 
@@ -100,7 +101,7 @@ describe('ProvidersSection', () => {
       registeredKeys: ['llm-cursor', 'llm-grok'],
       renderSlot,
     }))
-    const toggle = host.querySelector('button')
+    const toggle = host.querySelector('button[aria-expanded]')
     expect(toggle?.textContent).toBe('sort')
     expect(host.querySelector('[data-sortable-handle][hidden]')).not.toBeNull()
     act(() => { toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
