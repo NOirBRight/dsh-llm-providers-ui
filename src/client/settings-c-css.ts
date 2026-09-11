@@ -66,9 +66,20 @@ export const settingsCCss = `
 [data-providers-section] .c-account-name{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px;font-size:13px;font-weight:600;text-align:left!important}
 [data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint);text-align:left!important}
 [data-providers-section] .c-account button{flex:none;min-height:34px}
-[data-providers-section] .c-model-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px 12px;flex-wrap:wrap!important;margin:0 0 12px}
-[data-providers-section] .c-model-head>div:first-child{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}
-[data-providers-section] .c-model-head button{flex:none;white-space:nowrap;min-height:34px}
+[data-providers-section] .c-full [data-c-plugin-chrome]{display:none!important}
+[data-providers-section] .c-models-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px 12px;flex-wrap:wrap!important;margin:0 0 10px}
+[data-providers-section] .c-models-title{display:flex;align-items:baseline;gap:7px;min-width:0}
+[data-providers-section] .c-models-title h3{margin:0;font-size:13px;font-weight:650}
+[data-providers-section] .c-models-title .c-count{font-size:11px;color:var(--c-faint)}
+[data-providers-section] .c-models-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+[data-providers-section] .c-models-actions .c-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-height:34px;padding:6px 10px!important;font-size:12px;line-height:1;white-space:nowrap}
+[data-providers-section] .c-models-actions .c-btn .c-ico{display:block;flex:none;width:14px;height:14px}
+[data-providers-section] .c-models-actions .c-btn.quiet{border-color:transparent!important;background:transparent!important}
+[data-providers-section] .c-models-actions .c-btn.quiet:hover{background:var(--c-hover)!important}
+[data-providers-section] .c-models-actions .c-btn[disabled]{opacity:.5;cursor:default}
+[data-providers-section] .c-models-hint{margin:0 0 12px;font-size:11px;color:var(--c-faint)}
+[data-providers-section] .c-full [data-c-own=add]{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px!important;width:auto!important;max-width:100%;align-self:flex-start;min-height:34px;padding:6px 10px!important;font-size:12px}
+[data-providers-section] .c-full [data-c-own=add] .c-ico{display:block;flex:none;width:14px;height:14px}
 [data-providers-section] .c-plugin .c-sort{min-width:96px}
 [data-providers-section] .c-full [data-sortable-move]{display:none!important}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:44px minmax(0,1fr)!important;align-items:center}
@@ -95,8 +106,8 @@ export const settingsCCss = `
  [data-providers-section] .c-full{max-width:none;margin:0}
  [data-providers-section] .c-account{flex-wrap:wrap;gap:10px}
  [data-providers-section] .c-quota-meta{flex-direction:column;align-items:flex-start;gap:4px}
- [data-providers-section] .c-model-head{flex-wrap:wrap;gap:8px}
- [data-providers-section] .c-model-head>div:first-child{width:100%}
+ [data-providers-section] .c-models-head{gap:8px}
+ [data-providers-section] .c-models-title{width:100%}
  [data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px!important;column-gap:6px}
  [data-providers-section] .c-full [data-provider-model]>button[aria-expanded]{grid-column:3;grid-row:1}
  [data-providers-section] .c-full [data-provider-model]>button:not([aria-expanded]){grid-column:3;grid-row:2}
@@ -110,7 +121,7 @@ export const settingsCCss = `
  [data-providers-section] .c-full [data-provider-model]>button{grid-row:1/span 4;grid-column:2}
  [data-providers-section] .c-account{flex-direction:column!important;align-items:flex-start!important}
  [data-providers-section] .c-plugin .c-sort{min-width:0!important}
- [data-providers-section] .c-model-head button{padding:6px 10px!important}
+ [data-providers-section] .c-models-actions .c-btn{padding:6px 8px!important}
  [data-providers-section] .c-detail-title .c-name{font-size:16px}
  [data-providers-section] .c-quota-head h3{font-size:12px}
 }

@@ -183,7 +183,156 @@ function paintSections(root: HTMLElement, t: (key: ProviderSectionLocaleKey) => 
   })
 }
 
-function paintModels(root: HTMLElement, sorting: boolean): void {
+const MODEL_ICONS = {
+  sliders: 'M2 4h12M2 12h12M5 2v4M11 10v4',
+  sort: 'M5 2v12m-3-3 3 3 3-3M11 14V2m-3 3 3-3 3 3',
+  check: 'M3 8l3 3 7-7',
+  plus: 'M8 3v10M3 8h10',
+}
+
+function modelSection(root: HTMLElement): HTMLElement | undefined {
+  return [...root.querySelectorAll('section')].find(node => /model|模型|catalog|目录/iu.test(node.getAttribute('aria-label') ?? ''))
+}
+
+function rowToggles(section: HTMLElement): HTMLElement[] {
+  return [...section.querySelectorAll('[data-provider-model] button[aria-expanded]')].filter((node): node is HTMLElement => node instanceof HTMLElement)
+}
+
+const SORT_TEXT = /^(?:Sort|Done|Done sorting|排序|完成排序)$/u
+const CATALOG_TEXT = /fetch|choose|获取|从账户/iu
+const ADD_TEXT = /add model|手动添加/iu
+
+/** Plugin-owned action in the models header, ignoring our own injected buttons. */
+function pluginAction(section: HTMLElement, matcher: RegExp): HTMLElement | undefined {
+  return [...section.querySelectorAll('button')].find(node => node instanceof HTMLElement
+    && node.closest('[data-provider-model]') === null
+    && node.getAttribute('data-c-own') === null
+    && matcher.test((node.textContent ?? '').replace(/\s+/gu, ' ').trim()))
+}
+
+function markChrome(node: HTMLElement | null | undefined, kind: string): void {
+  if (node !== null && node !== undefined && node.getAttribute('data-c-plugin-chrome') !== kind) node.setAttribute('data-c-plugin-chrome', kind)
+}
+
+function ownButton(action: string, icon: string, label: string, quiet: boolean): HTMLButtonElement {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = quiet ? 'c-btn quiet' : 'c-btn'
+  button.setAttribute('data-c-own', action)
+  button.append(svgIcon(icon))
+  const span = document.createElement('span')
+  span.className = 'c-label'
+  span.textContent = label
+  button.append(span)
+  return button
+}
+
+function setOwnButton(button: HTMLButtonElement, icon: string, label: string, disabled: boolean): void {
+  const span = button.querySelector('.c-label')
+  if (span instanceof HTMLElement && span.textContent !== label) span.textContent = label
+  const path = button.querySelector('svg path')
+  if (path instanceof SVGPathElement && path.getAttribute('d') !== icon) path.setAttribute('d', icon)
+  if (button.disabled !== disabled) button.disabled = disabled
+}
+
+/** Prototype C models header. Ours owns the title, count, hint and the three actions;
+ * the plugin's own chrome is hidden and our buttons forward clicks to it, so every
+ * provider shows the same copy, icons and geometry. */
+function paintModelsChrome(section: HTMLElement): void {
+  const rows = rowToggles(section)
+  const sectionToggle = [...section.querySelectorAll('button[aria-expanded]')].find(node => node instanceof HTMLElement && node.closest('[data-provider-model]') === null)
+  if (rows.length === 0 && sectionToggle instanceof HTMLElement) sectionToggle.click()
+  markChrome(sectionToggle instanceof HTMLElement ? sectionToggle : null, 'toggle')
+
+  const sortButton = pluginAction(section, SORT_TEXT)
+  const catalogButton = pluginAction(section, CATALOG_TEXT)
+  const addButton = pluginAction(section, ADD_TEXT)
+  markChrome(sortButton, 'sort')
+  markChrome(catalogButton, 'catalog')
+  markChrome(addButton, 'add')
+
+  let pluginHead = section.querySelector('[data-c-plugin-chrome="header"]')
+  if (!(pluginHead instanceof HTMLElement)) {
+    const found = [...section.children].find(node => node instanceof HTMLElement
+      && node.tagName === 'DIV'
+      && node.querySelector('[data-provider-model]') === null
+      && node.querySelectorAll('button').length > 0)
+    pluginHead = found instanceof HTMLElement ? found : null
+  }
+  markChrome(pluginHead instanceof HTMLElement ? pluginHead : undefined, 'header')
+  // ponytail: document lang is the primary signal; the plugin's own copy covers a mis-set lang.
+  const zh = isZh() || /[\u4e00-\u9fff]/u.test(pluginHead instanceof HTMLElement ? (pluginHead.textContent ?? '') : '')
+  for (const child of section.children) {
+    if (child instanceof HTMLElement && child.tagName === 'P' && child.getAttribute('data-c-models-hint') === null) markChrome(child, 'hint')
+  }
+
+  const head = ensureModelsHead(section, zh)
+  const countText = zh ? String(rows.length) + ' 个' : String(rows.length)
+  if (head.count.textContent !== countText) head.count.textContent = countText
+  const allOpen = rows.length > 0 && rows.every(row => row.getAttribute('aria-expanded') === 'true')
+  setOwnButton(head.expand, MODEL_ICONS.sliders, allOpen ? (zh ? '全部收起' : 'Collapse all') : (zh ? '全部展开' : 'Expand all'), false)
+  const done = sortButton !== undefined && /done|完成/iu.test((sortButton.textContent ?? '').trim())
+  setOwnButton(head.sort, done ? MODEL_ICONS.check : MODEL_ICONS.sort, done ? (zh ? '完成排序' : 'Done sorting') : (zh ? '排序' : 'Sort'), sortButton === undefined || sortButton.hasAttribute('disabled'))
+  setOwnButton(head.catalog, MODEL_ICONS.plus, zh ? '从账户目录选取' : 'Choose from account', catalogButton === undefined || catalogButton.hasAttribute('disabled'))
+
+  let addOwn = section.querySelector('[data-c-own="add"]')
+  if (!(addOwn instanceof HTMLButtonElement)) {
+    addOwn = ownButton('add', MODEL_ICONS.plus, zh ? '手动添加模型' : 'Add model manually', false)
+    addOwn.addEventListener('click', () => { pluginAction(section, ADD_TEXT)?.click() })
+    ;(addButton?.parentElement ?? section).append(addOwn)
+  } else {
+    setOwnButton(addOwn, MODEL_ICONS.plus, zh ? '手动添加模型' : 'Add model manually', false)
+  }
+}
+
+function ensureModelsHead(section: HTMLElement, zh: boolean): { head: HTMLElement, count: HTMLElement, expand: HTMLButtonElement, sort: HTMLButtonElement, catalog: HTMLButtonElement } {
+  const found = section.querySelector('[data-c-models-head]')
+  if (found instanceof HTMLElement) {
+    const count = found.querySelector('[data-c-count]')
+    const expand = found.querySelector('[data-c-own="expand"]')
+    const sort = found.querySelector('[data-c-own="sort"]')
+    const catalog = found.querySelector('[data-c-own="catalog"]')
+    if (count instanceof HTMLElement && expand instanceof HTMLButtonElement && sort instanceof HTMLButtonElement && catalog instanceof HTMLButtonElement) {
+      return { head: found, count, expand, sort, catalog }
+    }
+  }
+  const head = document.createElement('div')
+  head.className = 'c-models-head'
+  head.setAttribute('data-c-models-head', '')
+  const title = document.createElement('div')
+  title.className = 'c-models-title'
+  const heading = document.createElement('h3')
+  heading.textContent = zh ? '模型' : 'Models'
+  const count = document.createElement('span')
+  count.className = 'c-count'
+  count.setAttribute('data-c-count', '')
+  title.append(heading, count)
+  const actions = document.createElement('div')
+  actions.className = 'c-models-actions'
+  const expand = ownButton('expand', MODEL_ICONS.sliders, zh ? '全部展开' : 'Expand all', true)
+  const sort = ownButton('sort', MODEL_ICONS.sort, zh ? '排序' : 'Sort', true)
+  const catalog = ownButton('catalog', MODEL_ICONS.plus, zh ? '从账户目录选取' : 'Choose from account', false)
+  actions.append(expand, sort, catalog)
+  head.append(title, actions)
+  const hint = document.createElement('p')
+  hint.className = 'c-models-hint'
+  hint.setAttribute('data-c-models-hint', '')
+  hint.textContent = zh ? '名称和 ID 始终显示；展开箭头查看容量与能力参数。' : 'Names and IDs always show; expand a row for capacity and capability parameters.'
+  expand.addEventListener('click', () => {
+    const current = rowToggles(section)
+    const collapsed = current.filter(row => row.getAttribute('aria-expanded') === 'false')
+    const open = current.filter(row => row.getAttribute('aria-expanded') === 'true')
+    for (const row of collapsed.length > 0 ? collapsed : open) row.click()
+  })
+  sort.addEventListener('click', () => { pluginAction(section, SORT_TEXT)?.click() })
+  catalog.addEventListener('click', () => { pluginAction(section, CATALOG_TEXT)?.click() })
+  const anchor = section.querySelector('[data-c-plugin-chrome="header"]') ?? section.firstElementChild ?? null
+  section.insertBefore(head, anchor)
+  section.insertBefore(hint, head.nextSibling)
+  return { head, count, expand, sort, catalog }
+}
+
+function paintModels(root: HTMLElement): void {
   root.querySelectorAll('[data-provider-model] input').forEach(node => {
     if (!(node instanceof HTMLInputElement)) return
     if (node.previousElementSibling?.classList.contains('c-field-label') === true) return
@@ -192,60 +341,12 @@ function paintModels(root: HTMLElement, sorting: boolean): void {
     label.textContent = node.placeholder.length > 0 ? node.placeholder : (node.getAttribute('aria-label') ?? '')
     node.parentElement?.insertBefore(label, node)
   })
-  const section = [...root.querySelectorAll('section')].find(node => /model|模型|catalog|目录/iu.test(node.getAttribute('aria-label') ?? ''))
-  if (!(section instanceof HTMLElement)) return
-  const head = section.firstElementChild
-  if (head instanceof HTMLElement && head.tagName === 'DIV') head.classList.add('c-model-head')
-  const rows = [...section.querySelectorAll('[data-provider-model] button[aria-expanded]')].filter((node): node is HTMLElement => node instanceof HTMLElement)
-  const existing = section.querySelector('[data-c-expand]')
-  let button = existing instanceof HTMLButtonElement ? existing : undefined
-  if (button === undefined) {
-    const sortButton = [...section.querySelectorAll('button')].find(node => /^(?:Sort|排序)$/u.test((node.textContent ?? '').trim()))
-    if (!(sortButton instanceof HTMLElement) || sortButton.parentElement === null) return
-    button = document.createElement('button')
-    button.type = 'button'
-    button.className = 'c-btn quiet'
-    button.setAttribute('data-c-expand', '')
-    button.addEventListener('click', () => {
-      const collapsed = rows.filter(row => row.getAttribute('aria-expanded') === 'false')
-      const open = rows.filter(row => row.getAttribute('aria-expanded') === 'true')
-      for (const row of collapsed.length > 0 ? collapsed : open) row.click()
-    })
-    sortButton.parentElement.insertBefore(button, sortButton)
-  }
-  const allOpen = rows.length > 0 && rows.every(row => row.getAttribute('aria-expanded') === 'true')
-  const text = allOpen ? (isZh() ? '全部收起' : 'Collapse all') : (isZh() ? '全部展开' : 'Expand all')
-  if (button.dataset.cExpandLabel !== text) {
-    button.dataset.cExpandLabel = text
-    button.replaceChildren(svgIcon('M2 5h12M2 11h12M6 3v4M10 9v4'), document.createTextNode(' ' + text))
-  }
-  button.hidden = sorting
+  const section = modelSection(root)
+  if (section === undefined) return
+  paintModelsChrome(section)
 }
 
-function paintCatalogSort(root: HTMLElement): void {
-  root.querySelectorAll('section[aria-label] button').forEach(node => {
-    if (!(node instanceof HTMLButtonElement) || node.closest('[data-provider-model]') !== null) return
-    const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim()
-    const sort = /^(Sort|排序)$/u.test(text)
-    const done = /^(Done|Done sorting|完成排序)$/u.test(text)
-    if (!sort && !done) return
-    node.classList.add('c-sort')
-    if (node.querySelector('svg.c-ico') !== null) return
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    svg.setAttribute('class', 'c-ico')
-    svg.setAttribute('viewBox', '0 0 16 16')
-    svg.setAttribute('fill', 'none')
-    svg.setAttribute('stroke', 'currentColor')
-    svg.setAttribute('stroke-width', '1.3')
-    svg.setAttribute('stroke-linecap', 'round')
-    svg.setAttribute('stroke-linejoin', 'round')
-    svg.setAttribute('aria-hidden', 'true')
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    path.setAttribute('d', sort ? 'M5 2v12m-3-3 3 3 3-3M11 14V2m-3 3 3-3 3 3' : 'M3 8l3 3 7-7')
-    svg.append(path)
-    node.insertBefore(svg, node.firstChild)
-  })
-}
+
 
 function paintAccount(section: HTMLElement, t: (key: ProviderSectionLocaleKey) => string, linked: 'connected' | 'configured' | 'unconnected'): void {
   section.classList.add('c-account')
@@ -339,10 +440,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         const expander = root.querySelector('button[aria-expanded="false"]')
         if (expander instanceof HTMLElement && expander.closest('[data-provider-card-header]') === null) expander.click()
       }
-      const sorting = root.querySelector('[data-sortable-handle]:not([hidden])') !== null
       paintSections(root, t, linked)
-      paintModels(root, sorting)
-      paintCatalogSort(root)
+      paintModels(root)
       paintOrder(root)
       if (root.querySelector('[data-provider-body]')) root.setAttribute('data-ready', '')
     }
