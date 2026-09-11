@@ -96,6 +96,119 @@ function IconRefresh(): ReactNode {
   return <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 6a5.2 5.2 0 1 0 .1 4M13 2v4H9" /></svg>
 }
 
+function svgIcon(path: string): SVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', 'c-ico')
+  svg.setAttribute('viewBox', '0 0 16 16')
+  svg.setAttribute('fill', 'none')
+  svg.setAttribute('stroke', 'currentColor')
+  svg.setAttribute('stroke-width', '1.3')
+  svg.setAttribute('stroke-linecap', 'round')
+  svg.setAttribute('stroke-linejoin', 'round')
+  svg.setAttribute('aria-hidden', 'true')
+  const node = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  node.setAttribute('d', path)
+  svg.append(node)
+  return svg
+}
+
+function isZh(): boolean {
+  return typeof document !== 'undefined' && document.documentElement.lang.toLowerCase().startsWith('zh')
+}
+
+/** Real flex items of the detail column: display:contents wrappers collapse into it. */
+function flexItems(root: HTMLElement): HTMLElement[] {
+  const items: HTMLElement[] = []
+  const walk = (node: HTMLElement): void => {
+    for (const child of node.children) {
+      if (!(child instanceof HTMLElement)) continue
+      if (child.tagName === 'STYLE' || child.tagName === 'SCRIPT') continue
+      if (getComputedStyle(child).display === 'contents') { walk(child); continue }
+      items.push(child)
+    }
+  }
+  walk(root)
+  return items
+}
+
+/** Prototype C reading order: intro, notice, account, quota, models, advanced, footer, draft bar. */
+function orderOf(item: HTMLElement): number {
+  if (item.matches('.c-crumb')) return 1
+  if (item.matches('.c-detail-title')) return 2
+  if (item.matches('.c-account-head')) return 5
+  if (item.classList.contains('c-account')) return 6
+  if (item.hasAttribute('data-c-quota')) return 7
+  if (item.tagName === 'SECTION') {
+    const label = item.getAttribute('aria-label') ?? ''
+    if (/usage|用量/iu.test(label)) return 99
+    if (/model|模型|catalog|目录/iu.test(label)) return 8
+    return 6
+  }
+  if (item.tagName === 'DETAILS') return 10
+  if (item.tagName === 'P') return 3
+  const label = item.textContent ?? ''
+  if (item.querySelectorAll('button').length > 0 && /discard|save|放弃|保存|reload|载入|重载/iu.test(label)) return 12
+  if (item.querySelectorAll('button').length === 0 && /[·]\s*v?\d|\bv\d+\.\d+/u.test(label)) return 11
+  return 4
+}
+
+function paintOrder(root: HTMLElement): void {
+  for (const item of flexItems(root)) {
+    const next = String(orderOf(item))
+    if (item.style.order !== next) item.style.order = next
+  }
+}
+
+function paintSections(root: HTMLElement, t: (key: ProviderSectionLocaleKey) => string, linked: 'connected' | 'configured' | 'unconnected'): void {
+  root.querySelectorAll('section').forEach(node => {
+    if (!(node instanceof HTMLElement) || node.hasAttribute('data-c-quota')) return
+    const label = node.getAttribute('aria-label') ?? ''
+    if (/usage|用量/iu.test(label)) {
+      node.hidden = true
+      return
+    }
+    if (/model|模型|catalog|目录/iu.test(label)) return
+    paintAccount(node, t, linked)
+  })
+}
+
+function paintModels(root: HTMLElement, sorting: boolean): void {
+  root.querySelectorAll('[data-provider-model] input').forEach(node => {
+    if (!(node instanceof HTMLInputElement)) return
+    if (node.previousElementSibling?.classList.contains('c-field-label') === true) return
+    const label = document.createElement('span')
+    label.className = 'c-field-label'
+    label.textContent = node.placeholder.length > 0 ? node.placeholder : (node.getAttribute('aria-label') ?? '')
+    node.parentElement?.insertBefore(label, node)
+  })
+  const section = [...root.querySelectorAll('section')].find(node => /model|模型|catalog|目录/iu.test(node.getAttribute('aria-label') ?? ''))
+  if (!(section instanceof HTMLElement)) return
+  const rows = [...section.querySelectorAll('[data-provider-model] button[aria-expanded]')].filter((node): node is HTMLElement => node instanceof HTMLElement)
+  const existing = section.querySelector('[data-c-expand]')
+  let button = existing instanceof HTMLButtonElement ? existing : undefined
+  if (button === undefined) {
+    const sortButton = [...section.querySelectorAll('button')].find(node => /^(?:Sort|排序)$/u.test((node.textContent ?? '').trim()))
+    if (!(sortButton instanceof HTMLElement) || sortButton.parentElement === null) return
+    button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'c-btn quiet'
+    button.setAttribute('data-c-expand', '')
+    button.addEventListener('click', () => {
+      const collapsed = rows.filter(row => row.getAttribute('aria-expanded') === 'false')
+      const open = rows.filter(row => row.getAttribute('aria-expanded') === 'true')
+      for (const row of collapsed.length > 0 ? collapsed : open) row.click()
+    })
+    sortButton.parentElement.insertBefore(button, sortButton)
+  }
+  const allOpen = rows.length > 0 && rows.every(row => row.getAttribute('aria-expanded') === 'true')
+  const text = allOpen ? (isZh() ? '全部收起' : 'Collapse all') : (isZh() ? '全部展开' : 'Expand all')
+  if (button.dataset.cExpandLabel !== text) {
+    button.dataset.cExpandLabel = text
+    button.replaceChildren(svgIcon('M2 5h12M2 11h12M6 3v4M10 9v4'), document.createTextNode(' ' + text))
+  }
+  button.hidden = sorting
+}
+
 function paintCatalogSort(root: HTMLElement): void {
   root.querySelectorAll('section[aria-label] button').forEach(node => {
     if (!(node instanceof HTMLButtonElement) || node.closest('[data-provider-model]') !== null) return
@@ -205,24 +318,19 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     if (detail === undefined) return
     const root = document.querySelector('[data-providers-section] .c-full')
     if (!(root instanceof HTMLElement)) return
+    const linked = linkState(detail, props.accountOf?.(detail), props.usageSummaries?.find(entry => entry.providerKey === detail))
     const paint = (): void => {
       const header = root.querySelector('[data-provider-card-header]')
       if (header instanceof HTMLElement && header.getAttribute('aria-expanded') !== 'true') header.click()
       if (root.querySelector('[data-provider-model]') === null) {
-        const catalog = root.querySelector('section[aria-label*="model" i] button[aria-expanded="false"], section[aria-label*="模型"] button[aria-expanded="false"]')
-        if (catalog instanceof HTMLElement) catalog.click()
+        const expander = root.querySelector('button[aria-expanded="false"]')
+        if (expander instanceof HTMLElement && expander.closest('[data-provider-card-header]') === null) expander.click()
       }
-      root.querySelectorAll('section[aria-label]').forEach(section => {
-        if (!(section instanceof HTMLElement)) return
-        const label = section.getAttribute('aria-label') ?? ''
-        if (/usage|用量/i.test(label)) {
-          section.hidden = true
-          return
-        }
-        if (/model|模型|catalog/i.test(label)) return
-        paintAccount(section, t, linkState(detail, props.accountOf?.(detail), props.usageSummaries?.find(entry => entry.providerKey === detail)))
-      })
+      const sorting = root.querySelector('[data-sortable-handle]:not([hidden])') !== null
+      paintSections(root, t, linked)
+      paintModels(root, sorting)
       paintCatalogSort(root)
+      paintOrder(root)
       if (root.querySelector('[data-provider-body]')) root.setAttribute('data-ready', '')
     }
     paint()

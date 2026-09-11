@@ -44,12 +44,7 @@ export const settingsCCss = `
 [data-providers-section] .c-crumb button{font-size:11px;color:var(--c-muted);padding:0;display:flex;align-items:center;gap:5px}
 [data-providers-section] .c-full{display:flex;flex-direction:column;max-width:650px;margin:0 auto}
 [data-providers-section] .c-plugin,[data-providers-section] .c-plugin [data-provider-slot],[data-providers-section] .c-plugin [data-provider-card],[data-providers-section] .c-plugin [data-provider-body]{display:contents!important}
-[data-providers-section] .c-detail-title{order:0}
-[data-providers-section] .c-plugin [data-provider-body]>p{order:1;margin:0 0 16px;color:var(--c-muted);font-size:12px}
-[data-providers-section] .c-account-head{order:2}
-[data-providers-section] .c-account{order:3}
-[data-providers-section] [data-c-quota]{order:4}
-[data-providers-section] .c-plugin section[aria-label*=model i],[data-providers-section] .c-plugin section[aria-label*=模型]{order:5}
+[data-providers-section] .c-plugin [data-provider-body]>p{margin:0 0 16px;color:var(--c-muted);font-size:12px}
 [data-providers-section] .c-full:not([data-ready]) [data-provider-body]>*{visibility:hidden}
 [data-providers-section] .c-detail-title{padding:0 0 16px;border-bottom:1px solid var(--c-line);margin-bottom:16px}
 [data-providers-section] .c-detail-title .c-name{font-size:18px}
@@ -72,9 +67,19 @@ export const settingsCCss = `
 [data-providers-section] .c-plugin .c-sort{min-width:96px}
 [data-providers-section] .c-full [data-sortable-move]{display:none!important}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:44px minmax(0,1fr)!important;align-items:center}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto!important;align-items:center;gap:8px}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model] button[aria-expanded]{display:none!important}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model] input{pointer-events:none;opacity:.55;background:var(--c-subtle);color:var(--c-muted)}
+[data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 32px auto!important;align-items:center!important;column-gap:8px;row-gap:4px;padding:10px 8px!important}
+[data-providers-section] .c-full [data-provider-model]>.c-field-label{grid-row:1;font-size:11px;color:var(--c-muted);line-height:1.2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(1){grid-column:1}
+[data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(2){grid-column:2}
+[data-providers-section] .c-full [data-provider-model]>input:nth-of-type(1){grid-column:1;grid-row:2}
+[data-providers-section] .c-full [data-provider-model]>input:nth-of-type(2){grid-column:2;grid-row:2}
+[data-providers-section] .c-full [data-provider-model]>button{grid-row:1/span 2;align-self:center}
+[data-providers-section] .c-full [data-provider-model]>button[aria-expanded]{grid-column:3}
+[data-providers-section] .c-full [data-provider-model]>button:not([aria-expanded]){grid-column:4}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto!important}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]>button[aria-expanded]{display:none!important}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]>button:not([aria-expanded]){grid-column:3}
+[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model] input{pointer-events:none;background:var(--c-subtle);color:var(--c-muted);border-color:var(--c-line)}
 [data-providers-section] .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (max-width:560px){
  [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{grid-template-columns:minmax(0,1fr);gap:10px}
