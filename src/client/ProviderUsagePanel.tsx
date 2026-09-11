@@ -195,7 +195,7 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
       {summary.windows.length === 0
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
         : summary.windows.map(quotaWindow => {
-          const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label)
+          const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' })
           const tone = usageTone(quotaWindow.remainingPercent)
           const remaining = quotaWindow.remainingPercent
           return (

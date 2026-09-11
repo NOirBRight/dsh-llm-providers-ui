@@ -57,6 +57,7 @@ export function installProviderUsage(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
   directory: ProviderDirectory,
+  onStore?: (usage: ProviderUsageStore) => void,
 ): () => void {
   let connection: ConnectionHandle
   try {
@@ -67,6 +68,7 @@ export function installProviderUsage(
     return () => {}
   }
   const usage = createProviderUsageStore(connection.rpc, key => directory.reader(key))
+  onStore?.(usage)
   let directoryGeneration = 0
   let lastConfig = ''
   const reconcile = (): void => {

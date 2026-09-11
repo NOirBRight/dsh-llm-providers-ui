@@ -1,6 +1,6 @@
 /** Settings > LLM Providers page shell. Provider cards arrive through settings.provider.item. */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type {
   PropsLocale,
@@ -10,6 +10,8 @@ import type {
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
+import { pickPrimaryWindow, type ProviderUsageSummary } from './usage.js'
+import { ProviderQuotaMeter } from './provider-ui.js'
 import { SortableList } from './SortableList.js'
 import type { ProviderHeaderOwnership, ProviderRole } from './directory.js'
 import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
@@ -43,6 +45,8 @@ export interface ProvidersSectionProps {
   headerOf?: (key: string) => ProviderHeaderOwnership
   showSidebarUsage?: boolean
   onShowSidebarUsage?: (show: boolean) => void
+  usageSummaries?: readonly ProviderUsageSummary[]
+  accountOf?: (key: string) => { connected: boolean } | undefined
 }
 
 const pageStyle: CSSProperties = {
@@ -82,11 +86,15 @@ export function bindProvidersSection(
   roleOf: (key: string) => ProviderRole,
   onShowSidebarUsage: (show: boolean) => void,
   headerOf?: (key: string) => ProviderHeaderOwnership,
+  readUsage?: () => readonly ProviderUsageSummary[],
+  subscribeUsage?: (listener: () => void) => () => void,
+  accountOf?: (key: string) => { connected: boolean } | undefined,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
     useEffect(() => subscribe(() => { bump(value => value + 1) }), [subscribe])
     const order = readOrder()
+    const usageSummaries = useSyncExternalStore(subscribeUsage ?? (() => () => undefined), readUsage ?? (() => []), readUsage ?? (() => []))
     return (
       <ProvidersSection
         renderSlot={props.renderSlot}
@@ -98,7 +106,9 @@ export function bindProvidersSection(
         roleOf={roleOf}
         showSidebarUsage={order.showSidebarUsage}
         onShowSidebarUsage={onShowSidebarUsage}
+        usageSummaries={usageSummaries}
         {...(headerOf === undefined ? {} : { headerOf })}
+        {...(accountOf === undefined ? {} : { accountOf })}
       />
     )
   }
@@ -146,10 +156,31 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           {node}
         </div>
       )
-    if (detail !== undefined) return card
+    if (detail !== undefined) {
+      const windows = props.usageSummaries?.find(summary => summary.providerKey === item.key)?.windows ?? []
+      return (
+        <div>
+          {windows.map(quotaWindow => (
+            <ProviderQuotaMeter
+              key={quotaWindow.id}
+              label={quotaWindow.label}
+              {...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent })}
+              emptyLabel={quotaWindow.valueText}
+            />
+          ))}
+          {card}
+        </div>
+      )
+    }
+    const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
+    const primary = summary === undefined ? undefined : pickPrimaryWindow(summary.windows)
+    const account = props.accountOf?.(item.key)
     return (
-      <div>
-        {card}
+      <div data-provider-row={item.key} data-provider-role={role} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
+        <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary?.name ?? item.key}</span>
+        {account === undefined ? null : <span>{account.connected ? t('connected') : t('unconnected')}</span>}
+        <span>{primary?.remainingPercent === undefined ? '\u2014' : Math.round(primary.remainingPercent) + '%'}</span>
         <button type="button" style={sortButtonStyle} data-action="open-provider" onClick={() => { setDetail(item.key) }}>{t('details')}</button>
       </div>
     )

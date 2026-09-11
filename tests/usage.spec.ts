@@ -217,11 +217,12 @@ describe('Provider Usage readers', () => {
   })
 
   it('formats reset timestamps in the system zone without inventing a date', () => {
-    expect(formatResetLabel(undefined, '每周')).toBe('每周 · 重置时间未提供')
-    expect(formatResetLabel('not-a-date', '每周')).toBe('每周 · 重置时间未提供')
-    const label = formatResetLabel('2026-09-17T00:00:00.000Z')
-    expect(label).toMatch(/^重置于 /)
-    expect(label).toMatch(/天后|小时后|分钟后|已到期/)
+    const copy = { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' }
+    expect(formatResetLabel(undefined, '每周', copy)).toBe('每周 · 重置时间未提供')
+    expect(formatResetLabel('not-a-date', '每周', copy)).toBe('每周 · 重置时间未提供')
+    const label = formatResetLabel('2026-09-17T00:00:00.000Z', undefined, copy)
+    expect(label).toMatch(/2026|9/)
+    expect(label).not.toMatch(/重置时间未提供/)
   })
 
   it('omits a CommandCode monthly bar when remaining credits exceed the plan cap', async () => {

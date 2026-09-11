@@ -114,24 +114,40 @@ export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): Usage
 }
 
 function formatRemainingDuration(ms: number): string {
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'always' })
   const days = Math.round(ms / 86_400_000)
-  if (Math.abs(days) >= 1) return days + '天后'
+  if (Math.abs(days) >= 1) return rtf.format(days, 'day')
   const hours = Math.round(ms / 3_600_000)
-  if (Math.abs(hours) >= 1) return hours + '小时后'
-  return Math.max(1, Math.round(ms / 60_000)) + '分钟后'
+  if (Math.abs(hours) >= 1) return rtf.format(hours, 'hour')
+  const minutes = Math.max(1, Math.round(Math.abs(ms) / 60_000))
+  return rtf.format(ms < 0 ? -minutes : minutes, 'minute')
 }
 
-/** Format a window reset in the browser system time zone. Missing ISO stays a period, never a fake date. */
-export function formatResetLabel(resetsAt: string | undefined, period?: string): string | undefined {
-  if (nonEmptyString(resetsAt)) {
-    const time = Date.parse(resetsAt)
-    if (Number.isFinite(time)) {
-      const when = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(time))
-      const delta = time - Date.now()
-      return '重置于 ' + when + ' · ' + (delta <= 0 ? '已到期，等待更新' : formatRemainingDuration(delta))
-    }
+export interface ResetCopy {
+  at: string
+  overdue: string
+  missing: string
+}
+
+/** System-zone instant for a reset ISO. Language copy stays in the UI. */
+export function formatResetInstant(resetsAt: string | undefined): { when: string, overdue: boolean, relative: string } | undefined {
+  if (!nonEmptyString(resetsAt)) return undefined
+  const time = Date.parse(resetsAt)
+  if (!Number.isFinite(time)) return undefined
+  const when = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(time))
+  const delta = time - Date.now()
+  return { when, overdue: delta <= 0, relative: formatRemainingDuration(delta) }
+}
+
+/** Compose a reset caption. Missing ISO never becomes a fake calendar date. */
+export function formatResetLabel(resetsAt: string | undefined, period?: string, copy?: ResetCopy): string | undefined {
+  const instant = formatResetInstant(resetsAt)
+  if (instant !== undefined) {
+    const lead = copy === undefined ? '' : (instant.overdue ? copy.overdue : copy.at)
+    return (lead + instant.when + ' · ' + instant.relative).replace(/^ · /, '')
   }
-  return period === undefined || period.length === 0 ? undefined : period + ' · 重置时间未提供'
+  if (period === undefined || period.length === 0) return undefined
+  return copy === undefined ? period : copy.missing.replace('{period}', period)
 }
 
 function windowLabel(id: string, period: unknown): string {
@@ -580,7 +596,8 @@ export function headerQuotaFromCache(summary: ProviderUsageSummary | undefined):
   if (summary === undefined) return undefined
   const quotaWindow = pickPrimaryWindow(summary.windows)
   if (quotaWindow === undefined) return undefined
-  const detail = formatResetLabel(quotaWindow.resetsAt)
+  const instant = formatResetInstant(quotaWindow.resetsAt)
+  const detail = instant === undefined ? undefined : instant.when
   return {
     label: quotaWindow.shortLabel || quotaWindow.label,
     ...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent }),

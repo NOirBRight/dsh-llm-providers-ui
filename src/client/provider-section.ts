@@ -35,6 +35,8 @@ export const copy = {
     filterAgent: 'Agent',
     details: '详情',
     overview: '返回总览',
+    connected: '已连接',
+    unconnected: '未连接',
   },
   en: {
     nav: 'LLM Providers',
@@ -53,6 +55,8 @@ export const copy = {
     filterAgent: 'Agent',
     details: 'Details',
     overview: 'Back to overview',
+    connected: 'Connected',
+    unconnected: 'Not connected',
   },
 } as const
 

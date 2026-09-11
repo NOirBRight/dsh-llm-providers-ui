@@ -17,6 +17,7 @@ describe('ProviderDirectory', () => {
 
     expect(directory.roleOf('agent-antigravity')).toBe('agent')
     expect(directory.reader('agent-antigravity')).toBe(reader)
+    expect(directory.accountOf('agent-antigravity')).toBeUndefined()
     expect(notify).toHaveBeenCalledTimes(1)
 
     unregister()
@@ -33,6 +34,13 @@ describe('ProviderDirectory', () => {
     expect(directory.headerOf('llm-codex')).toBe('shared')
     unregister()
     expect(directory.headerOf('llm-codex')).toBe('legacy')
+  })
+
+  it('reads a connected snapshot without exposing account labels', () => {
+    const directory = new ProviderDirectory()
+    directory.register({ key: 'llm-codex', account: () => ({ connected: true }) })
+    expect(directory.accountOf('llm-codex')).toEqual({ connected: true })
+    expect(directory.accountOf('llm-grok')).toBeUndefined()
   })
 
   it('notifies usage-invalidation listeners per key until disposed', () => {

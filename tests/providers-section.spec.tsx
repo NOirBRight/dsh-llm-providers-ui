@@ -47,13 +47,11 @@ describe('ProvidersSection', () => {
       registeredKeys: ['llm-cursor'],
       renderSlot,
     }))
-    expect(html).toContain('data-card="llm-cursor"')
+    expect(html).toContain('data-provider-row="llm-cursor"')
     expect(html).toContain('data-provider-role="llm"')
     expect(html).toContain('>LLM</span>')
-    expect(html).toContain('data-provider-role-badge="llm"')
-    expect(html).toContain('M5 6h6')
-    expect(html).not.toContain('border-secondary')
-    expect(html).not.toContain('position:absolute')
+    expect(html).toContain('>details</button>')
+    expect(html).not.toContain('data-card="llm-cursor"')
     expect(html).not.toContain('>sort</button>')
     expect(html).not.toContain('>subtitle<')
   })
@@ -76,10 +74,10 @@ describe('ProvidersSection', () => {
       headerOf: () => 'shared',
       renderSlot,
     }))
-    expect(html).toContain('data-card="llm-codex"')
+    expect(html).toContain('data-provider-row="llm-codex"')
     expect(html).toContain('data-provider-role="llm"')
     expect(html).toContain('role="switch"')
-    expect(html).not.toContain('>LLM</span>')
+    expect(html).toContain('>details</button>')
   })
 
   it('renders a plain divider list with hidden handles until sorting starts', () => {
