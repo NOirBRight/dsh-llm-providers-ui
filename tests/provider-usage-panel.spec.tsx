@@ -166,7 +166,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelector('.pu-rows')).toBeNull()
     expect(container.querySelector('.pu-detail')).not.toBeNull()
     expect(container.querySelector('.pu-stage-open')).not.toBeNull()
-    expect(container.querySelector('progress.pu-bar')).not.toBeNull()
+    expect(container.querySelector('[data-provider-quota], [data-provider-quota-missing]')).not.toBeNull()
     expect(container.querySelector('.pu-detail')?.getAttribute('style') ?? '').not.toContain('overflow:auto')
     click(container.querySelector('[aria-label="返回全部 Provider"]'))
     expect(container.querySelector('.pu-rows')).not.toBeNull()

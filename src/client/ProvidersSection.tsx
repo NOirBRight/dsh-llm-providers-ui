@@ -16,6 +16,7 @@ import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
 import type { ProviderHeaderOwnership, ProviderRole } from './directory.js'
 import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
+import { settingsCCss } from './settings-c-css.js'
 
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps =
@@ -50,9 +51,6 @@ export interface ProvidersSectionProps {
   accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined
 }
 
-const pageStyle: CSSProperties = {
-  display: 'flex', flexDirection: 'column', gap: 16, width: '100%',
-}
 // ponytail: the native dialog lives inside the sidebar; remove ancestry overrides once the host portals settings.
 const providerShellCss = `
 div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility:visible!important;z-index:1000!important;pointer-events:auto!important}
@@ -65,16 +63,6 @@ div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility
 }
 `
 
-const titleStyle: CSSProperties = {
-  margin: 0, color: 'var(--dsw-alias-label-primary)', fontSize: 16, fontWeight: 500, lineHeight: '24px',
-}
-const toolbarStyle: CSSProperties = { display: 'flex', justifyContent: 'flex-end' }
-const sortButtonStyle: CSSProperties = {
-  minHeight: 34, border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 18,
-  padding: '6px 14px', background: 'var(--dsw-alias-bg-layer-1)',
-  color: 'var(--dsw-alias-label-primary)', fontSize: 13, lineHeight: '20px', cursor: 'pointer',
-}
-const emptyStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: '20px' }
 const fallbackWrapStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }
 const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 
@@ -158,44 +146,95 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           {node}
         </div>
       )
-    if (detail !== undefined) {
-      const windows = props.usageSummaries?.find(summary => summary.providerKey === item.key)?.windows ?? []
-      return (
+    const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
+    const account = props.accountOf?.(item.key)
+    const linked = account?.state === 'connected' || account?.state === 'configured' || summary?.status === 'ready' || summary?.status === 'stale'
+    const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }
+    const identity = (
+      <div className="c-identity">
+        <span className="c-brand"><ProviderMark providerKey={item.key} /></span>
         <div>
-          {windows.map(quotaWindow => {
-            const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' })
-            return (
-            <ProviderQuotaMeter
-              key={quotaWindow.id}
-              label={quotaWindow.label}
-              {...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent })}
-              emptyLabel={quotaWindow.valueText}
-              {...(reset === undefined ? {} : { detail: reset })}
-            />
-            )
-          })}
-          {card}
+          <div className="c-name-line">
+            <span className="c-name">{summary?.name ?? item.key}</span>
+            <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
+          </div>
+          <div className="c-sub">
+            <span className={'c-dot' + (linked ? ' good' : '')} />
+            {account === undefined ? (linked ? t('connected') : t('unconnected')) : t(account.state)}
+          </div>
         </div>
+      </div>
+    )
+    if (detail !== undefined) {
+      const windows = summary?.windows ?? []
+      return (
+        <article className="c-full">
+          <div className="c-detail-title">{identity}</div>
+          <section>
+            <div className="c-quota-head"><h3>{t('quotaHeading')}</h3></div>
+            <div className="c-quota-list">
+              {windows.length === 0
+                ? <div className="c-missing">{summary?.status === 'unsupported' ? t('unsupportedQuota') : t('connectToSee')}</div>
+                : windows.map(quotaWindow => {
+                  const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, copy)
+                  return (
+                    <ProviderQuotaMeter
+                      key={quotaWindow.id}
+                      label={quotaWindow.label}
+                      {...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent })}
+                      emptyLabel={quotaWindow.valueText}
+                      {...(reset === undefined ? {} : { detail: reset })}
+                    />
+                  )
+                })}
+            </div>
+            <div className="c-quota-meta">
+              <span>{t('quotaMeta')}</span>
+              <span>{t('systemZone')} · {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+            </div>
+          </section>
+          {card}
+        </article>
       )
     }
-    const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
     const primary = summary === undefined ? undefined : pickPrimaryWindow(summary.windows)
-    const account = props.accountOf?.(item.key)
+    const missing = summary === undefined || summary.status === 'logged-out'
+      ? t('connectToSee')
+      : summary.status === 'unsupported'
+        ? t('unsupportedQuota')
+        : summary.status === 'loading'
+          ? t('loadingQuota')
+          : summary.status === 'error'
+            ? t('errorQuota')
+            : primary === undefined ? t('connectToSee') : undefined
+    const reset = primary === undefined ? undefined : formatResetLabel(primary.resetsAt, primary.label, copy)
     return (
-      <div data-provider-row={item.key} data-provider-role={role} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
-        <span style={{ width: 20, height: 20, flex: 'none' }}><ProviderMark providerKey={item.key} /></span>
-        <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary?.name ?? item.key}</span>
-        {account === undefined ? null : <span>{t(account.state)}</span>}
-        <span>{primary?.remainingPercent === undefined ? '\u2014' : Math.round(primary.remainingPercent) + '%'}</span>
-        <button type="button" style={sortButtonStyle} data-action="open-provider" onClick={() => { setDetail(item.key) }}>{t('details')}</button>
+      <div className="c-row-grid" data-provider-row={item.key} data-provider-role={role}>
+        <div className="c-cell">{identity}</div>
+        <div className="c-mini">
+          {missing === undefined && primary !== undefined
+            ? <ProviderQuotaMeter
+                label={primary.shortLabel || primary.label}
+                {...(primary.remainingPercent === undefined ? {} : { remainingPercent: primary.remainingPercent })}
+                emptyLabel={primary.valueText}
+                {...(reset === undefined ? {} : { detail: reset })}
+              />
+            : <div className="c-missing">{missing}</div>}
+        </div>
+        <button type="button" className="c-btn" data-action="open-provider" onClick={() => { setDetail(item.key) }}>{t('details')}</button>
       </div>
     )
   }
+  const linkedCount = keys.filter(key => {
+    const account = props.accountOf?.(key)
+    const summary = props.usageSummaries?.find(entry => entry.providerKey === key)
+    return account?.state === 'connected' || account?.state === 'configured' || summary?.status === 'ready' || summary?.status === 'stale'
+  }).length
   const body = keys.length === 0
-    ? <p style={emptyStyle}>{t('empty')}</p>
+    ? <p className="c-empty">{t('empty')}</p>
     : (
-      <div data-providers-list="">
+      <div className="c-ledger" data-providers-list="">
+        {detail === undefined ? <div className="c-labels"><span>{t('colProvider')}</span><span>{t('colQuota')}</span><span>{t('colConfig')}</span></div> : null}
         <SortableList
           chrome="plain"
           items={items}
@@ -213,40 +252,57 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     )
 
   return (
-    <div data-providers-section={PROVIDERS_LOCALE_NS} style={pageStyle}>
-      <style>{providerUiCss + providerShellCss}</style>
-      <header>
-        <h2 style={titleStyle}>{t('title')}</h2>
-      </header>
+    <div data-providers-section={PROVIDERS_LOCALE_NS} {...(sortable ? { 'data-sorting': '' } : {})}>
+      <style>{providerUiCss + providerShellCss + settingsCCss}</style>
       {detail === undefined
         ? (
-          <div style={toolbarStyle}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, fontSize: 13 }}>
-              <span>{t('sidebarToggle')}</span>
-              <input
-                type="checkbox"
-                role="switch"
-                aria-label={t('sidebarToggle')}
-                aria-describedby="sidebar-usage-hint"
-                checked={props.showSidebarUsage !== false}
-                disabled={props.disabled === true}
-                onChange={event => { props.onShowSidebarUsage?.(event.target.checked) }}
-              />
-            </label>
-            <span id="sidebar-usage-hint" style={{ fontSize: 11, color: 'var(--dsw-alias-label-tertiary)' }}>{t('sidebarToggleHint')}</span>
-            {(['all', 'llm', 'agent'] as const).map(id => (
-              <button key={id} type="button" style={sortButtonStyle} aria-pressed={filter === id} onClick={() => { setFilter(id) }}>
-                {t(id === 'all' ? 'filterAll' : id === 'llm' ? 'filterLlm' : 'filterAgent')}
-              </button>
-            ))}
-            {showToggle
-              ? <button type="button" style={sortButtonStyle} aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>{sorting ? t('done') : t('sort')}</button>
-              : null}
-          </div>
+          <>
+            <header className="c-page-title">
+              <div>
+                <h2>{t('title')}</h2>
+                <p>{t('subtitle')}</p>
+              </div>
+              {showToggle
+                ? <button type="button" className="c-btn" aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>{sorting ? t('done') : t('sort')}</button>
+                : null}
+            </header>
+            <div className="c-note">
+              <span className="c-number">{linkedCount}</span>
+              <div className="c-copy">
+                <strong>{t('connectedCount')}</strong>
+                <p>{t('connectedHint')}</p>
+              </div>
+              <label className="c-switch">
+                <span>{t('sidebarToggle')}</span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label={t('sidebarToggle')}
+                  aria-describedby="sidebar-usage-hint"
+                  checked={props.showSidebarUsage !== false}
+                  disabled={props.disabled === true}
+                  onChange={event => { props.onShowSidebarUsage?.(event.target.checked) }}
+                />
+              </label>
+              <span id="sidebar-usage-hint" className="sr-only">{t('sidebarToggleHint')}</span>
+            </div>
+            <div className="c-filters">
+              <div className="c-row">
+                {(['all', 'llm', 'agent'] as const).map(id => (
+                  <button key={id} type="button" className={'c-btn' + (filter === id ? '' : ' quiet')} aria-pressed={filter === id} onClick={() => { setFilter(id) }}>
+                    {t(id === 'all' ? 'filterAll' : id === 'llm' ? 'filterLlm' : 'filterAgent')}
+                  </button>
+                ))}
+              </div>
+              <span className="c-zone">{t('systemZone')} · {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+            </div>
+          </>
         )
         : (
-          <div style={toolbarStyle}>
-            <button type="button" style={sortButtonStyle} onClick={() => { setDetail(undefined) }}>{t('overview')}</button>
+          <div className="c-crumb">
+            <button type="button" onClick={() => { setDetail(undefined) }}>{t('breadcrumbOverview')}</button>
+            <span>/</span>
+            <span>{props.usageSummaries?.find(entry => entry.providerKey === detail)?.name ?? detail}</span>
           </div>
         )}
       {body}

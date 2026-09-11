@@ -53,7 +53,7 @@ describe('ProvidersSection', () => {
     expect(html).toContain('>details</button>')
     expect(html).not.toContain('data-card="llm-cursor"')
     expect(html).not.toContain('>sort</button>')
-    expect(html).not.toContain('>subtitle<')
+    expect(html).toContain('>subtitle</p>')
   })
 
   it('renders the Agent fallback badge for undeclared agent cards', () => {

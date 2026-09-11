@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
 import { formatResetLabel, pickPrimaryWindow, type ProviderUsageStatus, type ProviderUsageSummary, type UsageWindowSummary } from './usage.js'
+import { ProviderQuotaMeter, providerUiCss } from './provider-ui.js'
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 
 function windowValueText(quotaWindow: UsageWindowSummary): string {
@@ -56,7 +57,8 @@ const STATUS_TEXT: Record<ProviderUsageStatus, string> = {
 
 const panelCss = [
   '[data-provider-usage-panel]{display:flex;flex-direction:column;position:relative;width:100%;min-width:0;padding:6px 6px 8px;background:transparent}',
-  '[data-provider-usage-panel] .pu-head{display:flex;align-items:center;height:32px;padding:0 2px 7px}',
+  '[data-provider-usage-panel] .pu-head{display:flex;align-items:center;height:24px;padding:0 2px 4px}',
+  '[data-provider-usage-panel] .grow{flex:1;min-width:0}',
   '[data-provider-usage-panel] .pu-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550;letter-spacing:.01em;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-actions{display:flex;gap:2px;margin-left:auto}',
   '[data-provider-usage-panel] .pu-mini-spin{display:inline-block;width:9px;height:9px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:middle;animation:pu-spin .55s linear infinite}',
@@ -73,20 +75,22 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-stage-open{max-height:none;overflow:visible}',
   '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
   '[data-provider-usage-panel] .pu-cell{position:relative;min-width:0}',
-  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:40px;padding:5px 22px 5px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer;outline:none}',
+  '[data-provider-usage-panel] .pu-row{box-sizing:border-box;display:flex;align-items:center;gap:6px;width:100%;min-width:0;min-height:52px;padding:6px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:inherit;text-align:left;cursor:pointer;outline:none}',
   '[data-provider-usage-panel] .pu-row:hover{border-color:var(--dsw-alias-label-tertiary)}',
   '[data-provider-usage-panel] .pu-row:focus-visible{box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}',
-  '[data-provider-usage-panel] .pu-mark{display:grid;place-items:center;flex:none;width:18px;height:18px;overflow:hidden;opacity:.72}',
+  '[data-provider-usage-panel] .pu-mark{display:grid;place-items:center;flex:none;width:16px;height:16px;overflow:hidden}',
   '[data-provider-usage-panel] .pu-logo{display:block;width:18px;height:18px;color:var(--dsw-alias-label-secondary)}',
   '[data-provider-usage-panel] .pu-copy{display:flex;flex-direction:column;gap:0;min-width:0}',
   '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:14px;height:14px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
-  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:color-mix(in srgb,var(--dsw-alias-label-primary) 55%,var(--dsw-alias-label-secondary));font-size:10px;font-weight:500;line-height:12px}',
+  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:10px;font-weight:500;line-height:12px}',
   '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
-  '[data-provider-usage-panel] .pu-primary{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary));font-size:12px;font-weight:500;line-height:14px;font-variant-numeric:tabular-nums}',
+  '[data-provider-usage-panel] .pu-primary{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:13px;font-weight:650;line-height:16px;font-variant-numeric:tabular-nums}',
   '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:color-mix(in srgb,#c47b08 58%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
-  '[data-provider-usage-panel] .pu-detail{box-sizing:border-box;display:block;width:100%;min-width:0;padding:10px 12px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}',
-  '[data-provider-usage-panel] .pu-detail-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}',
+  '[data-provider-usage-panel] .pu-detail{box-sizing:border-box;display:flex;flex-direction:column;width:100%;min-width:0;padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}',
+  '[data-provider-usage-panel] .pu-detail-head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--dsw-alias-border-l2);flex:none}',
+  '[data-provider-usage-panel] .pu-detail-head .pu-icon-btn{width:44px;height:44px;min-height:44px}',
+  '[data-provider-usage-panel] .pu-detail-body{padding:14px 12px;display:grid;gap:17px}',
   '[data-provider-usage-panel] .pu-detail-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:550;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-detail-sub{margin:0 0 4px;color:var(--dsw-alias-label-tertiary);font-size:11px}',
   '[data-provider-usage-panel] .pu-win{display:flex;flex-direction:column;gap:5px;padding:8px 0 2px}',
@@ -171,7 +175,7 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>
         </button>
         <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} /></span>
-        <span className="pu-detail-name">{summary.name}</span>
+        <span className="pu-detail-name grow">{summary.name}</span>
         <button
           type="button"
           className={'pu-icon-btn' + (summary.refreshing === true ? ' pu-spinning' : '')}
@@ -181,24 +185,23 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
           {summary.refreshing === true ? <span className="pu-mini-spin" /> : <RefreshIcon />}
         </button>
       </div>
+      <div className="pu-detail-body">
       <div className="pu-detail-sub">剩余额度</div>
       {summary.windows.length === 0
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
         : summary.windows.map(quotaWindow => {
           const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' })
-          const low = usageLow(quotaWindow.remainingPercent)
-          const remaining = quotaWindow.remainingPercent
           return (
-            <div key={quotaWindow.id} className="pu-win">
-              <div className="pu-win-top">
-                <span className="pu-tip-label">{quotaWindow.label}</span>
-                <span className={'pu-tip-value' + (low ? ' pu-warn' : '')}>{windowValueText(quotaWindow)}</span>
-              </div>
-              {remaining === undefined ? null : <progress className={'pu-bar' + (low ? ' pu-warn' : '')} max={100} value={remaining} />}
-              {reset === undefined ? null : <div className="pu-tip-reset">重置 {reset}</div>}
-            </div>
+            <ProviderQuotaMeter
+              key={quotaWindow.id}
+              label={quotaWindow.label}
+              {...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent })}
+              emptyLabel={quotaWindow.valueText}
+              {...(reset === undefined ? {} : { detail: reset })}
+            />
           )
         })}
+      </div>
     </div>
   )
 }
@@ -265,7 +268,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
 
   return (
     <section data-provider-usage-panel aria-label="Provider Usage">
-      <style>{panelCss}</style>
+      <style>{providerUiCss + panelCss}</style>
       <div className="pu-head">
         <span className="pu-title">Provider Usage</span>
         <span className="pu-actions">
