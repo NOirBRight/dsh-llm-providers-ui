@@ -581,9 +581,10 @@ export function headerQuotaFromCache(summary: ProviderUsageSummary | undefined):
   if (summary === undefined) return undefined
   const quotaWindow = pickPrimaryWindow(summary.windows)
   if (quotaWindow === undefined) return undefined
+  const detail = formatResetLabel(quotaWindow.resetsAt)
   return {
     label: quotaWindow.shortLabel || quotaWindow.label,
     ...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent }),
-    ...(quotaWindow.resetsAt === undefined ? {} : { detail: formatResetLabel(quotaWindow.resetsAt) }),
+    ...(detail === undefined ? {} : { detail }),
   }
 }
