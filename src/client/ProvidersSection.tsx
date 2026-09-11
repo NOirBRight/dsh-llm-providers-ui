@@ -17,6 +17,7 @@ import { SortableList } from './SortableList.js'
 import type { ProviderDetailOwnership, ProviderHeaderOwnership, ProviderRole } from './directory.js'
 import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
 import { settingsCCss } from './settings-c-css.js'
+import { providerDetailCopy } from './provider-detail.js'
 
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps =
@@ -604,6 +605,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     // Migrated cards read this context and render the shared template; older cards ignore it.
     const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {
       mode: detail === undefined ? 'overview' : 'detail',
+      // The page owns the active locale; hand migrated cards the shared copy.
+      copy: props.t?.('details') === providerDetailCopy.zh.details ? providerDetailCopy.zh : providerDetailCopy.en,
       ...(summary === undefined
         ? {}
         : { usage: { status: summary.status, windows: summary.windows, ...(summary.fetchedAt === undefined ? {} : { fetchedAt: summary.fetchedAt }) } }),
