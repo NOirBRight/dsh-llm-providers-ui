@@ -116,23 +116,28 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const [sorting, setSorting] = useState(false)
   const [filter, setFilter] = useState<'all' | 'llm' | 'agent'>('all')
   const [detail, setDetail] = useState<string | undefined>(undefined)
+  const onRefresh = props.onRefresh
   useEffect(() => {
     if (detail === undefined) return
-    props.onRefresh?.(detail)
-    const id = requestAnimationFrame(() => {
+    onRefresh?.(detail)
+    let n = 0
+    let timer = 0
+    const tick = (): void => {
       const root = document.querySelector('[data-providers-section] .c-full')
-      if (!(root instanceof HTMLElement)) return
-      const header = root.querySelector('[data-provider-card-header]')
-      if (header instanceof HTMLElement && header.getAttribute('aria-expanded') === 'false') header.click()
-      root.querySelectorAll('[data-provider-model] [aria-expanded="false"]').forEach(node => {
-        if (node instanceof HTMLElement) node.click()
-      })
-      root.querySelectorAll('details:not(.advanced):not([data-advanced]):not([open]) > summary').forEach(node => {
-        if (node instanceof HTMLElement) node.click()
-      })
-    })
-    return () => cancelAnimationFrame(id)
-  }, [detail, props])
+      if (root instanceof HTMLElement) {
+        const header = root.querySelector('[data-provider-card-header]')
+        if (header instanceof HTMLElement && header.getAttribute('aria-expanded') !== 'true') header.click()
+        root.querySelectorAll('button[aria-expanded="false"]').forEach(node => {
+          if (!(node instanceof HTMLElement) || node.closest('[data-provider-card-header]')) return
+          node.click()
+        })
+      }
+      n += 1
+      if (n < 16) timer = window.setTimeout(tick, 50)
+    }
+    tick()
+    return () => { window.clearTimeout(timer) }
+  }, [detail, onRefresh])
   const showToggle = keys.length > 1 && props.disabled !== true && detail === undefined
   const sortable = sorting && showToggle
   const orderBeforeSort = useRef<readonly string[] | undefined>(undefined)
@@ -167,6 +172,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         </div>
       )
     const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
+      ?? props.usageSummaries?.find(entry => item.key.endsWith(entry.providerKey) || entry.providerKey.endsWith(item.key))
     const account = props.accountOf?.(item.key)
     const linked = account?.state === 'connected' || account?.state === 'configured' || (summary !== undefined && summary.status !== 'logged-out')
     const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }
@@ -217,6 +223,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
             </div>
           </section>
           {card}
+          <style>{'[data-providers-section] .c-full [data-provider-body],[data-providers-section] .c-full [data-provider-body][hidden]{display:flex!important;border-top:0}[data-providers-section] .c-full [data-provider-card-header]{display:none!important}[data-providers-section] .c-full [data-provider-model] [hidden]{display:block!important}'}</style>
         </article>
       )
     }
@@ -253,6 +260,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const linkedCount = keys.filter(key => {
     const account = props.accountOf?.(key)
     const summary = props.usageSummaries?.find(entry => entry.providerKey === key)
+      ?? props.usageSummaries?.find(entry => key.endsWith(entry.providerKey) || entry.providerKey.endsWith(key))
     return account?.state === 'connected' || account?.state === 'configured' || (summary !== undefined && summary.status !== 'logged-out')
   }).length
   const body = keys.length === 0
