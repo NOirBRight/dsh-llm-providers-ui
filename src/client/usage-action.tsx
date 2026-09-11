@@ -23,13 +23,16 @@ interface ProviderUsageActionFace {
   toggleVisibility: (providerKey: string, visible: boolean) => void
   showAll: () => void
   reorder: (keys: readonly string[]) => void
+  subscribeSettings: (listener: () => void) => () => void
+  readShowSidebarUsage: () => boolean
 }
 
 type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & ProviderUsageActionFace
 
 function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
   const usage = useSyncExternalStore(props.usage.subscribe, props.usage.getSnapshot, props.usage.getSnapshot)
-  if (!props.wide) return null
+  const showSidebarUsage = useSyncExternalStore(props.subscribeSettings, props.readShowSidebarUsage, props.readShowSidebarUsage)
+  if (!props.wide || !showSidebarUsage) return null
   return (
     <ProviderUsagePanel
       providers={usage.providers}
@@ -99,7 +102,11 @@ export function installProviderUsage(
     name: 'sidebar.footer.action',
     id: 'llm-providers-usage',
     order: 0,
-    inject: (): ProviderUsageActionFace => ({ usage, toggleVisibility, showAll, reorder }),
+    inject: (): ProviderUsageActionFace => ({
+      usage, toggleVisibility, showAll, reorder,
+      subscribeSettings: listener => orderScope.subscribe(listener),
+      readShowSidebarUsage: () => orderScope.getSnapshot().value?.showSidebarUsage !== false,
+    }),
   }, ProviderUsageAction))
   const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, reconcile)
   const stopSettings = orderScope.subscribe(reconcile)

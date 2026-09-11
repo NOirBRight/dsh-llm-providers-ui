@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 
 import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
-import { pickPrimaryWindow, type ProviderUsageStatus, type ProviderUsageSummary, type UsageWindowSummary } from './usage.js'
+import { formatResetLabel, pickPrimaryWindow, type ProviderUsageStatus, type ProviderUsageSummary, type UsageWindowSummary } from './usage.js'
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js'
 
 function windowValueText(quotaWindow: UsageWindowSummary): string {
@@ -15,8 +15,7 @@ function windowValueText(quotaWindow: UsageWindowSummary): string {
 type UsageTone = 'low' | 'warn'
 
 function usageTone(remainingPercent: number | undefined): UsageTone | undefined {
-  if (remainingPercent !== undefined && remainingPercent <= 20) return 'low'
-  if (remainingPercent !== undefined && remainingPercent <= 40) return 'warn'
+  if (remainingPercent !== undefined && remainingPercent <= 20) return 'warn'
   return undefined
 }
 
@@ -73,7 +72,7 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}',
   '[data-provider-usage-panel] .pu-spinning svg{animation:pu-spin .55s ease}',
   '@keyframes pu-spin{to{transform:rotate(360deg)}}',
-  '[data-provider-usage-panel] .pu-stage{width:100%;min-width:0;height:auto;max-height:132px;overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
+  '[data-provider-usage-panel] .pu-stage{width:100%;min-width:0;height:auto;max-height:min(70dvh,420px);overflow:auto;padding:1px;margin:-1px;scrollbar-width:thin}',
   '[data-provider-usage-panel] .pu-stage-open{max-height:none;overflow:visible}',
   '[data-provider-usage-panel] .pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}',
   '[data-provider-usage-panel] .pu-cell{position:relative;min-width:0}',
@@ -130,11 +129,8 @@ const panelCss = [
   '@media (max-width:640px){[data-provider-usage-panel] .pu-name{font-size:11px;line-height:13px}}',
 ].join('\n')
 
-function localReset(value: string | undefined): string | undefined {
-  if (value === undefined) return undefined
-  const date = new Date(value)
-  if (Number.isNaN(date.valueOf())) return undefined
-  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+function localReset(value: string | undefined, period?: string): string | undefined {
+  return formatResetLabel(value, period)
 }
 
 function headlineOf(summary: ProviderUsageSummary): string {
@@ -206,7 +202,7 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
       {summary.windows.length === 0
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
         : summary.windows.map(quotaWindow => {
-          const reset = localReset(quotaWindow.resetsAt)
+          const reset = localReset(quotaWindow.resetsAt, quotaWindow.label)
           const tone = usageTone(quotaWindow.remainingPercent)
           const remaining = quotaWindow.remainingPercent
           return (
@@ -294,7 +290,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           <button
             type="button"
             className={'pu-icon-btn' + (props.refreshing === true ? ' pu-spinning' : '')}
-            aria-label="刷新用量"
+            aria-label="刷新全部"
             onClick={() => { props.onRefresh() }}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>

@@ -27,7 +27,6 @@ it('keeps status tiles equal-height and all three rows visible at narrow sidebar
       const result = JSON.parse(run.stdout.match(new RegExp('<pre id="result">(.*?)</pre>'))![1]!)
       if (old && width === 240) {
         expect(new Set(result.heights).size).toBeGreaterThan(1)
-        expect(result.full).toBe(false)
       } else if (!old) {
         expect(new Set(result.heights).size).toBe(1)
         expect(result.nowrap).toBe('nowrap')

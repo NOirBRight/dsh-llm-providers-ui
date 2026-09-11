@@ -104,7 +104,7 @@ function typeSearch(container: HTMLElement, value: string): void {
 describe('ProviderUsagePanel six-provider grid', () => {
   it('renders all six providers in one grid without a 6 / 6 title count', () => {
     const html = staticHtml()
-    expect(html).toContain('height:132px')
+    expect(html).toContain('max-height:min(70dvh,420px)')
     expect(html).not.toContain('6 / 6')
     for (const name of ['Codex', 'Cursor', 'Grok', 'Ollama Cloud', 'CommandCode', 'OpenCode Go']) {
       expect(html).toContain(name)
@@ -125,7 +125,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
     expect(container.querySelector('.pu-stage')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:auto;max-height:132px;overflow:auto')
+    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:auto;max-height:min(70dvh,420px);overflow:auto')
     expect(html).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
   })
 
@@ -159,7 +159,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     click(row)
     expect(container.textContent).toContain('Provider Usage')
     expect(container.querySelector('[aria-label="选择侧栏显示的 Provider"]')).not.toBeNull()
-    expect(container.querySelector('[aria-label="刷新用量"]')).not.toBeNull()
+    expect(container.querySelector('[aria-label="刷新全部"]')).not.toBeNull()
     expect(container.textContent).toContain('剩余额度')
     expect(container.textContent).toContain('5h')
     expect(container.textContent).not.toContain('UTC')
@@ -189,7 +189,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
 
   it('lets the stage shrink to rendered rows instead of reserving three rows', () => {
     const html = staticHtml()
-    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:auto;max-height:132px')
+    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:auto;max-height:min(70dvh,420px)')
   })
 
   it.each([0, 1, 2, 3, 6])('renders exactly %i mini rows with no reserved blank rows', (count) => {
@@ -201,7 +201,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     const extra = (key: string): ProviderUsageSummary => ({ providerKey: key, name: key, status: 'ready', windows: [] })
     const html = staticHtml({ providers: [...SIX, extra('extra-a'), extra('extra-b')] })
     expect(html.match(/class="pu-row[\s"]/g) ?? []).toHaveLength(8)
-    expect(html).toContain('max-height:132px')
+    expect(html).toContain('max-height:min(70dvh,420px)')
   })
 
   it('shrinks when providers are hidden', () => {
@@ -289,7 +289,7 @@ describe('ProviderUsagePanel callbacks', () => {
   it('calls onRefresh from the refresh button', () => {
     const onRefresh = vi.fn()
     const container = mount({ onRefresh })
-    click(container.querySelector('button[aria-label="刷新用量"]'))
+    click(container.querySelector('button[aria-label="刷新全部"]'))
     expect(onRefresh).toHaveBeenCalledTimes(1)
   })
 
