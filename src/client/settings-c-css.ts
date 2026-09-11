@@ -54,16 +54,20 @@ export const settingsCCss = `
 [data-providers-section] .c-quota-meta{margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;color:var(--c-faint);font-size:10px;flex-wrap:wrap}
 [data-providers-section] .c-empty{color:var(--c-faint);font-size:13px}
 [data-providers-section] .c-full [data-provider-card-header]{display:none!important}
-[data-providers-section] .c-full [data-provider-body],[data-providers-section] .c-full [data-provider-body][hidden]{display:flex!important;border-top:0;padding-top:8px}
+[data-providers-section] .c-full [data-provider-body],[data-providers-section] .c-full [data-provider-body][hidden]{display:contents!important}
+[data-providers-section] .c-full [data-provider-card]{display:contents!important}
 [data-providers-section] .c-plugin [data-provider-quota],[data-providers-section] .c-plugin [data-provider-quota-mini],[data-providers-section] .c-plugin [data-provider-quota-missing]{display:none!important}
 [data-providers-section] .c-plugin *:has(> [data-provider-quota]),[data-providers-section] .c-plugin *:has(> [data-provider-quota-mini]){display:none!important}
 [data-providers-section] .c-plugin section[aria-label*=usage i],[data-providers-section] .c-plugin section[aria-label*=Usage],[data-providers-section] .c-plugin section[aria-label*=用量]{display:none!important}
-[data-providers-section] .c-account{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px!important;border:1px solid var(--c-line);border-radius:12px;background:var(--c-subtle);margin:0 0 22px;min-height:0}
-[data-providers-section] .c-account-head{margin:4px 0 10px;font-size:13px;font-weight:650}
-[data-providers-section] .c-account-copy{flex:1;min-width:0}
-[data-providers-section] .c-account-name{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
-[data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint)}
+[data-providers-section] .c-account{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;text-align:left!important;gap:12px;padding:12px 14px!important;border:1px solid var(--c-line);border-radius:12px;background:var(--c-subtle);margin:0 0 22px;min-height:0}
+[data-providers-section] .c-account-head{margin:22px 0 10px;font-size:13px;font-weight:650}
+[data-providers-section] .c-account-copy{display:block!important;flex:1 1 auto;min-width:0;text-align:left!important}
+[data-providers-section] .c-account-name{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px;font-size:13px;font-weight:600;text-align:left!important}
+[data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint);text-align:left!important}
 [data-providers-section] .c-account button{flex:none;min-height:34px}
+[data-providers-section] .c-model-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px;flex-wrap:nowrap!important;margin:0 0 12px}
+[data-providers-section] .c-model-head>div:first-child{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}
+[data-providers-section] .c-model-head button{flex:none;white-space:nowrap;min-height:34px}
 [data-providers-section] .c-plugin .c-sort{min-width:96px}
 [data-providers-section] .c-full [data-sortable-move]{display:none!important}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:44px minmax(0,1fr)!important;align-items:center}

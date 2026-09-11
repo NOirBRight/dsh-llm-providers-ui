@@ -142,7 +142,8 @@ function orderOf(item: HTMLElement): number {
     const label = item.getAttribute('aria-label') ?? ''
     if (/usage|用量/iu.test(label)) return 99
     if (/model|模型|catalog|目录/iu.test(label)) return 8
-    return 6
+    if (item.classList.contains('c-account')) return 6
+    return 9
   }
   if (item.tagName === 'DETAILS') return 10
   if (item.tagName === 'P') return 3
@@ -160,6 +161,10 @@ function paintOrder(root: HTMLElement): void {
 }
 
 function paintSections(root: HTMLElement, t: (key: ProviderSectionLocaleKey) => string, linked: 'connected' | 'configured' | 'unconnected'): void {
+  root.querySelectorAll('.c-account-head').forEach(head => {
+    const next = head.nextElementSibling
+    if (!(next instanceof HTMLElement) || !next.classList.contains('c-account')) head.remove()
+  })
   root.querySelectorAll('section').forEach(node => {
     if (!(node instanceof HTMLElement) || node.hasAttribute('data-c-quota')) return
     const label = node.getAttribute('aria-label') ?? ''
@@ -168,6 +173,12 @@ function paintSections(root: HTMLElement, t: (key: ProviderSectionLocaleKey) => 
       return
     }
     if (/model|模型|catalog|目录/iu.test(label)) return
+    const isAccount = /signed in|account|账号|已连接|已配置|未连接|configured|not connected/iu.test(label)
+      || [...node.querySelectorAll('button')].some(button => /sign in|sign out|log in|log out|登录|退出|manage|管理/iu.test(button.textContent ?? ''))
+    if (!isAccount) {
+      node.classList.remove('c-account')
+      return
+    }
     paintAccount(node, t, linked)
   })
 }
@@ -183,6 +194,8 @@ function paintModels(root: HTMLElement, sorting: boolean): void {
   })
   const section = [...root.querySelectorAll('section')].find(node => /model|模型|catalog|目录/iu.test(node.getAttribute('aria-label') ?? ''))
   if (!(section instanceof HTMLElement)) return
+  const head = section.firstElementChild
+  if (head instanceof HTMLElement && head.tagName === 'DIV') head.classList.add('c-model-head')
   const rows = [...section.querySelectorAll('[data-provider-model] button[aria-expanded]')].filter((node): node is HTMLElement => node instanceof HTMLElement)
   const existing = section.querySelector('[data-c-expand]')
   let button = existing instanceof HTMLButtonElement ? existing : undefined
