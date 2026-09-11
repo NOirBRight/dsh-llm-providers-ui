@@ -1,4 +1,19 @@
 # Changelog
+
+## [0.1.12] - 2026-09-10
+
+- Shared model catalog editor and picker (`./model-catalog`). Generic patches keep `contextWindow`. Optional input/output fields and tri-state capabilities stay caller-opted.
+
+## [0.1.11] - 2026-09-09
+
+- Keep last-good sidebar quota visible across a configure that temporarily has no readers.
+
+## [0.1.10] - 2026-09-07
+
+- Shared Provider headers, quota minis, role marks, and theme-adaptive vendor icons.
+- Three complete compact quota rows with single-line status and unrestricted expanded details.
+- Narrow settings layout and declaration consumers verified against the packaged public interfaces.
+
 ## [0.1.7] - 2026-09-05
 
 ### Changed

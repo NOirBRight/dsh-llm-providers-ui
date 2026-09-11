@@ -1,6 +1,6 @@
 /** Settings > LLM Providers page shell. Provider cards arrive through settings.provider.item. */
 
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type {
   PropsLocale,
@@ -11,6 +11,8 @@ import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-setti
 import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
 import { SortableList } from './SortableList.js'
+import type { ProviderHeaderOwnership, ProviderRole } from './directory.js'
+import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
 
 /** Props composed by the official settings.section and child-slot contracts. */
 type ProvidersSectionSlotProps =
@@ -31,23 +33,43 @@ export interface ProvidersSectionProps {
   savedOrder?: readonly string[]
   /** Persist a new card order. */
   onReorder?: (keys: string[]) => void
-  /** Disable dragging while settings are not writable. */
+  /** Disable sorting while settings are not writable. */
   disabled?: boolean
   /** Shell close affordance from the official settings.section owner props. */
   close?: SettingsSectionOwnerProps['close']
+  /** Resolve the shell-owned badge for a Provider card. */
+  roleOf?: (key: string) => ProviderRole
+  /** Resolve who renders a Provider header. Shared cards own their badge; legacy cards keep the shell fallback. */
+  headerOf?: (key: string) => ProviderHeaderOwnership
 }
 
 const pageStyle: CSSProperties = {
   display: 'flex', flexDirection: 'column', gap: 16, width: '100%',
 }
+// ponytail: the native dialog lives inside the sidebar; remove ancestry overrides once the host portals settings.
+const providerShellCss = `
+div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility:visible!important;z-index:1000!important;pointer-events:auto!important}
+@media(max-width:680px){
+ [role="dialog"]:has([data-providers-section]){flex-direction:column;width:calc(100% - 16px);max-width:calc(100% - 16px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)}
+ [role="dialog"]:has([data-providers-section])>nav{width:100%;min-width:0;flex:none;padding:8px;border-right:0;border-bottom:1px solid var(--dsw-alias-border-l2)}
+ [role="dialog"]:has([data-providers-section])>nav>div:last-child{display:flex;flex-direction:row;gap:4px;overflow-x:auto}
+ [role="dialog"]:has([data-providers-section])>nav button{flex:none;white-space:nowrap;min-height:44px;padding:8px 10px}
+ [role="dialog"]:has([data-providers-section])>div{width:100%;min-width:0;min-height:0;flex:1}
+}
+`
+
 const titleStyle: CSSProperties = {
   margin: 0, color: 'var(--dsw-alias-label-primary)', fontSize: 16, fontWeight: 500, lineHeight: '24px',
 }
-const subtitleStyle: CSSProperties = {
-  margin: '4px 0 0', color: 'var(--dsw-alias-label-secondary)', fontSize: 13, lineHeight: '20px',
+const toolbarStyle: CSSProperties = { display: 'flex', justifyContent: 'flex-end' }
+const sortButtonStyle: CSSProperties = {
+  minHeight: 34, border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 18,
+  padding: '6px 14px', background: 'var(--dsw-alias-bg-layer-1)',
+  color: 'var(--dsw-alias-label-primary)', fontSize: 13, lineHeight: '20px', cursor: 'pointer',
 }
-const listStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 12 }
 const emptyStyle: CSSProperties = { color: 'var(--dsw-alias-label-tertiary)', fontSize: 13, lineHeight: '20px' }
+const fallbackWrapStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }
+const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 
 /** Bind the shared page to live keyed-slot and settings snapshots. */
 export function bindProvidersSection(
@@ -55,6 +77,8 @@ export function bindProvidersSection(
   subscribe: (listener: () => void) => () => void,
   readOrder: () => { keys: readonly string[], disabled: boolean },
   onReorder: (keys: string[]) => void,
+  roleOf: (key: string) => ProviderRole,
+  headerOf?: (key: string) => ProviderHeaderOwnership,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
@@ -68,41 +92,73 @@ export function bindProvidersSection(
         savedOrder={order.keys}
         disabled={order.disabled}
         onReorder={onReorder}
+        roleOf={roleOf}
+        {...(headerOf === undefined ? {} : { headerOf })}
       />
     )
   }
 }
 
-/** Render installed provider cards. Two or more cards grow a left drag handle. */
+/**
+ * Render installed provider cards as a plain divider list. Sorting is an
+ * explicit mode: one SortableList stays mounted in both modes with the same
+ * keyed rows, so live slot state (authentication, drafts) survives the mode
+ * toggle and every reorder.
+ */
 export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
-  const t = props.t ?? ((key: 'title' | 'subtitle' | 'empty' | 'drag') => key)
+  const t = props.t ?? ((key: ProviderSectionLocaleKey) => key)
   const keys = applySavedOrder(props.registeredKeys ?? [], props.savedOrder ?? [])
   const items = keys.map(key => ({ key }))
+  const [sorting, setSorting] = useState(false)
+  const showToggle = keys.length > 1 && props.disabled !== true
+  const sortable = sorting && showToggle
   const renderCard = (item: { key: string }): ReactNode => {
     const node = props.renderSlot?.(PROVIDERS_ITEM_SLOT, {}, { entryKey: item.key })
-    return node == null ? null : <Fragment>{node}</Fragment>
+    if (node == null) return null
+    const role = props.roleOf?.(item.key) ?? 'llm'
+    if (props.headerOf?.(item.key) === 'shared') return <div data-provider-slot="" data-provider-role={role}>{node}</div>
+    return (
+      <div data-provider-slot="" data-provider-role={role} style={fallbackWrapStyle}>
+        <span style={fallbackBadgeAlign}><ProviderRoleBadge {...(role === 'llm' ? {} : { role })} /></span>
+        {node}
+      </div>
+    )
   }
   const body = keys.length === 0
     ? <p style={emptyStyle}>{t('empty')}</p>
-    : keys.length < 2 || props.disabled === true
-      ? <div style={listStyle}>{items.map(item => <Fragment key={item.key}>{renderCard(item)}</Fragment>)}</div>
-      : (
+    : (
+      <div data-providers-list="">
         <SortableList
-          chrome="card"
+          chrome="plain"
           items={items}
           getId={item => item.key}
           dragLabel={item => t('drag') + ': ' + item.key}
+          moveButtons
+          moveUpLabel={item => t('moveUp') + ': ' + item.key}
+          moveDownLabel={item => t('moveDown') + ': ' + item.key}
+          sorting={sortable}
+          {...(props.disabled === undefined ? {} : { disabled: props.disabled })}
           onReorder={next => { props.onReorder?.(next.map(item => item.key)) }}
           renderItem={item => renderCard(item)}
         />
-      )
+      </div>
+    )
 
   return (
     <div data-providers-section={PROVIDERS_LOCALE_NS} style={pageStyle}>
+      <style>{providerUiCss + providerShellCss}</style>
       <header>
         <h2 style={titleStyle}>{t('title')}</h2>
-        <p style={subtitleStyle}>{t('subtitle')}</p>
       </header>
+      {showToggle
+        ? (
+          <div style={toolbarStyle}>
+            <button type="button" style={sortButtonStyle} aria-expanded={sorting} onClick={() => { setSorting(value => !value) }}>
+              {sorting ? t('done') : t('sort')}
+            </button>
+          </div>
+        )
+        : null}
       {body}
     </div>
   )

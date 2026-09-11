@@ -1,42 +1,9 @@
 /** Secret-free subscription usage readers and an abortable sidebar store. */
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client';
-export type ProviderUsageStatus = 'loading' | 'ready' | 'logged-out' | 'unsupported' | 'stale' | 'error';
-export interface UsageWindowSummary {
-    id: string;
-    label: string;
-    shortLabel: string;
-    remainingPercent?: number;
-    valueText: string;
-    resetsAt?: string;
-}
-export interface ProviderUsageSummary {
-    providerKey: string;
-    name: string;
-    status: ProviderUsageStatus;
-    fetchedAt?: string;
-    windows: readonly UsageWindowSummary[];
-    refreshing?: boolean;
-}
-type ProviderUsageRead = {
-    status: 'ready';
-    fetchedAt: string;
-    windows: readonly UsageWindowSummary[];
-} | {
-    status: 'logged-out';
-} | {
-    status: 'unsupported';
-} | {
-    status: 'error';
-    message?: string;
-};
-export interface ProviderUsageReader {
-    providerKey: string;
-    name: string;
-    read(rpc: ClientConnectionRpc, refresh: boolean, signal: AbortSignal): Promise<ProviderUsageRead>;
-}
-/** Headline window: longest percentage period, else the first text-only window. */
-export declare function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined;
-export declare const PROVIDER_USAGE_READERS: readonly ProviderUsageReader[];
+import type { ProviderUsageReader, ProviderUsageSummary } from '../usage-readers.js';
+export { peekCachedUsage, rememberCachedUsage, rememberHeadlineQuota, headerQuotaFromCache, clearProviderUsageCache } from '../usage-readers.js';
+export type { ProviderUsageReader, ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js';
+export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow } from '../usage-readers.js';
 export interface ProviderUsageStoreSnapshot {
     providers: readonly ProviderUsageSummary[];
     hiddenKeys: readonly string[];
@@ -55,10 +22,16 @@ export interface ProviderUsageStore {
     subscribe(listener: () => void): () => void;
     configure(config: ProviderUsageConfig): void;
     refresh(keys?: readonly string[]): void;
+    /**
+     * Drop cached quota for keys and refetch. Unlike refresh, invalidation
+     * purges stored windows first, so a failed reread reports an error instead
+     * of resurrecting the previous account's quota as stale. Providers call this
+     * (via providerDirectory.invalidateUsage) after sign-out or account switch.
+     * @param keys - provider keys to invalidate; every configured key when omitted.
+     */
+    invalidate(keys?: readonly string[]): void;
     dispose(): void;
 }
-export declare function clearProviderUsageCache(): void;
 /** External store: one request per visible Provider, stale data survives failures, and dispose aborts every request. */
-export declare function createProviderUsageStore(rpc: ClientConnectionRpc): ProviderUsageStore;
-export {};
+export declare function createProviderUsageStore(rpc: ClientConnectionRpc, readerForKey: (key: string) => ProviderUsageReader | undefined): ProviderUsageStore;
 //# sourceMappingURL=usage.d.ts.map

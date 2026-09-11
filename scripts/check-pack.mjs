@@ -20,7 +20,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha4')
 const FIXTURE_TARBALL_ROOT = join(FIXTURE_ROOT, 'tarballs')
 const PACKAGE_NAME = 'dsh-llm-providers-ui'
-const PACKAGE_VERSION = '0.1.8'
+const PACKAGE_VERSION = '0.1.12'
 const ROOT_ARCHIVE = join(ROOT, PACKAGE_NAME + '-' + PACKAGE_VERSION + '.tgz')
 const OFFICIAL_ALPHA4 = '0.1.2-alpha.4'
 const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.4'
@@ -57,10 +57,17 @@ const REQUIRED_FILES = [
   'lib/client.js',
   'lib/order.js',
   'lib/sortable.js',
+  'lib/provider-ui.js',
+  'lib/usage-readers.js',
+  'lib/model-catalog.js',
   'lib/types/index.d.ts',
   'lib/types/client/index.d.ts',
   'lib/types/order.d.ts',
   'lib/types/sortable.d.ts',
+  'lib/types/provider-ui.d.ts',
+  'lib/types/client/provider-ui.d.ts',
+  'lib/types/usage-readers.d.ts',
+  'lib/types/model-catalog.d.ts',
   'lib/types/client/ProvidersSection.d.ts',
   'lib/types/client/provider-section.d.ts',
 ]
@@ -70,6 +77,9 @@ const EXPECTED_EXPORTS = {
   './package.json': './package.json',
   './order': { types: './lib/types/order.d.ts', default: './lib/order.js' },
   './sortable': { types: './lib/types/sortable.d.ts', default: './lib/sortable.js' },
+  './provider-ui': { types: './lib/types/provider-ui.d.ts', default: './lib/provider-ui.js' },
+  './usage-readers': { types: './lib/types/usage-readers.d.ts', default: './lib/usage-readers.js' },
+  './model-catalog': { types: './lib/types/model-catalog.d.ts', default: './lib/model-catalog.js' },
 }
 const BUILTIN_MODULES = new Set([...builtinModules, ...builtinModules.map(name => 'node:' + name)])
 const SOURCE_SEGMENTS = new Set(['src', 'source', 'test', 'tests', '__tests__', 'scripts'])
@@ -433,7 +443,8 @@ function fixtureArchives() {
     fail('fixture provenance does not identify the official alpha.4 checkout')
   }
   if (!Array.isArray(payload.fixtures) || !Array.isArray(payload.edges)) fail('fixture provenance has no graph arrays')
-  const fixtureText = JSON.stringify(payload).replaceAll('0.1.2-rc.1', '')
+  // Approved RC allowlist: 0.1.2-rc.1 (legacy) and 0.1.5-rc.1 (verified 015 migration target).
+  const fixtureText = JSON.stringify(payload).replaceAll('0.1.2-rc.1', '').replaceAll('0.1.5-rc.1', '')
   if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d))/iu.test(fixtureText)) fail('fixture provenance contains alpha.2 or unapproved RC data')
   const entries = readdirSync(FIXTURE_TARBALL_ROOT, { withFileTypes: true })
   if (entries.some(entry => !entry.isFile() || !entry.name.endsWith('.tgz'))) fail('fixture tarball directory contains an ignored non-archive entry')

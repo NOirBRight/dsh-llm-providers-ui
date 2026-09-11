@@ -1,11 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
-import { PROVIDER_USAGE_READERS, USAGE_POLL_MS, USAGE_READ_TIMEOUT_MS, clearProviderUsageCache, createProviderUsageStore } from '../src/client/usage.ts'
+import {
+  USAGE_POLL_MS,
+  USAGE_READ_TIMEOUT_MS,
+  clearProviderUsageCache,
+  createCodexUsageReader,
+  createCommandCodeUsageReader,
+  createCursorUsageReader,
+  createGrokUsageReader,
+  createOllamaUsageReader,
+  createOpenCodeGoUsageReader,
+  createProviderUsageStore,
+} from '../src/client/usage.ts'
+import { readUsageCache } from '../src/usage-readers.ts'
 
-const cursorReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-cursor')!
-const codexReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-codex')!
-const grokReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-grok')!
-const commandCodeReader = PROVIDER_USAGE_READERS.find(reader => reader.providerKey === 'llm-commandcode')!
+const cursorReader = createCursorUsageReader()
+const codexReader = createCodexUsageReader()
+const grokReader = createGrokUsageReader()
+const commandCodeReader = createCommandCodeUsageReader()
+const openCodeGoReader = createOpenCodeGoUsageReader()
+const readers = new Map([
+  cursorReader,
+  codexReader,
+  grokReader,
+  commandCodeReader,
+  openCodeGoReader,
+  createOllamaUsageReader(),
+].map(reader => [reader.providerKey, reader]))
+const createStore = (rpc: ClientConnectionRpc) => createProviderUsageStore(rpc, key => readers.get(key))
 
 function rpcFor(handler: (channel: string, payload: unknown, signal?: AbortSignal) => Promise<unknown>): ClientConnectionRpc {
   return { call: vi.fn((channel, _endpoint, payload, signal) => handler(channel, payload, signal)) } as unknown as ClientConnectionRpc
@@ -28,6 +50,12 @@ describe('Provider Usage readers', () => {
     const result = await cursorReader.read(rpc, false, new AbortController().signal)
     expect(reads).toBe(2)
     expect(result).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+  })
+
+  it('decodes the Ollama Cloud monthly window the provider actually reports', async () => {
+    const rpc = rpcFor(async () => ({ ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', monthly: { usage: 0.4, models: ['qwen3'] } } } }))
+    await expect(readers.get('llm-ollama')!.read(rpc, false, new AbortController().signal))
+      .resolves.toMatchObject({ status: 'ready', windows: [{ id: 'monthly', label: 'Month', remainingPercent: 60 }] })
   })
 
   it('normalizes Cursor windows and passes refresh without exposing raw data', async () => {
@@ -63,6 +91,19 @@ describe('Provider Usage readers', () => {
     })
   })
 
+  it.each([false, true])('refreshes Codex upstream after the UI cache expires or manual refresh=%s', async refresh => {
+    const rpc = rpcFor(async (_channel, payload) => ({
+      ok: true,
+      value: { status: 'signed-in', usage: { rateLimits: [{ id: 'codex', windows: [{
+        remainingPercent: typeof payload === 'object' && payload !== null && 'refresh' in payload && payload.refresh === true ? 71 : 72,
+        windowSeconds: 604_800,
+      }] }] } },
+    }))
+    await expect(codexReader.read(rpc, refresh, new AbortController().signal)).resolves.toMatchObject({
+      status: 'ready', windows: [{ remainingPercent: 71 }],
+    })
+  })
+
   it('reads Codex quota from its secret-free auth status', async () => {
     const signal = new AbortController().signal
     const rpc = rpcFor(async () => ({
@@ -95,13 +136,24 @@ describe('Provider Usage readers', () => {
     })
   })
 
+  it('reads OpenCode Go monthly quota from its declared reader', async () => {
+    const rpc = rpcFor(async () => ({
+      ok: true,
+      value: { status: 'ok', usage: { fetchedAt: 'now', monthly: { usage: 0.25 } } },
+    }))
+
+    await expect(openCodeGoReader.read(rpc, false, new AbortController().signal)).resolves.toMatchObject({
+      status: 'ready',
+      windows: [{ id: 'monthly', shortLabel: 'M', remainingPercent: 75 }],
+    })
+    expect(rpc.call).toHaveBeenCalledWith('/opencode-go', 'usage/read', {}, expect.any(AbortSignal))
+  })
+
   it('waits for Codex auth status to fill in async rate limits', async () => {
     let reads = 0
-    const payloads: unknown[] = []
     const signal = new AbortController().signal
-    const rpc = rpcFor(async (_channel, payload) => {
+    const rpc = rpcFor(async () => {
       reads += 1
-      payloads.push(payload)
       if (reads === 1) return { ok: true, value: { status: 'signed-in', usage: { rateLimits: [] } } }
       return {
         ok: true,
@@ -113,13 +165,18 @@ describe('Provider Usage readers', () => {
     })
     const result = await codexReader.read(rpc, true, signal)
     expect(reads).toBeGreaterThan(1)
-    expect(payloads).toEqual([{ refresh: true }, {}])
     expect(result).toMatchObject({ status: 'ready', windows: [{ shortLabel: 'W', remainingPercent: 41 }] })
   })
 
   it('maps signed-out Codex auth to logged-out', async () => {
     const rpc = rpcFor(async () => ({ ok: true, value: { status: 'signed-out' } }))
     await expect(codexReader.read(rpc, false, new AbortController().signal)).resolves.toEqual({ status: 'logged-out' })
+  })
+
+  it('maps a missing or unusable credential to logged-out', async () => {
+    const rpc = rpcFor(async () => ({ ok: false, error: { code: 'INVALID_CREDENTIAL', message: 'the API key is blank' } }))
+    await expect(createOllamaUsageReader().read(rpc, false, new AbortController().signal))
+      .resolves.toEqual({ status: 'logged-out' })
   })
 
   it('re-reads Grok with its contractually empty payload', async () => {
@@ -174,6 +231,18 @@ describe('Provider Usage readers', () => {
     await expect(cursorReader.read(rpc, false, new AbortController().signal)).resolves.toEqual({ status: 'error', message: 'malformed usage response' })
   })
 
+  it('does not read a card without a directory quota reader', async () => {
+    const rpc = rpcFor(async () => ({ ok: true, value: {} }))
+    const store = createProviderUsageStore(rpc, () => undefined)
+
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+
+    expect(store.getSnapshot().providers).toEqual([])
+    expect(rpc.call).not.toHaveBeenCalled()
+    store.dispose()
+  })
+
   it('keeps a successful window as stale when only that refresh fails', async () => {
     let cursorReads = 0
     const rpc = rpcFor(async () => {
@@ -181,7 +250,7 @@ describe('Provider Usage readers', () => {
       if (cursorReads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
       throw new Error('network')
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
     expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
@@ -198,10 +267,47 @@ describe('Provider Usage readers', () => {
       if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
       return { ok: true, value: { status: 'logged-out' } }
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
     store.refresh()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
+    store.dispose()
+  })
+
+  it('drops the cached quota when the credential stops resolving', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      return { ok: false, error: { code: 'INVALID_CREDENTIAL', message: 'the API key is blank' } }
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+    store.refresh()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
+    store.dispose()
+  })
+
+  it('purges the stored quota when a read reports signed-out', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      return { ok: true, value: { status: 'logged-out' } }
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(readUsageCache().get('llm-cursor')).toMatchObject({ status: 'ready' })
+    store.refresh()
+    await flush()
+    expect(readUsageCache().has('llm-cursor')).toBe(false)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
     expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
     store.dispose()
@@ -212,7 +318,7 @@ describe('Provider Usage readers', () => {
       if (channel === '/grok') throw new Error('grok unavailable')
       return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', session: { usage: 0.25 } } } }
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-grok', 'llm-ollama'], savedOrder: ['llm-ollama', 'llm-grok'], hiddenKeys: ['llm-grok'] })
     await flush()
     expect(store.getSnapshot().providers.map(provider => provider.providerKey)).toEqual(['llm-ollama', 'llm-grok'])
@@ -233,7 +339,7 @@ describe('Provider Usage readers', () => {
       reads += 1
       return { ok: true, value: { status: 'ok', usage: { fetchedAt: new Date().toISOString(), windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: ['llm-cursor'] })
     await flush()
     expect(reads).toBe(0)
@@ -261,7 +367,7 @@ describe('Provider Usage readers', () => {
       if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 40, limit: 100, unit: 'percent' }] } } }
       return { ok: true, value: { status: 'unsupported' } }
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
     expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
@@ -270,6 +376,26 @@ describe('Provider Usage readers', () => {
     await flush()
     expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
     expect(store.getSnapshot().providers[0]?.status).toBe('stale')
+    store.dispose()
+  })
+
+  it('shows last-good quota immediately after a configure with no readers', async () => {
+    let hang = false
+    const rpc = rpcFor(async () => {
+      if (hang) return new Promise(() => {})
+      return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+    })
+    let enabled = true
+    const store = createProviderUsageStore(rpc, key => enabled ? readers.get(key) : undefined)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+    enabled = false
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    hang = true
+    enabled = true
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
     store.dispose()
   })
 
@@ -292,7 +418,7 @@ describe('Provider Usage readers', () => {
         signal?.addEventListener('abort', () => { reject(new DOMException('Aborted', 'AbortError')) })
       })
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(62)
     expect(store.getSnapshot().providers[0]?.status).toBe('ready')
@@ -309,7 +435,7 @@ describe('Provider Usage readers', () => {
       await new Promise<void>(resolve => { release = resolve })
       return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'later', windows: [{ id: 'weekly', used: 50, limit: 100, unit: 'percent' }] } } }
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
     expect(store.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(60)
@@ -331,7 +457,7 @@ describe('Provider Usage readers', () => {
         signal?.addEventListener('abort', () => { reject(new DOMException('Aborted', 'AbortError')) })
       })
     })
-    const store = createProviderUsageStore(rpc)
+    const store = createStore(rpc)
     store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
     await flush()
     expect(store.getSnapshot().providers[0]?.status).toBe('loading')
@@ -340,5 +466,38 @@ describe('Provider Usage readers', () => {
     expect(store.getSnapshot().providers[0]?.status).toBe('error')
     store.dispose()
     vi.useRealTimers()
+  })
+
+  it('drops cached windows on invalidate so a failed reread cannot go stale', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      throw new Error('signed out')
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    expect(store.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
+    store.invalidate(['llm-cursor'])
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'error', windows: [] })
+    store.dispose()
+  })
+
+  it('clears to logged-out on invalidate after sign-out', async () => {
+    let reads = 0
+    const rpc = rpcFor(async () => {
+      reads += 1
+      if (reads === 1) return { ok: true, value: { status: 'ok', usage: { fetchedAt: 'now', windows: [{ id: 'weekly', used: 10, limit: 100, unit: 'percent' }] } } }
+      return { ok: true, value: { status: 'logged-out' } }
+    })
+    const store = createStore(rpc)
+    store.configure({ registeredKeys: ['llm-cursor'], savedOrder: [], hiddenKeys: [] })
+    await flush()
+    store.invalidate()
+    await flush()
+    expect(store.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'logged-out', windows: [] })
+    store.dispose()
   })
 })

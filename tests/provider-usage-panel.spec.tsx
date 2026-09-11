@@ -125,7 +125,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelectorAll('.pu-row')).toHaveLength(20)
     expect(container.querySelector('.pu-stage')).not.toBeNull()
     const html = staticHtml({ providers })
-    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:132px;overflow:auto')
+    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:auto;max-height:132px;overflow:auto')
     expect(html).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
   })
 
@@ -180,6 +180,33 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).toContain('CommandCode')
     expect(html).not.toContain('pu-meter')
     expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('DIV')
+  })
+
+  it('leaves the open quota detail uncapped', () => {
+    const html = staticHtml()
+    expect(html).toContain('.pu-stage-open{max-height:none;overflow:visible}')
+  })
+
+  it('lets the stage shrink to rendered rows instead of reserving three rows', () => {
+    const html = staticHtml()
+    expect(html).toContain('.pu-stage{width:100%;min-width:0;height:auto;max-height:132px')
+  })
+
+  it.each([0, 1, 2, 3, 6])('renders exactly %i mini rows with no reserved blank rows', (count) => {
+    const html = staticHtml({ providers: SIX.slice(0, count) })
+    expect(html.match(/class="pu-row[\s"]/g) ?? []).toHaveLength(count)
+  })
+
+  it('renders overflow rows for scrolling under the same cap', () => {
+    const extra = (key: string): ProviderUsageSummary => ({ providerKey: key, name: key, status: 'ready', windows: [] })
+    const html = staticHtml({ providers: [...SIX, extra('extra-a'), extra('extra-b')] })
+    expect(html.match(/class="pu-row[\s"]/g) ?? []).toHaveLength(8)
+    expect(html).toContain('max-height:132px')
+  })
+
+  it('shrinks when providers are hidden', () => {
+    const html = staticHtml({ hiddenKeys: SIX.slice(2).map(summary => summary.providerKey) })
+    expect(html.match(/class="pu-row[\s"]/g) ?? []).toHaveLength(2)
   })
 
   it('shows Credits text as-is instead of deriving a percent', () => {

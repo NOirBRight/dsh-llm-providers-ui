@@ -1,7 +1,7 @@
 {
   "name": "dsh-llm-providers-ui",
   "description": "Shared LLM Providers settings shell, card order, and picker sort for DeepSeek Harness plugins",
-  "version": "0.1.8",
+  "version": "0.1.12",
   "publishConfig": {
     "access": "public"
   },
@@ -29,13 +29,28 @@
     "./sortable": {
       "types": "./lib/types/sortable.d.ts",
       "default": "./lib/sortable.js"
+    },
+    "./provider-ui": {
+      "types": "./lib/types/provider-ui.d.ts",
+      "default": "./lib/provider-ui.js"
+    },
+    "./usage-readers": {
+      "types": "./lib/types/usage-readers.d.ts",
+      "default": "./lib/usage-readers.js"
+    },
+    "./model-catalog": {
+      "types": "./lib/types/model-catalog.d.ts",
+      "default": "./lib/model-catalog.js"
     }
   },
   "files": [
     "lib/index.js",
     "lib/client.js",
     "lib/sortable.js",
+    "lib/provider-ui.js",
     "lib/order.js",
+    "lib/usage-readers.js",
+    "lib/model-catalog.js",
     "lib/types/**/*.d.ts",
     "cordis.patch.yml",
     "LICENSE",
@@ -46,8 +61,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.json && tsdown",
     "pack:check": "node scripts/check-pack.mjs",
+    "consumer:check": "tsc -p fixtures/consumer-typecheck/tsconfig.json --noEmit",
     "prototype:sidebar-usage": "python3 -m http.server 4178 --directory prototypes",
-    "check": "pnpm run test && pnpm run typecheck && pnpm run build && pnpm run pack:check"
+    "check": "pnpm run test && pnpm run typecheck && pnpm run build && pnpm run consumer:check && pnpm run pack:check"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
@@ -72,34 +88,35 @@
     "compatibility": {
       "dshReleases": {
         "0.1.2-alpha.4": "compatible",
-        "0.1.2-rc.1": "compatible"
+        "0.1.2-rc.1": "compatible",
+        "0.1.5-rc.1": "compatible"
       }
     }
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.2 <5.0.0",
-    "@deepseek-ai/dsh-client-locale": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
-    "@deepseek-ai/dsh-settings": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-connection": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-ui-sidebar": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-ui-session": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
+    "@deepseek-ai/dsh-settings": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-connection": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-sidebar": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-session": ">=0.1.2-alpha.4 <1.0.0 || 0.1.2-alpha.5 || 0.1.2-rc.1 || 0.1.5-rc.1",
     "@deepseek-ai/schemastery": "^3.18.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.2",
-    "@deepseek-ai/dsh-client-locale": "0.1.2-alpha.4",
-    "@deepseek-ai/dsh-client-ui-settings": "0.1.2-alpha.4",
-    "@deepseek-ai/dsh-client-ui-slots": "0.1.2-alpha.4",
-    "@deepseek-ai/dsh-client-ui-renderer": "0.1.2-alpha.4",
-    "@deepseek-ai/dsh-client-connection": "0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-ui-sidebar": "0.1.2-rc.1",
-    "@deepseek-ai/dsh-client-ui-session": "0.1.2-rc.1",
-    "@deepseek-ai/dsh-settings": "0.1.2-alpha.4",
+    "@deepseek-ai/dsh-client-locale": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-connection": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-session": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-settings": "0.1.5-rc.1",
     "@deepseek-ai/schemastery": "^3.18.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",

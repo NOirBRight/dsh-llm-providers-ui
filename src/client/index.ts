@@ -21,9 +21,24 @@ import { disposeAfterSetup, disposeReverse } from './cleanup.js'
 import { installProvidersNavIcon } from './nav-icon.js'
 import { copy } from './provider-section.js'
 import { installProviderUsage } from './usage-action.js'
+import { ProviderDirectory } from './directory.js'
 
 export const name = 'dsh-llm-providers-ui-client'
 export const inject = ['slots', 'locale', 'settingsScope']
+
+/**
+ * Public directory and slot types. Re-exported (type-only, erased at runtime)
+ * so the built client declarations keep the providerDirectory service and
+ * the settings.provider.item slot visible to provider plugins importing only
+ * this entrypoint. No local module augmentation is needed downstream.
+ */
+export type {
+  ProviderDeclaration,
+  ProviderDirectory,
+  ProviderHeaderOwnership,
+  ProviderRole,
+} from './directory.js'
+export type { ProviderSectionLocaleKey } from './provider-section.js'
 
 /** Client configuration for the Providers page owner. */
 export interface Config {}
@@ -71,7 +86,20 @@ function installMissingOwnerDiagnostic(orderScope: SettingsScope<ProviderOrderSe
 }
 
 /**
+ * Grace before the missing-section diagnostic concludes that no Web settings
+ * shell will declare the slot. The shell publishes `settings.section` only once
+ * its own boot settles — later over a tunnel than from a local bundle — so
+ * absence right after apply is not evidence of a missing shell.
+ */
+const MISSING_SECTION_GRACE_MS = 15_000
+
+/**
  * Warn once when an available Host namespace has no Web section declaration.
+ * Every trigger path — the timer and both subscriptions — calls {@link check},
+ * so no path can reach the warning without passing its gates. A declaration
+ * cancels the diagnostic for its lifetime, not just for the current check: a
+ * shell that declared the seat and later collapsed it is a reload, and warning
+ * during one is the same false positive this grace exists to prevent.
  * @param ctx - Web Cordis context with the public SlotCore face.
  * @param orderScope - client scope used to gate the page transaction.
  * @returns disposer for the deferred check and both subscriptions.
@@ -80,15 +108,22 @@ function installMissingSectionDiagnostic(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
 ): Disposer {
+  const startedAt = Date.now()
   let warned = false
+  let declared = false
   const check = (): void => {
-    if (warned
-      || !pageVisible(orderScope.getSnapshot())
-      || ctx.slots.spec('settings.section') !== undefined) return
+    if (warned || declared) return
+    if (ctx.slots.spec('settings.section') !== undefined) {
+      declared = true
+      clearTimeout(timer)
+      return
+    }
+    if (Date.now() - startedAt < MISSING_SECTION_GRACE_MS) return
+    if (!pageVisible(orderScope.getSnapshot())) return
     warned = true
     console.warn('[dsh-llm-providers-ui] settings.section is missing; the Providers page cannot mount until the Web settings shell declares it.')
   }
-  const timer = setTimeout(check, 0)
+  const timer = setTimeout(check, MISSING_SECTION_GRACE_MS)
   const stopSection = ctx.slots.subscribe('settings.section', check)
   const stopScope = orderScope.subscribe(check)
   return () => {
@@ -111,6 +146,7 @@ function installSectionTransaction(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
   t: () => string,
+  directory: ProviderDirectory,
 ): Disposer {
   let stopSection: Disposer | undefined
   let stopNav: Disposer | undefined
@@ -138,8 +174,9 @@ function installSectionTransaction(
       listener => {
         const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, listener)
         const stopSettings = orderScope.subscribe(listener)
+        const stopDirectory = directory.subscribe(listener)
         return () => {
-          disposeReverse([stopSlot, stopSettings], 'dsh-llm-providers-ui: section listener cleanup failed')
+          disposeReverse([stopDirectory, stopSlot, stopSettings], 'dsh-llm-providers-ui: section listener cleanup failed')
         }
       },
       () => {
@@ -150,6 +187,8 @@ function installSectionTransaction(
         }
       },
       keys => { void orderScope.set('order', keys) },
+      key => directory.roleOf(key),
+      key => directory.headerOf(key),
     )))
     stopSection = section
     try {
@@ -182,7 +221,9 @@ function installSectionTransaction(
  */
 export function apply(ctx: ClientContext, _config: Config = {}): void {
   ctx.effect(() => {
-    const disposers: Disposer[] = []
+    const existing = ctx.get('providerDirectory')
+    const directory = existing ?? new ProviderDirectory()
+    const disposers: Disposer[] = existing === undefined ? [ctx.provide('providerDirectory', directory)] : []
     try {
       disposers.push(ctx.locale.register(PROVIDERS_LOCALE_NS, copy))
 
@@ -194,9 +235,9 @@ export function apply(ctx: ClientContext, _config: Config = {}): void {
 
       disposers.push(installMissingOwnerDiagnostic(orderScope))
       disposers.push(installMissingSectionDiagnostic(ctx, orderScope))
-      disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav')))
+      disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav'), directory))
       try {
-        disposers.push(installProviderUsage(ctx, orderScope))
+        disposers.push(installProviderUsage(ctx, orderScope, directory))
       } catch (error) {
         console.warn('[dsh-llm-providers-ui] Provider Usage widget failed; keeping the Providers settings page', error)
       }

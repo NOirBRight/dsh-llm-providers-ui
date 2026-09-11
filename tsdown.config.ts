@@ -54,6 +54,56 @@ const client: UserConfig = {
   },
 }
 
+const usageReaders: UserConfig = {
+  name: `${PACKAGE_ID}/usage-readers`,
+  entry: { 'usage-readers': 'lib/types/usage-readers.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [],
+  },
+}
+
+const providerUi: UserConfig = {
+  name: `${PACKAGE_ID}/provider-ui`,
+  entry: { 'provider-ui': 'lib/types/provider-ui.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [
+      'react',
+      'react/jsx-runtime',
+      'react-dom',
+    ],
+  },
+}
+
+const modelCatalog: UserConfig = {
+  name: `${PACKAGE_ID}/model-catalog`,
+  entry: { 'model-catalog': 'lib/types/model-catalog.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [
+      'react',
+      'react/jsx-runtime',
+      'react-dom',
+    ],
+  },
+}
+
 const sortable: UserConfig = {
   name: `${PACKAGE_ID}/sortable`,
   entry: { sortable: 'lib/types/sortable.js' },
@@ -77,6 +127,9 @@ export default ({ env }: Pick<UserConfig, 'env'>): UserConfig[] => {
   if (face === 'host') return [host]
   if (face === 'client') return [client]
   if (face === 'sortable') return [sortable]
+  if (face === 'provider-ui') return [providerUi]
+  if (face === 'usage-readers') return [usageReaders]
+  if (face === 'model-catalog') return [modelCatalog]
   if (face !== undefined) throw new Error(`unknown DSH build face: ${String(face)}`)
-  return [host, client, sortable]
+  return [host, client, sortable, usageReaders, providerUi, modelCatalog]
 }
