@@ -227,7 +227,7 @@ const COMMAND_CODE_MONTHLY_USD: ReadonlyArray<readonly [string, number]> = [
 function commandCodeMonthlyCap(planId: string | undefined): number | undefined {
   if (planId === undefined) return undefined
   const id = planId.toLowerCase()
-  const match = [...COMMAND_CODE_MONTHLY_USD].sort((left, right) => right[0].length - left[0].length).find(([key]) => id.startsWith(key) || id.includes(key))
+  const match = COMMAND_CODE_MONTHLY_USD.find(([key]) => id.startsWith(key) || id.includes(key))
   return match?.[1]
 }
 
@@ -245,9 +245,8 @@ function decodeCommandCodeUsage(usage: UsageRecordValue): { fetchedAt: string, w
   if (monthly !== undefined) {
     if (!nonNegativeNumber(monthly)) return undefined
     const cap = commandCodeMonthlyCap(planId)
-    if (cap !== undefined && cap > 0) {
-      const remaining = Math.min(cap, monthly)
-      windows.push(remainingWindow({ id: 'monthly', label: 'Month', used: cap - remaining, limit: cap }))
+    if (cap !== undefined && cap > 0 && monthly <= cap) {
+      windows.push(remainingWindow({ id: 'monthly', label: 'Month', used: cap - monthly, limit: cap }))
     }
   }
   for (const [key, label] of [['fiveHour', '5-hour'], ['weekly', 'Week']] as const) {

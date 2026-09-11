@@ -105,7 +105,7 @@ export function installProviderUsage(
     inject: (): ProviderUsageActionFace => ({
       usage, toggleVisibility, showAll, reorder,
       subscribeSettings: listener => orderScope.subscribe(listener),
-      readShowSidebarUsage: () => orderScope.getSnapshot().value?.showSidebarUsage !== false,
+      readShowSidebarUsage: () => orderScope.getSnapshot().value?.showSidebarUsage ?? true,
     }),
   }, ProviderUsageAction))
   const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, reconcile)

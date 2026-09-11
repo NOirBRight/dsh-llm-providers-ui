@@ -164,7 +164,7 @@ function installSectionTransaction(
         return {
           keys: snapshot.value?.order ?? [],
           disabled: snapshot.status !== 'ready' || !snapshot.writable,
-          showSidebarUsage: snapshot.value?.showSidebarUsage !== false,
+          showSidebarUsage: snapshot.value?.showSidebarUsage ?? true,
         }
       },
       keys => { void orderScope.set('order', keys) },

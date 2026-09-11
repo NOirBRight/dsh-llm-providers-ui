@@ -1,6 +1,6 @@
 /** Settings > LLM Providers page shell. Provider cards arrive through settings.provider.item. */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type {
   PropsLocale,
@@ -118,6 +118,20 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const [detail, setDetail] = useState<string | undefined>(undefined)
   const showToggle = keys.length > 1 && props.disabled !== true && detail === undefined
   const sortable = sorting && showToggle
+  const orderBeforeSort = useRef<readonly string[] | undefined>(undefined)
+  useEffect(() => {
+    if (!sorting) return
+    orderBeforeSort.current = keys
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      const previous = orderBeforeSort.current
+      setSorting(false)
+      if (previous !== undefined) props.onReorder?.([...previous])
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sorting, keys, props])
   const visibleKeys = keys.filter(key => filter === 'all' || (props.roleOf?.(key) ?? 'llm') === filter)
   const items = (detail === undefined ? visibleKeys : keys.filter(key => key === detail)).map(key => ({ key }))
   const renderCard = (item: { key: string }): ReactNode => {

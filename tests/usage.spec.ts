@@ -224,6 +224,14 @@ describe('Provider Usage readers', () => {
     expect(label).toMatch(/天后|小时后|分钟后|已到期/)
   })
 
+  it('omits a CommandCode monthly bar when remaining credits exceed the plan cap', async () => {
+    const rpc = rpcFor(async () => ({
+      ok: true,
+      value: { status: 'ok', usage: { fetchedAt: 'now', plan: { planId: 'individual-goat' }, credits: { monthlyCredits: 80 } } },
+    }))
+    await expect(commandCodeReader.read(rpc, false, new AbortController().signal)).resolves.toMatchObject({ status: 'ready', windows: [] })
+  })
+
   it('omits a CommandCode monthly bar when the plan allotment is unknown', async () => {
     const rpc = rpcFor(async () => ({
       ok: true,

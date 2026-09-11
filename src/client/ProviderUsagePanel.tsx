@@ -12,7 +12,7 @@ function windowValueText(quotaWindow: UsageWindowSummary): string {
   return quotaWindow.remainingPercent === undefined ? quotaWindow.valueText : String(Math.round(quotaWindow.remainingPercent)) + '%'
 }
 
-type UsageTone = 'low' | 'warn'
+type UsageTone = 'warn'
 
 function usageTone(remainingPercent: number | undefined): UsageTone | undefined {
   if (remainingPercent !== undefined && remainingPercent <= 20) return 'warn'
@@ -86,7 +86,6 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:color-mix(in srgb,var(--dsw-alias-label-primary) 55%,var(--dsw-alias-label-secondary));font-size:10px;font-weight:500;line-height:12px}',
   '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
   '[data-provider-usage-panel] .pu-primary{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary));font-size:12px;font-weight:500;line-height:14px;font-variant-numeric:tabular-nums}',
-  '[data-provider-usage-panel] .pu-low .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-low{color:color-mix(in srgb,#d94848 58%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:color-mix(in srgb,#c47b08 58%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
   '[data-provider-usage-panel] .pu-detail{box-sizing:border-box;display:block;width:100%;min-width:0;padding:10px 12px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}',
@@ -104,8 +103,6 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-bar::-moz-progress-bar{background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 42%,var(--dsw-alias-label-secondary));border-radius:99px}',
   '[data-provider-usage-panel] .pu-bar.pu-warn{accent-color:color-mix(in srgb,#c47b08 48%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-bar.pu-warn::-webkit-progress-value,[data-provider-usage-panel] .pu-bar.pu-warn::-moz-progress-bar{background:color-mix(in srgb,#c47b08 48%,var(--dsw-alias-label-secondary))}',
-  '[data-provider-usage-panel] .pu-bar.pu-low{accent-color:color-mix(in srgb,#d94848 48%,var(--dsw-alias-label-secondary))}',
-  '[data-provider-usage-panel] .pu-bar.pu-low::-webkit-progress-value,[data-provider-usage-panel] .pu-bar.pu-low::-moz-progress-bar{background:color-mix(in srgb,#d94848 48%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-tip-reset{color:var(--dsw-alias-label-tertiary);font-size:11px}',
   '[data-provider-usage-panel] .pu-tip-empty{padding:8px 0;color:var(--dsw-alias-label-secondary);font-size:12px}',
   '[data-provider-usage-panel] .pu-empty{padding:22px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px;line-height:18px}',
@@ -128,10 +125,6 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-no-match{padding:16px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px}',
   '@media (max-width:640px){[data-provider-usage-panel] .pu-name{font-size:11px;line-height:13px}}',
 ].join('\n')
-
-function localReset(value: string | undefined, period?: string): string | undefined {
-  return formatResetLabel(value, period)
-}
 
 function headlineOf(summary: ProviderUsageSummary): string {
   const hasData = summary.status === 'ready' || summary.status === 'stale'
@@ -202,7 +195,7 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
       {summary.windows.length === 0
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
         : summary.windows.map(quotaWindow => {
-          const reset = localReset(quotaWindow.resetsAt, quotaWindow.label)
+          const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label)
           const tone = usageTone(quotaWindow.remainingPercent)
           const remaining = quotaWindow.remainingPercent
           return (
