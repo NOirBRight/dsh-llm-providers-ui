@@ -78,7 +78,7 @@ export const settingsCCss = `
 [data-providers-section] .c-models-actions .c-btn.quiet:hover{background:var(--c-hover)!important}
 [data-providers-section] .c-models-actions .c-btn[disabled]{opacity:.5;cursor:default}
 [data-providers-section] .c-models-hint{margin:0 0 12px;font-size:11px;color:var(--c-faint)}
-[data-providers-section] .c-full [data-c-own=add]{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px!important;width:auto!important;max-width:100%;align-self:flex-start;min-height:34px;padding:6px 10px!important;font-size:12px}
+[data-providers-section] .c-full [data-c-own=add]{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px!important;width:auto!important;max-width:100%;align-self:flex-start;margin-top:12px;min-height:34px;padding:6px 10px!important;font-size:12px}
 [data-providers-section] .c-full [data-c-own=add] .c-ico{display:block;flex:none;width:14px;height:14px}
 [data-providers-section] .c-plugin .c-sort{min-width:96px}
 [data-providers-section] .c-full [data-sortable-move]{display:none!important}

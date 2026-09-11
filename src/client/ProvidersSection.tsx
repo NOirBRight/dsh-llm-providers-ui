@@ -279,9 +279,10 @@ function paintModelsChrome(section: HTMLElement): void {
   if (!(addOwn instanceof HTMLButtonElement)) {
     addOwn = ownButton('add', MODEL_ICONS.plus, zh ? '手动添加模型' : 'Add model manually', false)
     addOwn.addEventListener('click', () => { pluginAction(section, ADD_TEXT)?.click() })
-    ;(addButton?.parentElement ?? section).append(addOwn)
+    section.append(addOwn)
   } else {
     setOwnButton(addOwn, MODEL_ICONS.plus, zh ? '手动添加模型' : 'Add model manually', false)
+    if (section.lastElementChild !== addOwn) section.append(addOwn)
   }
 }
 
