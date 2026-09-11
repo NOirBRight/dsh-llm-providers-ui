@@ -42,7 +42,8 @@ export const settingsCCss = `
 [data-providers-section] .c-missing{display:flex;flex-direction:column;gap:4px;color:var(--c-faint);font-size:12px;min-height:48px;justify-content:center}
 [data-providers-section] .c-crumb{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c-faint);margin-bottom:21px}
 [data-providers-section] .c-crumb button{font-size:11px;color:var(--c-muted);padding:0;display:flex;align-items:center;gap:5px}
-[data-providers-section] .c-full{display:flex;flex-direction:column;max-width:650px;margin:0 auto}
+[data-providers-section] .c-full{display:flex;flex-direction:column;width:100%;min-width:0;max-width:650px;margin:0 auto;box-sizing:border-box}
+[data-providers-section] .c-full *{min-width:0;box-sizing:border-box}
 [data-providers-section] .c-plugin,[data-providers-section] .c-plugin [data-provider-slot],[data-providers-section] .c-plugin [data-provider-card],[data-providers-section] .c-plugin [data-provider-body]{display:contents!important}
 [data-providers-section] .c-plugin [data-provider-body]>p{margin:0 0 16px;color:var(--c-muted);font-size:12px}
 [data-providers-section] .c-full:not([data-ready]) [data-provider-body]>*{visibility:hidden}
@@ -65,7 +66,7 @@ export const settingsCCss = `
 [data-providers-section] .c-account-name{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px;font-size:13px;font-weight:600;text-align:left!important}
 [data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint);text-align:left!important}
 [data-providers-section] .c-account button{flex:none;min-height:34px}
-[data-providers-section] .c-model-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px;flex-wrap:nowrap!important;margin:0 0 12px}
+[data-providers-section] .c-model-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px 12px;flex-wrap:wrap!important;margin:0 0 12px}
 [data-providers-section] .c-model-head>div:first-child{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}
 [data-providers-section] .c-model-head button{flex:none;white-space:nowrap;min-height:34px}
 [data-providers-section] .c-plugin .c-sort{min-width:96px}
@@ -89,5 +90,28 @@ export const settingsCCss = `
  [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{grid-template-columns:minmax(0,1fr);gap:10px}
  [data-providers-section] .c-labels{display:none}
  [data-providers-section] .c-row-grid{min-height:0;padding:14px 4px}
+}
+@media (max-width:760px){
+ [data-providers-section] .c-full{max-width:none;margin:0}
+ [data-providers-section] .c-account{flex-wrap:wrap;gap:10px}
+ [data-providers-section] .c-quota-meta{flex-direction:column;align-items:flex-start;gap:4px}
+ [data-providers-section] .c-model-head{flex-wrap:wrap;gap:8px}
+ [data-providers-section] .c-model-head>div:first-child{width:100%}
+ [data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px!important;column-gap:6px}
+ [data-providers-section] .c-full [data-provider-model]>button[aria-expanded]{grid-column:3;grid-row:1}
+ [data-providers-section] .c-full [data-provider-model]>button:not([aria-expanded]){grid-column:3;grid-row:2}
+}
+@media (max-width:520px){
+ [data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1fr) 32px!important;row-gap:4px}
+ [data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(1){grid-column:1;grid-row:1}
+ [data-providers-section] .c-full [data-provider-model]>input:nth-of-type(1){grid-column:1;grid-row:2}
+ [data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(2){grid-column:1;grid-row:3}
+ [data-providers-section] .c-full [data-provider-model]>input:nth-of-type(2){grid-column:1;grid-row:4}
+ [data-providers-section] .c-full [data-provider-model]>button{grid-row:1/span 4;grid-column:2}
+ [data-providers-section] .c-account{flex-direction:column!important;align-items:flex-start!important}
+ [data-providers-section] .c-plugin .c-sort{min-width:0!important}
+ [data-providers-section] .c-model-head button{padding:6px 10px!important}
+ [data-providers-section] .c-detail-title .c-name{font-size:16px}
+ [data-providers-section] .c-quota-head h3{font-size:12px}
 }
 `
