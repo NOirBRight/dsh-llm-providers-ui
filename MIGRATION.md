@@ -71,6 +71,15 @@ alwaysBundle: id => id === 'dsh-llm-providers-ui/provider-detail' || id.startsWi
 
 另外：lab 里用 `file:` 预览 tarball 时，**必须换文件名**（`-preview.1` → `-preview.2`），否则 pnpm 认为 spec 未变而沿用旧包。
 
+即使换了文件名，`pnpm add` / `pnpm install --force` 也可能因为 store 硬链接而不覆盖 `node_modules/` 里的旧文件（判断方法：`ls -l node_modules/<pkg>/lib/client.js` 的 mtime 没变，或与 tarball 内容哈希不一致）。此时按 tarball 解开后直接覆盖对应文件，再重启服务：
+
+```bash
+cd /tmp && rm -rf tgzfix && mkdir tgzfix && cd tgzfix
+tar -xzf <preview>.tgz
+cp -f package/lib/client.js /home/noirbright/.dsh-lab/profiles/web/node_modules/<pkg>/lib/client.js
+systemctl --user restart dsh-lab.service
+```
+
 ## 5. 验收（每个插件都要过）
 
 1. 该仓库 `pnpm test` / `build` 全绿；
