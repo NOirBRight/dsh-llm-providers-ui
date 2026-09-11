@@ -57,6 +57,11 @@ export const copy = {
     resetMissing: '{period} · 重置时间未提供',
     refresh: '刷新',
     refreshing: '刷新中',
+    accountHeading: '账号与连接',
+    accountOauthMeta: '订阅授权，不使用 API Key',
+    accountApiMeta: 'API Key · 不会回显已保存的密钥',
+    expandAll: '全部展开',
+    collapseAll: '全部收起',
   },
   en: {
     nav: 'LLM Providers',
@@ -97,6 +102,11 @@ export const copy = {
     resetMissing: '{period} · reset time not provided',
     refresh: 'Refresh',
     refreshing: 'Refreshing',
+    accountHeading: 'Account',
+    accountOauthMeta: 'Subscription · no API key',
+    accountApiMeta: 'API Key · saved keys are never echoed',
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
   },
 } as const
 

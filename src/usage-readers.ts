@@ -110,6 +110,14 @@ export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): Usage
     if (quotaWindow.remainingPercent === undefined) continue
     if (best === undefined || periodRank(quotaWindow.shortLabel) > periodRank(best.shortLabel)) best = quotaWindow
   }
+  if (best !== undefined && best.remainingPercent === 100 && !nonEmptyString(best.resetsAt)) {
+    let fallback: UsageWindowSummary | undefined
+    for (const quotaWindow of windows) {
+      if (quotaWindow === best || !nonEmptyString(quotaWindow.resetsAt) || quotaWindow.remainingPercent === undefined) continue
+      if (fallback === undefined || periodRank(quotaWindow.shortLabel) > periodRank(fallback.shortLabel)) fallback = quotaWindow
+    }
+    if (fallback !== undefined) return fallback
+  }
   return best
 }
 
@@ -130,9 +138,11 @@ export interface ResetCopy {
 }
 
 function parseResetTime(resetsAt: string): number | undefined {
-  const iso = Date.parse(resetsAt)
-  if (Number.isFinite(iso)) return iso
-  if (!/^\d+(?:\.\d+)?$/u.test(resetsAt)) return undefined
+  if (/^\d{4}-\d{2}-\d{2}/u.test(resetsAt)) {
+    const iso = Date.parse(resetsAt)
+    return Number.isFinite(iso) ? iso : undefined
+  }
+  if (!/^\d{10,}$/u.test(resetsAt)) return undefined
   const n = Number(resetsAt)
   if (!Number.isFinite(n) || n <= 0) return undefined
   return n < 1e12 ? n * 1000 : n
@@ -156,6 +166,7 @@ export function formatResetLabel(resetsAt: string | undefined, period?: string, 
     const lead = copy === undefined ? '' : (instant.overdue ? copy.overdue : copy.at)
     return (lead + instant.when + ' · ' + instant.relative).replace(/^ · /, '')
   }
+  if (nonEmptyString(resetsAt) && /reset|重置/iu.test(resetsAt)) return resetsAt
   if (period === undefined || period.length === 0) return undefined
   return copy === undefined ? period : copy.missing.replace('{period}', period)
 }
@@ -388,7 +399,7 @@ export function createGrokUsageReader(): ProviderUsageReader {
 
 /** Create the Ollama Cloud quota reader declared by the Ollama client plugin. */
 export function createOllamaUsageReader(): ProviderUsageReader {
-  return { providerKey: 'llm-ollama', name: 'Ollama Cloud', read: (rpc, _refresh, signal) => readUsage(rpc, '/ollama-cloud', {}, signal, value => decodeFractionUsage(['session', 'weekly'], value)) }
+  return { providerKey: 'llm-ollama', name: 'Ollama Cloud', read: (rpc, _refresh, signal) => readUsage(rpc, '/ollama-cloud', {}, signal, value => decodeFractionUsage(['session', 'weekly', 'monthly'], value)) }
 }
 
 /** Create the CommandCode quota reader declared by the CommandCode client plugin. */

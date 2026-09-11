@@ -213,6 +213,10 @@ describe('Provider Usage readers', () => {
       { id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 40, valueText: '40%' },
       { id: 'month', label: 'Month', shortLabel: 'M', remainingPercent: 7, valueText: '7%' },
     ])?.id).toBe('month')
+    expect(pickPrimaryWindow([
+      { id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 40, valueText: '40%', resetsAt: '2026-09-18T00:00:00.000Z' },
+      { id: 'month', label: 'Month', shortLabel: 'M', remainingPercent: 100, valueText: '100%' },
+    ])?.id).toBe('week')
     expect(pickPrimaryWindow([{ id: 'credits', label: 'Credits', shortLabel: 'Cr', valueText: '$8' }])).toBeUndefined()
   })
 
@@ -221,6 +225,7 @@ describe('Provider Usage readers', () => {
     expect(formatResetLabel(undefined, '每周', copy)).toBe('每周 · 重置时间未提供')
     expect(formatResetLabel('not-a-date', '每周', copy)).toBe('每周 · 重置时间未提供')
     expect(formatResetLabel('2001-09-12T02:37:00.000Z', '5h', copy)).toBe('5h · 重置时间未提供')
+    expect(formatResetLabel('Resets Sep 12, 02:37', '5h', copy)).toBe('Resets Sep 12, 02:37')
     const label = formatResetLabel('2026-09-17T00:00:00.000Z', undefined, copy)
     expect(label).toMatch(/2026|9/)
     expect(label).not.toMatch(/重置时间未提供/)

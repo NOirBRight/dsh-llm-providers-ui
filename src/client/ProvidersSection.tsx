@@ -161,6 +161,22 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           if (!(node instanceof HTMLElement) || node.closest('[data-provider-card-header]') || node.closest('[data-provider-model]')) return
           node.click()
         })
+        root.querySelectorAll('section[aria-label]').forEach(section => {
+          if (!(section instanceof HTMLElement)) return
+          const label = section.getAttribute('aria-label') ?? ''
+          if (/usage|用量/i.test(label)) {
+            section.hidden = true
+            return
+          }
+          if (/model|模型|catalog/i.test(label)) return
+          section.classList.add('c-account')
+          if (section.previousElementSibling?.getAttribute('data-c-account-head') === '') return
+          const head = document.createElement('div')
+          head.className = 'c-account-head'
+          head.setAttribute('data-c-account-head', '')
+          head.textContent = t('accountHeading')
+          section.parentElement?.insertBefore(head, section)
+        })
       }
       n += 1
       if (n < 16) timer = window.setTimeout(tick, 50)
@@ -329,9 +345,6 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           items={items}
           getId={item => item.key}
           dragLabel={item => t('drag') + ': ' + item.key}
-          moveButtons
-          moveUpLabel={item => t('moveUp') + ': ' + item.key}
-          moveDownLabel={item => t('moveDown') + ': ' + item.key}
           sorting={sortable}
           {...(props.disabled === undefined ? {} : { disabled: props.disabled })}
           onReorder={next => { props.onReorder?.(next.map(item => item.key)) }}

@@ -35,10 +35,14 @@ const rowStyle: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(
 
 const modelContentStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr) auto auto',
-  alignItems: 'center',
-  gap: 6,
-  padding: '6px 8px',
+  gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1fr) auto auto',
+  alignItems: 'start',
+  gap: 8,
+  padding: '10px 8px',
+}
+const modelContentSortingStyle: CSSProperties = {
+  ...modelContentStyle,
+  gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1fr) auto',
 }
 
 const modelDetailStyle: CSSProperties = {
@@ -79,6 +83,7 @@ export const catalogStyles = {
   selectStyle,
   rowStyle,
   modelContentStyle,
+  modelContentSortingStyle,
   modelDetailStyle,
   capabilitiesStyle,
   fieldStyle,

@@ -58,6 +58,8 @@ export interface ModelCatalogLabels {
   readonly unsupported?: string
   readonly restoreAuto?: string
   readonly source?: string
+  readonly expandAll?: string
+  readonly collapseAll?: string
 }
 
 const iconButtonStyle = {
@@ -175,17 +177,31 @@ export function ModelCatalogEditor<T extends ModelCatalogDraft>(props: {
   readonly onRestore?: (index: number, field: string) => void
 }): ReactNode {
   const { items, fields, labels, disabled = false, sorting = false, expanded, onRestore } = props
+  const allClosed = items.length > 0 && items.every(model => !expanded.has(model.rowId))
+  const zh = typeof document !== 'undefined' && document.documentElement.lang.toLowerCase().startsWith('zh')
+  const expandLabel = labels.expandAll ?? (zh ? '全部展开' : 'Expand all')
+  const collapseLabel = labels.collapseAll ?? (zh ? '全部收起' : 'Collapse all')
   return (
+    <div>
+    {items.length === 0 ? null : (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <button type="button" disabled={disabled} aria-pressed={!allClosed} style={{ ...iconButtonStyle, width: 'auto', minWidth: 96, padding: '0 10px', gap: 6, fontSize: 12 }}
+          onClick={() => {
+            for (const model of items) {
+              const open = expanded.has(model.rowId)
+              if (allClosed && !open) props.onToggle(model.rowId)
+              if (!allClosed && open) props.onToggle(model.rowId)
+            }
+          }}>{allClosed ? expandLabel : collapseLabel}</button>
+      </div>
+    )}
     <SortableList
       items={[...items]}
       getId={model => model.rowId}
       disabled={disabled}
       sorting={sorting}
       chrome="row"
-      moveButtons
       dragLabel={(model, index) => labels.drag + ': ' + (model.id.trim() || String(index + 1))}
-      moveUpLabel={(model, index) => labels.moveUp + ': ' + (model.id.trim() || String(index + 1))}
-      moveDownLabel={(model, index) => labels.moveDown + ': ' + (model.id.trim() || String(index + 1))}
       onReorder={props.onReorder}
       renderItem={(model, index) => {
         const label = model.id.trim() || String(index + 1)
@@ -193,19 +209,27 @@ export function ModelCatalogEditor<T extends ModelCatalogDraft>(props: {
         const efforts = model.efforts ?? []
         const patch = (next: CatalogPatch<ModelCatalogDraft>): void => { props.onPatch(index, next as CatalogPatch<T>) }
         return (
-          <div data-model-row={label} data-provider-model="" style={catalogStyles.modelContentStyle}>
-            <input style={catalogStyles.rowInputStyle} value={model.id} placeholder={labels.modelId}
-              aria-label={labels.modelId + ' ' + String(index + 1)} disabled={disabled}
-              onChange={event => { patch({ id: event.target.value }) }} />
-            <input style={catalogStyles.rowInputStyle} value={model.name ?? ''} placeholder={labels.modelName}
-              aria-label={labels.modelName + ' ' + String(index + 1)} disabled={disabled}
-              onChange={event => { patch({ name: event.target.value || undefined }) }} />
-            <button type="button" style={iconButtonStyle} aria-label={labels.modelDetails + ': ' + label} aria-expanded={open}
+          <div data-model-row={label} data-provider-model="" style={sorting ? catalogStyles.modelContentSortingStyle : catalogStyles.modelContentStyle}>
+            <label style={catalogStyles.fieldStyle}>
+              <span style={catalogStyles.labelStyle}>{labels.modelId}</span>
+              <input style={catalogStyles.rowInputStyle} value={model.id} placeholder={labels.modelId}
+                aria-label={labels.modelId + ' ' + String(index + 1)} disabled={disabled}
+                onChange={event => { patch({ id: event.target.value }) }} />
+            </label>
+            <label style={catalogStyles.fieldStyle}>
+              <span style={catalogStyles.labelStyle}>{labels.modelName}</span>
+              <input style={catalogStyles.rowInputStyle} value={model.name ?? ''} placeholder={labels.modelName}
+                aria-label={labels.modelName + ' ' + String(index + 1)} disabled={disabled}
+                onChange={event => { patch({ name: event.target.value || undefined }) }} />
+            </label>
+            {sorting ? null : (
+            <button type="button" style={{ ...iconButtonStyle, marginTop: 18 }} aria-label={labels.modelDetails + ': ' + label} aria-expanded={open}
               title={labels.modelDetails} onClick={() => { props.onToggle(model.rowId) }}>
               <IconChevron open={open} />
             </button>
+            )}
             {props.onRemove === undefined ? null : (
-              <button type="button" style={iconButtonStyle} aria-label={labels.remove + ' ' + label} title={labels.remove}
+              <button type="button" style={{ ...iconButtonStyle, marginTop: 18 }} aria-label={labels.remove + ' ' + label} title={labels.remove}
                 disabled={disabled} onClick={() => { props.onRemove?.(index) }}>
                 <IconTrash />
               </button>
@@ -288,5 +312,6 @@ export function ModelCatalogEditor<T extends ModelCatalogDraft>(props: {
         )
       }}
     />
+    </div>
   )
 }

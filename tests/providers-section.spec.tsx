@@ -106,7 +106,7 @@ describe('ProvidersSection', () => {
     act(() => { toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     expect(toggle?.textContent?.replace(/\s+/g, ' ').trim()).toBe('done')
     expect(host.querySelector('[data-sortable-handle][hidden]')).toBeNull()
-    expect(host.querySelectorAll('[data-sortable-move]').length).toBe(4)
+    expect(host.querySelectorAll('[data-sortable-move]').length).toBe(0)
   })
 })
 

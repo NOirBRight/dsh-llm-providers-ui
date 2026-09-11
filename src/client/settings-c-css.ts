@@ -54,6 +54,10 @@ export const settingsCCss = `
 [data-providers-section] .c-full [data-provider-body],[data-providers-section] .c-full [data-provider-body][hidden]{display:flex!important;border-top:0;padding-top:8px}
 [data-providers-section] .c-plugin [data-provider-quota],[data-providers-section] .c-plugin [data-provider-quota-mini],[data-providers-section] .c-plugin [data-provider-quota-missing]{display:none!important}
 [data-providers-section] .c-plugin *:has(> [data-provider-quota]),[data-providers-section] .c-plugin *:has(> [data-provider-quota-mini]){display:none!important}
+[data-providers-section] .c-plugin section[aria-label*=usage i],[data-providers-section] .c-plugin section[aria-label*=Usage],[data-providers-section] .c-plugin section[aria-label*=用量]{display:none!important}
+[data-providers-section] .c-account{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--c-line);border-radius:12px;background:var(--c-subtle);margin:8px 0 18px}
+[data-providers-section] .c-account-head{margin:18px 0 10px;font-size:13px;font-weight:650}
+[data-providers-section] .c-plugin section[aria-label*=model i] button,[data-providers-section] .c-plugin section[aria-label*=模型] button{min-width:96px}
 [data-providers-section] .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (max-width:560px){
  [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{grid-template-columns:minmax(0,1fr);gap:10px}
