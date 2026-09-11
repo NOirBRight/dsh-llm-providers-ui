@@ -103,7 +103,7 @@ function periodRank(shortLabelValue: string): number {
   return PERIOD_RANK[normalized] ?? (/^\d+H$/.test(normalized) ? 2 : 0)
 }
 
-/** Headline window: longest percentage period, else the first text-only window. */
+/** Headline window: longest remaining-percent period. Text-only windows are skipped. */
 export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined {
   let best: UsageWindowSummary | undefined
   for (const quotaWindow of windows) {
@@ -229,7 +229,7 @@ function decodeFractionUsage(keys: readonly ('session' | 'weekly' | 'monthly')[]
   return { fetchedAt: usage.fetchedAt, windows }
 }
 
-// Published Command Code plan allotments (commandcode.ai/docs/plans). Longest prefix wins.
+// Published Command Code plan allotments (commandcode.ai/docs/plans). First matching key in this longest-first list wins.
 const COMMAND_CODE_MONTHLY_USD: ReadonlyArray<readonly [string, number]> = [
   ['individual-max-20', 300],
   ['individual-goat', 70],

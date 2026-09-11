@@ -38,8 +38,8 @@ describe('ProviderDirectory', () => {
 
   it('reads a connected snapshot without exposing account labels', () => {
     const directory = new ProviderDirectory()
-    directory.register({ key: 'llm-codex', account: () => ({ connected: true }) })
-    expect(directory.accountOf('llm-codex')).toEqual({ connected: true })
+    directory.register({ key: 'llm-codex', account: () => ({ state: 'connected' }) })
+    expect(directory.accountOf('llm-codex')).toEqual({ state: 'connected' })
     expect(directory.accountOf('llm-grok')).toBeUndefined()
   })
 

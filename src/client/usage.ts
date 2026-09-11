@@ -174,14 +174,13 @@ export function createProviderUsageStore(
       startPoll()
     },
     refresh: (keys) => {
-      refreshGeneration += 1
-      const targets = visibleKeys(keys)
-      for (const [key, controller] of active) if (targets.includes(key)) { controller.abort(); active.delete(key) }
-      for (let index = queued.length - 1; index >= 0; index -= 1) {
-        const item = queued[index]
-        if (item !== undefined && targets.includes(item.key)) queued.splice(index, 1)
-      }
-      sync(true, keys)
+      const targets = visibleKeys(keys).filter(key => {
+        if (pending(key)) return false
+        const status = current.get(key)?.status
+        return status !== 'logged-out' && status !== 'unsupported'
+      })
+      if (targets.length === 0) return
+      sync(true, targets)
     },
     invalidate: (keys) => {
       const targets = keys === undefined ? [...configuredKeys] : keys.filter(key => configuredKeys.includes(key))

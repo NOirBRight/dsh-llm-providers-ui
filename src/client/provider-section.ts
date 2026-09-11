@@ -36,6 +36,7 @@ export const copy = {
     details: '详情',
     overview: '返回总览',
     connected: '已连接',
+    configured: '已配置',
     unconnected: '未连接',
   },
   en: {
@@ -56,6 +57,7 @@ export const copy = {
     details: 'Details',
     overview: 'Back to overview',
     connected: 'Connected',
+    configured: 'Configured',
     unconnected: 'Not connected',
   },
 } as const

@@ -278,12 +278,13 @@ describe('ProviderUsagePanel states', () => {
 })
 
 describe('ProviderUsagePanel callbacks', () => {
-  it('refreshes one provider from the card without opening detail', () => {
+  it('refreshes one provider from the detail header', () => {
     const onRefresh = vi.fn()
     const container = mount({ onRefresh })
+    click(container.querySelector('[aria-label="Codex 38%"]'))
     click(container.querySelector('[aria-label="刷新 Codex"]'))
     expect(onRefresh).toHaveBeenCalledWith('codex')
-    expect(container.querySelector('.pu-detail')).toBeNull()
+    expect(container.querySelector('.pu-detail')).not.toBeNull()
   })
 
   it('calls onRefresh from the refresh button', () => {

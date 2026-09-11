@@ -10,7 +10,7 @@ import type {
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
-import { pickPrimaryWindow, type ProviderUsageSummary } from './usage.js'
+import { formatResetLabel, pickPrimaryWindow, type ProviderUsageSummary } from './usage.js'
 import { ProviderQuotaMeter } from './provider-ui.js'
 import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
@@ -47,7 +47,7 @@ export interface ProvidersSectionProps {
   showSidebarUsage?: boolean
   onShowSidebarUsage?: (show: boolean) => void
   usageSummaries?: readonly ProviderUsageSummary[]
-  accountOf?: (key: string) => { connected: boolean } | undefined
+  accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined
 }
 
 const pageStyle: CSSProperties = {
@@ -82,19 +82,19 @@ const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 export function bindProvidersSection(
   listRegisteredKeys: () => readonly string[],
   subscribe: (listener: () => void) => () => void,
-  readOrder: () => { keys: readonly string[], disabled: boolean, showSidebarUsage: boolean },
+  readPage: () => { keys: readonly string[], disabled: boolean, showSidebarUsage: boolean },
   onReorder: (keys: string[]) => void,
   roleOf: (key: string) => ProviderRole,
   onShowSidebarUsage: (show: boolean) => void,
   headerOf?: (key: string) => ProviderHeaderOwnership,
   readUsage?: () => readonly ProviderUsageSummary[],
   subscribeUsage?: (listener: () => void) => () => void,
-  accountOf?: (key: string) => { connected: boolean } | undefined,
+  accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined,
 ): (props: ProvidersSectionSlotProps) => ReactNode {
   return function BoundProvidersSection(props: ProvidersSectionSlotProps): ReactNode {
     const [, bump] = useState(0)
     useEffect(() => subscribe(() => { bump(value => value + 1) }), [subscribe])
-    const order = readOrder()
+    const order = readPage()
     const usageSummaries = useSyncExternalStore(subscribeUsage ?? (() => () => undefined), readUsage ?? (() => []), readUsage ?? (() => []))
     return (
       <ProvidersSection
@@ -116,10 +116,8 @@ export function bindProvidersSection(
 }
 
 /**
- * Render installed provider cards as a plain divider list. Sorting is an
- * explicit mode: one SortableList stays mounted in both modes with the same
- * keyed rows, so live slot state (authentication, drafts) survives the mode
- * toggle and every reorder.
+ * Settings C: compact quota ledger on overview; the plugin item slot mounts
+ * only in the independent detail view. Sorting reorders ledger rows in place.
  */
 export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const t = props.t ?? ((key: ProviderSectionLocaleKey) => key)
@@ -131,8 +129,11 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const sortable = sorting && showToggle
   const orderBeforeSort = useRef<readonly string[] | undefined>(undefined)
   useEffect(() => {
-    if (!sorting) return
-    orderBeforeSort.current = keys
+    if (!sorting) {
+      orderBeforeSort.current = undefined
+      return
+    }
+    if (orderBeforeSort.current === undefined) orderBeforeSort.current = keys
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
       event.preventDefault()
@@ -161,14 +162,18 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       const windows = props.usageSummaries?.find(summary => summary.providerKey === item.key)?.windows ?? []
       return (
         <div>
-          {windows.map(quotaWindow => (
+          {windows.map(quotaWindow => {
+            const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' })
+            return (
             <ProviderQuotaMeter
               key={quotaWindow.id}
               label={quotaWindow.label}
               {...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent })}
               emptyLabel={quotaWindow.valueText}
+              {...(reset === undefined ? {} : { detail: reset })}
             />
-          ))}
+            )
+          })}
           {card}
         </div>
       )
@@ -181,7 +186,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         <span style={{ width: 20, height: 20, flex: 'none' }}><ProviderMark providerKey={item.key} /></span>
         <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary?.name ?? item.key}</span>
-        {account === undefined ? null : <span>{account.connected ? t('connected') : t('unconnected')}</span>}
+        {account === undefined ? null : <span>{t(account.state)}</span>}
         <span>{primary?.remainingPercent === undefined ? '\u2014' : Math.round(primary.remainingPercent) + '%'}</span>
         <button type="button" style={sortButtonStyle} data-action="open-provider" onClick={() => { setDetail(item.key) }}>{t('details')}</button>
       </div>

@@ -8,7 +8,7 @@ export type ProviderRole = 'llm' | 'agent'
 export type ProviderHeaderOwnership = 'shared' | 'legacy'
 
 export interface ProviderAccountSnapshot {
-  connected: boolean
+  state: 'connected' | 'configured' | 'unconnected'
 }
 
 export interface ProviderDeclaration {

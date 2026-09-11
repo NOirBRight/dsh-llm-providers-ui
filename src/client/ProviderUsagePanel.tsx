@@ -12,11 +12,8 @@ function windowValueText(quotaWindow: UsageWindowSummary): string {
   return quotaWindow.remainingPercent === undefined ? quotaWindow.valueText : String(Math.round(quotaWindow.remainingPercent)) + '%'
 }
 
-type UsageTone = 'warn'
-
-function usageTone(remainingPercent: number | undefined): UsageTone | undefined {
-  if (remainingPercent !== undefined && remainingPercent <= 20) return 'warn'
-  return undefined
+function usageLow(remainingPercent: number | undefined): boolean {
+  return remainingPercent !== undefined && remainingPercent <= 20
 }
 
 function FilterRow(props: { summary: ProviderUsageSummary, hidden: boolean, onToggle: (visible: boolean) => void }): ReactNode {
@@ -143,13 +140,14 @@ function ProviderRow(props: { summary: ProviderUsageSummary, onSelect: () => voi
   const hasData = summary.status === 'ready' || summary.status === 'stale'
   const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
   const headline = headlineOf(summary)
-  const tone = usageTone(primary?.remainingPercent)
+  const low = usageLow(primary?.remainingPercent)
   return (
     <div className="pu-cell">
       <div
         role="button"
         tabIndex={0}
-        className={'pu-row' + (tone === undefined ? '' : ' pu-' + tone)}
+        className={'pu-row' + (low ? ' pu-warn' : '')}
+        data-usage-key={summary.providerKey}
         aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
         onClick={props.onSelect}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); props.onSelect() } }}
@@ -160,14 +158,6 @@ function ProviderRow(props: { summary: ProviderUsageSummary, onSelect: () => voi
           <span className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</span>
         </span>
       </div>
-      <button
-        type="button"
-        className={'pu-icon-btn pu-row-refresh' + (summary.refreshing === true ? ' pu-spinning' : '')}
-        aria-label={'刷新 ' + summary.name}
-        onClick={props.onRefresh}
-      >
-        {summary.refreshing === true ? <span className="pu-mini-spin" /> : <RefreshIcon />}
-      </button>
     </div>
   )
 }
@@ -196,15 +186,15 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
         : summary.windows.map(quotaWindow => {
           const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' })
-          const tone = usageTone(quotaWindow.remainingPercent)
+          const low = usageLow(quotaWindow.remainingPercent)
           const remaining = quotaWindow.remainingPercent
           return (
             <div key={quotaWindow.id} className="pu-win">
               <div className="pu-win-top">
                 <span className="pu-tip-label">{quotaWindow.label}</span>
-                <span className={'pu-tip-value' + (tone === undefined ? '' : ' pu-' + tone)}>{windowValueText(quotaWindow)}</span>
+                <span className={'pu-tip-value' + (low ? ' pu-warn' : '')}>{windowValueText(quotaWindow)}</span>
               </div>
-              {remaining === undefined ? null : <progress className={'pu-bar' + (tone === undefined ? '' : ' pu-' + tone)} max={100} value={remaining} />}
+              {remaining === undefined ? null : <progress className={'pu-bar' + (low ? ' pu-warn' : '')} max={100} value={remaining} />}
               {reset === undefined ? null : <div className="pu-tip-reset">重置 {reset}</div>}
             </div>
           )
@@ -219,6 +209,14 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
   const visible = props.providers.filter(summary => !hidden.has(summary.providerKey))
   const [filterOpen, setFilterOpen] = useState(false)
   const [detailKey, setDetailKey] = useState<string | undefined>()
+  const closeDetail = (): void => {
+    const key = detailKey
+    setDetailKey(undefined)
+    queueMicrotask(() => {
+      const row = document.querySelector('[data-provider-usage-panel] [data-usage-key="' + key + '"]')
+      if (row instanceof HTMLElement) row.focus()
+    })
+  }
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement | null>(null)
   const detail = visible.find(summary => summary.providerKey === detailKey)
@@ -230,7 +228,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
 
   useEffect(() => {
     if (detailKey === undefined) return
-    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') setDetailKey(undefined) }
+    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') closeDetail() }
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('keydown', onKey) }
   }, [detailKey])
@@ -290,7 +288,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           </button>
         </span>
       </div>
-      <div className={'pu-stage' + (detail === undefined ? '' : ' pu-stage-open')}>{detail === undefined ? body : <UsageDetail summary={detail} onBack={() => { setDetailKey(undefined) }} onRefresh={() => { props.onRefresh(detail.providerKey) }} />}</div>
+      <div className={'pu-stage' + (detail === undefined ? '' : ' pu-stage-open')}>{detail === undefined ? body : <UsageDetail summary={detail} onBack={closeDetail} onRefresh={() => { props.onRefresh(detail.providerKey) }} />}</div>
       {filterOpen
         ? (
           <section
