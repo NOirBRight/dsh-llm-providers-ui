@@ -42,7 +42,15 @@ export const settingsCCss = `
 [data-providers-section] .c-missing{display:flex;flex-direction:column;gap:4px;color:var(--c-faint);font-size:12px;min-height:48px;justify-content:center}
 [data-providers-section] .c-crumb{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c-faint);margin-bottom:21px}
 [data-providers-section] .c-crumb button{font-size:11px;color:var(--c-muted);padding:0;display:flex;align-items:center;gap:5px}
-[data-providers-section] .c-full{max-width:650px;margin:0 auto}
+[data-providers-section] .c-full{display:flex;flex-direction:column;max-width:650px;margin:0 auto}
+[data-providers-section] .c-plugin,[data-providers-section] .c-plugin [data-provider-slot],[data-providers-section] .c-plugin [data-provider-card],[data-providers-section] .c-plugin [data-provider-body]{display:contents!important}
+[data-providers-section] .c-detail-title{order:0}
+[data-providers-section] .c-plugin [data-provider-body]>p{order:1;margin:0 0 16px;color:var(--c-muted);font-size:12px}
+[data-providers-section] .c-account-head{order:2}
+[data-providers-section] .c-account{order:3}
+[data-providers-section] [data-c-quota]{order:4}
+[data-providers-section] .c-plugin section[aria-label*=model i],[data-providers-section] .c-plugin section[aria-label*=模型]{order:5}
+[data-providers-section] .c-full:not([data-ready]) [data-provider-body]>*{visibility:hidden}
 [data-providers-section] .c-detail-title{padding:0 0 16px;border-bottom:1px solid var(--c-line);margin-bottom:16px}
 [data-providers-section] .c-detail-title .c-name{font-size:18px}
 [data-providers-section] .c-quota-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
@@ -55,8 +63,12 @@ export const settingsCCss = `
 [data-providers-section] .c-plugin [data-provider-quota],[data-providers-section] .c-plugin [data-provider-quota-mini],[data-providers-section] .c-plugin [data-provider-quota-missing]{display:none!important}
 [data-providers-section] .c-plugin *:has(> [data-provider-quota]),[data-providers-section] .c-plugin *:has(> [data-provider-quota-mini]){display:none!important}
 [data-providers-section] .c-plugin section[aria-label*=usage i],[data-providers-section] .c-plugin section[aria-label*=Usage],[data-providers-section] .c-plugin section[aria-label*=用量]{display:none!important}
-[data-providers-section] .c-account{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--c-line);border-radius:12px;background:var(--c-subtle);margin:8px 0 18px}
-[data-providers-section] .c-account-head{margin:18px 0 10px;font-size:13px;font-weight:650}
+[data-providers-section] .c-account{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px!important;border:1px solid var(--c-line);border-radius:12px;background:var(--c-subtle);margin:0 0 22px;min-height:0}
+[data-providers-section] .c-account-head{margin:4px 0 10px;font-size:13px;font-weight:650}
+[data-providers-section] .c-account-copy{flex:1;min-width:0}
+[data-providers-section] .c-account-name{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+[data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint)}
+[data-providers-section] .c-account button{flex:none;min-height:34px}
 [data-providers-section] .c-plugin section[aria-label*=model i] button,[data-providers-section] .c-plugin section[aria-label*=模型] button{min-width:96px}
 [data-providers-section] .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (max-width:560px){

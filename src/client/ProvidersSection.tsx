@@ -96,6 +96,36 @@ function IconRefresh(): ReactNode {
   return <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 6a5.2 5.2 0 1 0 .1 4M13 2v4H9" /></svg>
 }
 
+function paintAccount(section: HTMLElement, t: (key: ProviderSectionLocaleKey) => string, linked: 'connected' | 'configured' | 'unconnected'): void {
+  section.classList.add('c-account')
+  if (section.previousElementSibling?.getAttribute('data-c-account-head') !== '') {
+    const head = document.createElement('div')
+    head.className = 'c-account-head'
+    head.setAttribute('data-c-account-head', '')
+    head.textContent = t('accountHeading')
+    section.parentElement?.insertBefore(head, section)
+  }
+  if (section.querySelector('[data-c-account-name]') !== null) return
+  const paragraph = section.querySelector('p')
+  const raw = (paragraph?.textContent ?? section.getAttribute('aria-label') ?? '').trim()
+  const match = /Signed in as\s+(.+)/iu.exec(raw) ?? /以\s*(.+?)\s*身份登录/u.exec(raw) ?? (/@/.test(raw) ? [raw, raw] as const : null)
+  const email = match?.[1]?.trim()
+  if (paragraph === null || email === undefined || email.length === 0) return
+  const name = document.createElement('div')
+  name.className = 'c-account-name'
+  name.setAttribute('data-c-account-name', '')
+  const dot = document.createElement('span')
+  dot.className = 'c-dot good'
+  name.append(dot, document.createTextNode(email))
+  const meta = document.createElement('div')
+  meta.className = 'c-account-meta'
+  meta.textContent = linked === 'configured' ? t('accountApiMeta') : t('accountOauthMeta')
+  const copy = document.createElement('div')
+  copy.className = 'c-account-copy'
+  copy.append(name, meta)
+  paragraph.replaceWith(copy)
+}
+
 /** Bind the shared page to live keyed-slot and settings snapshots. */
 export function bindProvidersSection(
   listRegisteredKeys: () => readonly string[],
@@ -146,44 +176,34 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const [filter, setFilter] = useState<'all' | 'llm' | 'agent'>('all')
   const [detail, setDetail] = useState<string | undefined>(undefined)
   const [modelCounts, setModelCounts] = useState<Readonly<Record<string, number>>>({})
-  const onRefresh = props.onRefresh
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (detail === undefined) return
-    onRefresh?.(detail)
-    let n = 0
-    let timer = 0
-    const tick = (): void => {
-      const root = document.querySelector('[data-providers-section] .c-full')
-      if (root instanceof HTMLElement) {
-        const header = root.querySelector('[data-provider-card-header]')
-        if (header instanceof HTMLElement && header.getAttribute('aria-expanded') !== 'true') header.click()
-        root.querySelectorAll('button[aria-expanded="false"]').forEach(node => {
-          if (!(node instanceof HTMLElement) || node.closest('[data-provider-card-header]') || node.closest('[data-provider-model]')) return
-          node.click()
-        })
-        root.querySelectorAll('section[aria-label]').forEach(section => {
-          if (!(section instanceof HTMLElement)) return
-          const label = section.getAttribute('aria-label') ?? ''
-          if (/usage|用量/i.test(label)) {
-            section.hidden = true
-            return
-          }
-          if (/model|模型|catalog/i.test(label)) return
-          section.classList.add('c-account')
-          if (section.previousElementSibling?.getAttribute('data-c-account-head') === '') return
-          const head = document.createElement('div')
-          head.className = 'c-account-head'
-          head.setAttribute('data-c-account-head', '')
-          head.textContent = t('accountHeading')
-          section.parentElement?.insertBefore(head, section)
-        })
+    const root = document.querySelector('[data-providers-section] .c-full')
+    if (!(root instanceof HTMLElement)) return
+    const paint = (): void => {
+      const header = root.querySelector('[data-provider-card-header]')
+      if (header instanceof HTMLElement && header.getAttribute('aria-expanded') !== 'true') header.click()
+      if (root.querySelector('[data-provider-model]') === null) {
+        const catalog = root.querySelector('section[aria-label*="model" i] button[aria-expanded="false"], section[aria-label*="模型"] button[aria-expanded="false"]')
+        if (catalog instanceof HTMLElement) catalog.click()
       }
-      n += 1
-      if (n < 16) timer = window.setTimeout(tick, 50)
+      root.querySelectorAll('section[aria-label]').forEach(section => {
+        if (!(section instanceof HTMLElement)) return
+        const label = section.getAttribute('aria-label') ?? ''
+        if (/usage|用量/i.test(label)) {
+          section.hidden = true
+          return
+        }
+        if (/model|模型|catalog/i.test(label)) return
+        paintAccount(section, t, linkState(detail, props.accountOf?.(detail), props.usageSummaries?.find(entry => entry.providerKey === detail)))
+      })
+      if (root.querySelector('[data-provider-body]')) root.setAttribute('data-ready', '')
     }
-    tick()
-    return () => { window.clearTimeout(timer) }
-  }, [detail, onRefresh])
+    paint()
+    const observer = new MutationObserver(paint)
+    observer.observe(root, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [detail])
   useLayoutEffect(() => {
     const next: Record<string, number> = {}
     document.querySelectorAll('[data-model-probe]').forEach(node => {
@@ -268,7 +288,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       return (
         <article className="c-full">
           <div className="c-detail-title">{identity}</div>
-          <section>
+          <section data-c-quota="">
             <div className="c-quota-head">
               <h3>{t('quotaHeading')}</h3>
               <button type="button" className="c-btn quiet" disabled={props.disabled === true || summary?.refreshing === true} onClick={() => { props.onRefresh?.(item.key) }}>{summary?.refreshing === true ? t('refreshing') : <><IconRefresh /> {t('refresh')}</>}</button>
