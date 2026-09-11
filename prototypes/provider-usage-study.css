@@ -1,0 +1,36 @@
+/* THROWAWAY: selected B, approved settings tokens, natural detail height. */
+.usage-study #closed{position:relative}
+.usage-study #task-usage-cards[hidden]{display:none}
+.usage-study .task-usage-card[aria-expanded=true]{border-color:var(--ink);background:var(--hover)}
+.usage-study .task-sessions{min-height:60px}
+.usage-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.task-usage .usage-tools h3{margin:0}.usage-tools .btn{min-height:44px;padding:6px;font-size:11px;gap:5px}
+.usage-head [aria-disabled=true],.usage-tools [aria-disabled=true]{opacity:.45;cursor:not-allowed}
+.usage-study .task-chat{display:flex;flex-direction:column;gap:24px;justify-content:space-between;padding:24px;overflow:auto}
+.usage-study .task-chat>*{display:block}
+.usage-chat-body{margin:auto 0}.usage-chat-body h2{font-size:20px;line-height:1.5}
+.usage-composer{margin-top:auto}.usage-composer textarea{width:100%;margin-top:8px;resize:vertical;min-height:84px}
+.usage-surface{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:0;margin:0;display:flex;flex-direction:column;min-height:0;height:auto;overflow:hidden;text-align:left}
+.usage-surface[hidden]{display:none!important}
+.usage-head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);flex:none}
+.usage-head h2{font-size:14px;line-height:1.5}.usage-head .brand,.usage-head .brand svg{width:24px;height:24px}
+.usage-head .icon-btn{width:44px;height:44px;min-height:44px}
+.usage-content{padding:14px 12px;overflow:auto;overscroll-behavior:contain;min-height:0;flex:0 1 auto;scrollbar-width:thin}
+.usage-content .meter-caption{white-space:normal;overflow-wrap:anywhere;font-size:11px;line-height:1.6}
+.usage-content .meter-label{white-space:normal;overflow:visible;text-overflow:clip}.usage-content .meter-value{white-space:nowrap}
+.usage-content .facts{grid-template-columns:1fr;margin-top:4px}.usage-content .facts>div{min-width:0}.usage-content dd{overflow-wrap:anywhere}
+.usage-content .activity summary,.usage-more>summary{padding:10px 0;min-height:44px;cursor:pointer;font-size:11px;color:var(--muted)}
+.usage-more{margin-top:10px;border-top:1px solid var(--line)}
+.usage-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 10px;border-top:1px solid var(--line);flex:none;background:var(--subtle)}
+.usage-foot .btn{min-height:44px;padding:6px}.usage-foot>span{min-width:0;font-size:10px;line-height:1.5}.usage-zone{display:block;overflow-wrap:anywhere}
+.usage-study .prototype-bar{gap:8px}.usage-study .prototype-bar>.bar-btn[hidden]{display:none}
+.usage-study .variant-label{min-width:0;width:130px;white-space:normal}
+#usage-lab>summary{list-style:none;min-width:44px;min-height:44px;display:grid;place-items:center;cursor:pointer;border:1px solid #ffffff24;border-radius:8px;font-size:11px}
+#usage-lab>summary::-webkit-details-marker{display:none}
+.usage-lab-menu{position:absolute;bottom:calc(100% + 8px);right:0;width:280px;max-width:calc(100vw - 24px);max-height:calc(var(--viewport-height) - 100px);overflow:auto;overscroll-behavior:contain;background:#252a30;border:1px solid #ffffff2a;box-shadow:0 12px 40px #0004;border-radius:12px;padding:14px;color:#f5f6f8;font-size:11px}
+.usage-lab-menu>label{display:flex;flex-direction:column;gap:6px;margin-top:12px}.usage-lab-menu select{min-height:44px;width:100%}
+#usage-base-tools{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}#usage-base-tools label{flex:1;min-width:100px}#usage-base-tools .bar-btn{min-height:44px}
+.usage-lab-menu details{margin-top:10px}.usage-lab-menu summary{min-height:44px;display:flex;align-items:center;cursor:pointer}.usage-lab-menu pre{font-size:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.usage-study[data-compact=true] .prototype-bar>.bar-btn{display:none}
+@container settings (max-width:620px){.usage-study .task-chat{display:none}.usage-study .task-panel{max-width:100%}}
+@media(max-width:420px){.usage-study .prototype-bar{padding:6px;gap:4px}}
