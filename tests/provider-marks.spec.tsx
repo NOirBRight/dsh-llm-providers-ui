@@ -31,6 +31,13 @@ describe('ProviderMark', () => {
     }
   })
 
+  it('maps the ACP cursor provider keys onto the Cursor mark', () => {
+    const cursor = mark('llm-cursor')
+    for (const key of ['cursor', 'cursor-agent', 'acp-cursor', 'llm-cursor']) {
+      expect(mark(key)).toBe(cursor)
+    }
+  })
+
   it('maps every live catalog id to a mark', () => {
     for (const key of ['deepseek-official', 'codex', 'grok', 'opencode-go', 'antigravity']) {
       expect(mark(key)).toContain('<svg')
