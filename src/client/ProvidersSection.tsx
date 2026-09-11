@@ -12,6 +12,7 @@ import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
 import { pickPrimaryWindow, type ProviderUsageSummary } from './usage.js'
 import { ProviderQuotaMeter } from './provider-ui.js'
+import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
 import type { ProviderHeaderOwnership, ProviderRole } from './directory.js'
 import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
@@ -177,6 +178,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     const account = props.accountOf?.(item.key)
     return (
       <div data-provider-row={item.key} data-provider-role={role} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
+        <span style={{ width: 20, height: 20, flex: 'none' }}><ProviderMark providerKey={item.key} /></span>
         <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary?.name ?? item.key}</span>
         {account === undefined ? null : <span>{account.connected ? t('connected') : t('unconnected')}</span>}
