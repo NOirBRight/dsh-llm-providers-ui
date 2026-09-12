@@ -204,8 +204,12 @@ describe('Provider Usage readers', () => {
         status: 'ok',
         usage: {
           fetchedAt: 'now',
-          plan: { planId: 'individual-goat' },
-          credits: { monthlyCredits: 4.74, fiveHour: { used: 0, cap: 14 }, weekly: { used: 1.29, cap: 14 } },
+          plan: { planId: 'individual-goat', currentPeriodEnd: '2026-09-26T00:00:00.000Z' },
+          credits: {
+            monthlyCredits: 4.74,
+            fiveHour: { used: 0, cap: 14 },
+            weekly: { used: 1.29, cap: 14, resetAt: '2026-09-17T03:38:00.000Z' },
+          },
         },
       },
     }))
@@ -213,11 +217,14 @@ describe('Provider Usage readers', () => {
     expect(result).toMatchObject({
       status: 'ready',
       windows: [
-        { id: 'monthly', shortLabel: 'M', remainingPercent: 7 },
+        { id: 'monthly', shortLabel: 'M', remainingPercent: 7, resetsAt: '2026-09-26T00:00:00.000Z' },
         { id: 'fiveHour', remainingPercent: 100 },
-        { id: 'weekly', remainingPercent: 91 },
+        { id: 'weekly', remainingPercent: 91, resetsAt: '2026-09-17T03:38:00.000Z' },
       ],
     })
+    if (result.status === 'ready') {
+      expect(result.windows.find(window => window.id === 'fiveHour')?.resetsAt).toBeUndefined()
+    }
   })
 
   it('picks the longest remaining-percent window and skips text-only credits', () => {

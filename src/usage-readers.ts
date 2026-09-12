@@ -296,7 +296,15 @@ function decodeCommandCodeUsage(usage: UsageRecordValue): { fetchedAt: string, w
     if (!nonNegativeNumber(monthly)) return undefined
     const cap = commandCodeMonthlyCap(planId)
     if (cap !== undefined && cap > 0 && monthly <= cap) {
-      windows.push(remainingWindow({ id: 'monthly', label: 'Month', used: cap - monthly, limit: cap }))
+      // Studio's MONTHLY LIMIT reset is the billing cycle end, not a windowLimits.resetAt.
+      const periodEnd = plan !== undefined && nonEmptyString(plan.currentPeriodEnd) ? plan.currentPeriodEnd : undefined
+      windows.push(remainingWindow({
+        id: 'monthly',
+        label: 'Month',
+        used: cap - monthly,
+        limit: cap,
+        ...(periodEnd === undefined ? {} : { resetsAt: periodEnd }),
+      }))
     }
   }
   for (const [key, label] of [['fiveHour', '5-hour'], ['weekly', 'Week']] as const) {
@@ -304,13 +312,14 @@ function decodeCommandCodeUsage(usage: UsageRecordValue): { fetchedAt: string, w
     if (raw === undefined) continue
     const item = recordUsageValue(raw)
     if (item === undefined || !nonNegativeNumber(item.used) || !nonNegativeNumber(item.cap)) return undefined
-    if (item.resetAt !== undefined && !nonEmptyString(item.resetAt)) return undefined
+    const resetAt = nonEmptyString(item.resetAt) ? item.resetAt : undefined
+    if (item.resetAt !== undefined && resetAt === undefined) return undefined
     windows.push(remainingWindow({
       id: key,
       label,
       used: item.used,
       limit: item.cap,
-      ...(item.resetAt === undefined ? {} : { resetsAt: item.resetAt }),
+      ...(resetAt === undefined ? {} : { resetsAt: resetAt }),
     }))
   }
   return { fetchedAt: usage.fetchedAt, windows }
