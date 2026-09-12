@@ -90,4 +90,15 @@ describe('ProviderDetail', () => {
     expect(full).toContain(copy.sort)
     expect(full).toContain(copy.chooseFromAccount)
   })
+  it('disables the sort action when the catalog cannot be reordered', () => {
+    const markup = html({
+      models: {
+        count: 1,
+        sorting: false,
+        sortDisabled: true,
+        onToggleSorting: () => undefined,
+      },
+    })
+    expect(markup).toMatch(/<button[^>]*disabled[^>]*>Sort<\/button>/)
+  })
 })

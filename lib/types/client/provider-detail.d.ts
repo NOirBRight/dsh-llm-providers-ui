@@ -35,6 +35,8 @@ export interface ProviderDetailModels {
     readonly onToggleAll?: () => void;
     readonly sorting?: boolean;
     readonly onToggleSorting?: () => void;
+    /** Sort needs at least two models in most catalogs. */
+    readonly sortDisabled?: boolean;
     readonly onChooseFromAccount?: () => void;
     readonly chooseDisabled?: boolean;
     /** The list itself (rows/editor) plus any trailing action such as add-model. */

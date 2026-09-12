@@ -44,6 +44,8 @@ export interface ProviderDetailModels {
   readonly onToggleAll?: () => void
   readonly sorting?: boolean
   readonly onToggleSorting?: () => void
+  /** Sort needs at least two models in most catalogs. */
+  readonly sortDisabled?: boolean
   readonly onChooseFromAccount?: () => void
   readonly chooseDisabled?: boolean
   /** The list itself (rows/editor) plus any trailing action such as add-model. */
@@ -270,7 +272,7 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
                 </button>
               )}
               {props.models.onToggleSorting === undefined ? null : (
-                <button type="button" className="c-btn quiet" aria-pressed={props.models.sorting === true} onClick={props.models.onToggleSorting}>
+                <button type="button" className="c-btn quiet" aria-pressed={props.models.sorting === true} disabled={props.models.sortDisabled === true} onClick={props.models.onToggleSorting}>
                   {props.models.sorting === true ? props.copy.done : props.copy.sort}
                 </button>
               )}
