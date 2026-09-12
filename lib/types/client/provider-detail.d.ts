@@ -96,6 +96,9 @@ export interface ProviderDetailCopy {
     readonly resetOverdue: string;
     readonly resetMissing: string;
     readonly connectToSee: string;
+    readonly windowHour: string;
+    readonly windowWeek: string;
+    readonly windowMonth: string;
     readonly unsupportedQuota: string;
     readonly loadingQuota: string;
     readonly errorQuota: string;
