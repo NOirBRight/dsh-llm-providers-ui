@@ -16,6 +16,7 @@ export interface OrderConfig {
     order: string[];
     hiddenUsageProviders: string[];
     usageOrder: string[];
+    showSidebarUsage: boolean;
 }
 export declare const OrderConfig: z<OrderConfig>;
 /** Host configuration for the providers-ui owner (currently no fields). */

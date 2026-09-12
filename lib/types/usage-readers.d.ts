@@ -1,4 +1,4 @@
-/** Bundle-safe quota reader factories: pure decode plus RPC reads. No ModuleLoader wrapper, no store. */
+/** Bundle-safe quota decoders, RPC readers, and browser cache helpers; no ModuleLoader wrapper or reactive store. */
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client';
 export type ProviderUsageStatus = 'loading' | 'ready' | 'logged-out' | 'unsupported' | 'stale' | 'error';
 export interface UsageWindowSummary {
@@ -43,8 +43,21 @@ export declare function recordUsageValue(value: unknown): UsageRecordValue | und
 export declare function nonEmptyString(value: unknown): value is string;
 /** Non-negative finite number guard shared by the reader factories and the sidebar cache validator. */
 export declare function nonNegativeNumber(value: unknown): value is number;
-/** Headline window: longest percentage period, else the first text-only window. */
+/** Headline window: longest remaining-percent period. Text-only windows are skipped. */
 export declare function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined;
+export interface ResetCopy {
+    at: string;
+    overdue: string;
+    missing: string;
+}
+/** System-zone instant for a reset ISO. Language copy stays in the UI. */
+export declare function formatResetInstant(resetsAt: string | undefined): {
+    when: string;
+    overdue: boolean;
+    relative: string;
+} | undefined;
+/** Compose a reset caption. Missing ISO never becomes a fake calendar date. */
+export declare function formatResetLabel(resetsAt: string | undefined, period?: string, copy?: ResetCopy): string | undefined;
 /** Create the Codex quota reader declared by the Codex client plugin. */
 export declare function createCodexUsageReader(): ProviderUsageReader;
 /** Create the Cursor quota reader declared by the Cursor client plugin. */
@@ -57,5 +70,33 @@ export declare function createOllamaUsageReader(): ProviderUsageReader;
 export declare function createCommandCodeUsageReader(): ProviderUsageReader;
 /** Create the OpenCode Go quota reader declared by the OpenCode Go client plugin. */
 export declare function createOpenCodeGoUsageReader(): ProviderUsageReader;
+/** Whether a ready or stale summary retains displayable usage windows.
+ * @param summary - Current or retained provider usage.
+ * @returns Whether its windows can be displayed and persisted.
+ */
+export declare function hasUsageData(summary: ProviderUsageSummary | undefined): summary is ProviderUsageSummary;
+export declare function readUsageCache(): Map<string, ProviderUsageSummary>;
+export declare function writeUsageCache(current: Map<string, ProviderUsageSummary>): void;
+export declare function dropPersistedUsageKeys(keys: readonly string[]): void;
+export declare function clearProviderUsageCache(): void;
+/** Last-good quota for a Provider card header, available on first paint. */
+export declare function peekCachedUsage(providerKey: string): ProviderUsageSummary | undefined;
+export declare function rememberCachedUsage(summary: ProviderUsageSummary): void;
+/**
+ * Collapsed-header last-good quota for first paint. Ignores headlines without
+ * a finite in-range remaining percent so missing quota renders no meter, never
+ * a zero bar. Never replaces a cached full multi-window summary, and records
+ * no fetchedAt: a headline is display data, not a fetch, so freshness checks
+ * treat it as expired and refetch.
+ */
+export declare function rememberHeadlineQuota(providerKey: string, name: string, quota: {
+    label?: string;
+    remainingPercent?: number;
+} | null | undefined): void;
+export declare function headerQuotaFromCache(summary: ProviderUsageSummary | undefined): {
+    label: string;
+    remainingPercent?: number;
+    detail?: string;
+} | undefined;
 export {};
 //# sourceMappingURL=usage-readers.d.ts.map

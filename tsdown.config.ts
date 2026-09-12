@@ -68,9 +68,63 @@ const usageReaders: UserConfig = {
   },
 }
 
+const providerUi: UserConfig = {
+  name: `${PACKAGE_ID}/provider-ui`,
+  entry: { 'provider-ui': 'lib/types/provider-ui.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [
+      'react',
+      'react/jsx-runtime',
+      'react-dom',
+    ],
+  },
+}
+
+const modelCatalog: UserConfig = {
+  name: `${PACKAGE_ID}/model-catalog`,
+  entry: { 'model-catalog': 'lib/types/model-catalog.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [
+      'react',
+      'react/jsx-runtime',
+      'react-dom',
+    ],
+  },
+}
+
 const sortable: UserConfig = {
   name: `${PACKAGE_ID}/sortable`,
   entry: { sortable: 'lib/types/sortable.js' },
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'browser',
+  target: 'es2024',
+  dts: false,
+  clean: false,
+  deps: {
+    neverBundle: [
+      'react',
+      'react/jsx-runtime',
+      'react-dom',
+    ],
+  },
+}
+
+const providerDetail: UserConfig = {
+  name: `${PACKAGE_ID}/provider-detail`,
+  entry: { 'provider-detail': 'lib/types/client/provider-detail.js' },
   outDir: 'lib',
   format: ['esm'],
   platform: 'browser',
@@ -91,7 +145,10 @@ export default ({ env }: Pick<UserConfig, 'env'>): UserConfig[] => {
   if (face === 'host') return [host]
   if (face === 'client') return [client]
   if (face === 'sortable') return [sortable]
+  if (face === 'provider-ui') return [providerUi]
   if (face === 'usage-readers') return [usageReaders]
+  if (face === 'model-catalog') return [modelCatalog]
+  if (face === 'provider-detail') return [providerDetail]
   if (face !== undefined) throw new Error(`unknown DSH build face: ${String(face)}`)
-  return [host, client, sortable, usageReaders]
+  return [host, client, sortable, usageReaders, providerUi, modelCatalog, providerDetail]
 }

@@ -14,12 +14,33 @@ export interface SortableListProps<T> {
     onReorder: (items: T[]) => void;
     /** Disable handles while the parent is busy or read-only. */
     disabled?: boolean;
-    /** row = inner model-list chrome; card = handle lives inside the provider card frame. */
-    chrome?: 'row' | 'card';
+    /**
+     * row = inner model-list chrome; card = handle lives inside the provider card frame;
+     * plain = divider rows without frames; bare = the caller draws the card itself, so the
+     * row adds no border, radius, background, or handle divider.
+     */
+    chrome?: 'row' | 'card' | 'plain' | 'bare';
+    /**
+     * Whether reorder handles are available. False hides handles and move
+     * buttons while keeping every row mounted, so slot state survives mode
+     * changes. Defaults to true: existing consumers keep their handles.
+     */
+    sorting?: boolean;
+    /** Render per-row up/down move buttons for keyboard and touch sorting. Defaults to false. */
+    moveButtons?: boolean;
+    /** Accessible label for a row move-up button. Defaults to Move up. */
+    moveUpLabel?: (item: T, index: number) => string;
+    /** Accessible label for a row move-down button. Defaults to Move down. */
+    moveDownLabel?: (item: T, index: number) => string;
 }
 /**
- * Pointer-driven sortable list: a portal ghost follows the pointer, a preview
- * array records the prospective order, and FLIP animations move sibling rows.
+ * Pointer-driven sortable list: an in-tree floating ghost follows the pointer,
+ * a preview array records the prospective order, and FLIP animations move
+ * sibling rows. The ghost stays inside the list ancestry so ancestor-scoped
+ * row styles keep matching it while it floats (position:fixed escapes
+ * overflow clipping without leaving the scope). Constraint: no
+ * transform/filter/perspective on list ancestors, which would re-anchor
+ * the fixed ghost to that ancestor instead of the viewport.
  */
-export declare function SortableList<T>({ items, getId, renderItem, dragLabel, onReorder, disabled, chrome, }: SortableListProps<T>): ReactNode;
+export declare function SortableList<T>({ items, getId, renderItem, dragLabel, onReorder, disabled, chrome, sorting, moveButtons, moveUpLabel, moveDownLabel, }: SortableListProps<T>): ReactNode;
 //# sourceMappingURL=SortableList.d.ts.map

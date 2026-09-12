@@ -4,11 +4,11 @@
 
 DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
-兼容性：本版本要求 DeepSeek Harness `0.1.2-alpha.4` 与 `@deepseek-ai/cordis@4.0.2`；与 Alpha.1–Alpha.3 不兼容。仍使用旧 runtime 的用户请保留为该 runtime 构建的最后一个插件 tag。
+兼容性：本版本当前兼容/验证目标为 DeepSeek Harness `0.1.5-rc.1` 与 `@deepseek-ai/cordis@4.0.2`；与 Alpha.1–Alpha.3 不兼容。仍使用旧 runtime 的用户请保留为该 runtime 构建的最后一个插件 tag。
 
 ## 兼容性
 
-已验证运行时是 DeepSeek Harness `0.1.2-alpha.4` 与 `0.1.2-rc.1`（Cordis `4.0.2`）；这份记录只是证据，不是 allowlist。
+当前已验证/兼容运行时是 DeepSeek Harness `0.1.5-rc.1`（Cordis `4.0.2`）。历史证据也覆盖 `0.1.2-alpha.4` 与 `0.1.2-rc.1`；这份记录只是证据，不是 allowlist。
 
 未知的新版本会先打一条 warning，再按正常挂载路径 best-effort 尝试，不会因为未验证而跳过。
 
@@ -36,7 +36,9 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 - `dsh-llm-providers-ui`（Host）：`applySavedOrder`、`decodeProviderOrder`、`sortCatalogGroups`、`PROVIDER_ITEM_ORDER` 等。构建产物：`lib/index.js` + `lib/types`。
 - `dsh-llm-providers-ui/order`（纯函数，ESM）：同一套 order helper，供 `dsh-model-switch` 与 provider picker 使用的稳定构建产物。构建产物：`lib/order.js` + `lib/types/order.d.ts`。provider 插件 `alwaysBundle` 该构建产物；不要从 `src` import。
 - `dsh-llm-providers-ui/sortable`（client 工具，ESM）：`SortableList` 拖拽排序实现。构建产物：`lib/sortable.js` + `lib/types/sortable.d.ts`。唯一实现在 `src/client/SortableList.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/SortableList.tsx` import。
+- `dsh-llm-providers-ui/provider-ui`（client 工具，ESM）：共享 `ProviderCardHeader`、`ProviderQuotaMeter`、`normalizeQuotaRemaining`、`providerUiCss`，以及卡片头部与共享额度缓存的绑定 `useProviderQuotaCache`（含 `ProviderAuthState` 判定）。构建产物：`lib/provider-ui.js` + `lib/types/provider-ui.d.ts`。唯一实现在 `src/client/provider-ui.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/provider-ui.tsx` import。
 - `dsh-llm-providers-ui/client`（Web）：owner 插件接线与 `providerDirectory` Cordis service 声明。构建产物：`lib/client.js`（ModuleLoader CJS）+ `lib/types/client`；只导出插件入口。不要 import `./src/*`。
+- `dsh-llm-providers-ui/model-catalog`（client 工具，ESM）：`ModelCatalogEditor`、`ModelPickerDialog`、`applyCatalogPatch` 与目录布局辅助。构建产物：`lib/model-catalog.js` + `lib/types/model-catalog.d.ts`。provider 插件应 `alwaysBundle` 此导出，不要从 `src/client` import。
 - `dsh-llm-providers-ui/usage-readers`（纯 ESM）：供 provider client bundle 使用的 `ProviderUsageReader` 类型与各 vendor 的 `create*UsageReader` 工厂。构建产物：`lib/usage-readers.js` + `lib/types/usage-readers.d.ts`。provider 插件应 `alwaysBundle` 此导出。
 
 本包只暴露上面列出的构建后 `lib/` 入口；调用方应 import 这些包导出，而非源码路径。
@@ -47,35 +49,37 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## Consumer contract
 
-provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, usage }`； disposer 负责注销。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
+provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, header, usage }`； disposer 负责注销。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
+已迁移的卡片使用 `dsh-llm-providers-ui/provider-ui` 的共享 header（`ProviderCardHeader`，`role`、调用方 `status` 与头条 `quota`；`title`/`mark`/`summary`/`open`/`unsaved` 保持旧 codex 布局），根节点标记 `li[data-provider-card][data-provider-role]`、header 按钮标记 `data-provider-card-header`、正文标记 `data-provider-body`，引入一份 `<style>{providerUiCss}</style>`，并声明 `header: 'shared'` 让外壳去掉兜底 badge。缺失额度不渲染 meter，绝不画成零；`normalizeQuotaRemaining` 保留精度，NaN/Infinity/越界一律视为不可用。
+provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 directory 与 slot 类型，不得在本地重复 module augmentation。退出登录或切换账户后，provider 调用 `ctx.providerDirectory.invalidateUsage(key)` 让侧栏丢弃缓存额度并重查；短暂读取失败仍把上次可用窗口标为过期展示。
 `dsh-model-switch` 经构建产物 `dsh-llm-providers-ui/order` 复用 `sortCatalogGroups`。
 
 在 npm 发布之前，lab checkout 在开发时可用 `link:../dsh-llm-providers-ui`，但工作区 `package.json` 不得提交 `link:` spec。
 
 ## Release 安装（Latest）
 
-共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。release 产物面向 DeepSeek Harness 0.1.2-alpha.4，只含构建后的 Host/Client 文件；没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。
+共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。release 产物面向 DeepSeek Harness 0.1.5-rc.1，只含构建后的 Host/Client 文件；没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。
 
 Latest 安装（URL 永不带版本号）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
 ~~~
 
-固定版本安装：
+固定版本安装（`v0.1.12-015rc1e`）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.7/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1e/dsh-llm-providers-ui-0.1.12.tgz
 ~~~
 
 更新、卸载与验证：
 
 ~~~sh
-# 更新到最新 Release
+# 更新到 Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.7.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -85,6 +89,12 @@ dsh plugin --profile web remove dsh-llm-providers-ui
 
 配置：Web UI 插件用 Settings 里的插件区，纯 Host 插件用 profile 的 dsh.profile.bundles 条目。从本 README 的最小 YAML/JSON 示例起步，凭据/后端地址显式给出。
 
-回滚：重跑上面的固定 v0.1.3 命令（或之前记录的 Alpha.4 tarball），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
+回滚：重跑上面的固定 v0.1.12-015rc1e 命令（或之前记录的不可变 tarball），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
 
-Release 与完整性随 Alpha.4 迁移 release 一起发布。
+Release 与完整性随 0.1.5-rc.1 迁移 release 一起发布。
+
+Codex 额度读取会明确请求后台刷新；手动刷新与缓存过期轮询的缓存策略统一由界面存储层控制。
+
+## 实验实例页面检查
+
+在隔离 Chrome 中登录现有 3082 实验实例并开放 CDP 9229 后，运行 `node scripts/check-lab-settings.mjs`。检查覆盖七个真实 Provider、品牌和角色图标，以及 1280／390／320 宽度下的深浅色布局和展开的 Antigravity。检查会恢复原主题，不修改 Provider 认证或配置，截图写入 `/tmp/lab-*.png`；不会启动替代应用服务器。

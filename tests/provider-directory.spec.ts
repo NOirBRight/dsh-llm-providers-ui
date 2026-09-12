@@ -17,6 +17,7 @@ describe('ProviderDirectory', () => {
 
     expect(directory.roleOf('agent-antigravity')).toBe('agent')
     expect(directory.reader('agent-antigravity')).toBe(reader)
+    expect(directory.accountOf('agent-antigravity')).toBeUndefined()
     expect(notify).toHaveBeenCalledTimes(1)
 
     unregister()
@@ -24,5 +25,54 @@ describe('ProviderDirectory', () => {
     expect(directory.reader('agent-antigravity')).toBeUndefined()
     expect(notify).toHaveBeenCalledTimes(2)
     stop()
+  })
+
+  it('defaults header ownership to legacy and keeps shared registrations', () => {
+    const directory = new ProviderDirectory()
+    expect(directory.headerOf('llm-codex')).toBe('legacy')
+    const unregister = directory.register({ key: 'llm-codex', header: 'shared' })
+    expect(directory.headerOf('llm-codex')).toBe('shared')
+    unregister()
+    expect(directory.headerOf('llm-codex')).toBe('legacy')
+  })
+
+  it('reads a connected snapshot without exposing account labels', () => {
+    const directory = new ProviderDirectory()
+    directory.register({ key: 'llm-codex', account: () => ({ state: 'connected' }) })
+    expect(directory.accountOf('llm-codex')).toEqual({ state: 'connected' })
+    expect(directory.accountOf('llm-grok')).toBeUndefined()
+  })
+
+  it('publishes the display name and model count the plugin reports', () => {
+    const directory = new ProviderDirectory()
+    let models = 2
+    const stop = directory.register({ key: 'llm-grok', name: 'Grok', modelCount: () => models })
+
+    expect(directory.nameOf('llm-grok')).toBe('Grok')
+    expect(directory.modelCountOf('llm-grok')).toBe(2)
+    expect(directory.nameOf('llm-codex')).toBeUndefined()
+    expect(directory.modelCountOf('llm-codex')).toBeUndefined()
+
+    models = 5
+    const notify = vi.fn()
+    const unsubscribe = directory.subscribe(notify)
+    directory.update('llm-grok')
+    expect(directory.modelCountOf('llm-grok')).toBe(5)
+    expect(notify).toHaveBeenCalledTimes(1)
+
+    directory.update('llm-unknown')
+    expect(notify).toHaveBeenCalledTimes(1)
+    unsubscribe()
+    stop()
+  })
+
+  it('notifies usage-invalidation listeners per key until disposed', () => {
+    const directory = new ProviderDirectory()
+    const seen: string[] = []
+    const stop = directory.onInvalidateUsage(key => { seen.push(key) })
+    directory.invalidateUsage('llm-codex')
+    stop()
+    directory.invalidateUsage('llm-codex')
+    expect(seen).toEqual(['llm-codex'])
   })
 })

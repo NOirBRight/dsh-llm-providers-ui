@@ -23,13 +23,16 @@ interface ProviderUsageActionFace {
   toggleVisibility: (providerKey: string, visible: boolean) => void
   showAll: () => void
   reorder: (keys: readonly string[]) => void
+  subscribeSettings: (listener: () => void) => () => void
+  readShowSidebarUsage: () => boolean
 }
 
 type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & ProviderUsageActionFace
 
 function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
   const usage = useSyncExternalStore(props.usage.subscribe, props.usage.getSnapshot, props.usage.getSnapshot)
-  if (!props.wide) return null
+  const showSidebarUsage = useSyncExternalStore(props.subscribeSettings, props.readShowSidebarUsage, props.readShowSidebarUsage)
+  if (!props.wide || !showSidebarUsage) return null
   return (
     <ProviderUsagePanel
       providers={usage.providers}
@@ -54,6 +57,7 @@ export function installProviderUsage(
   ctx: ClientContext,
   orderScope: SettingsScope<ProviderOrderSettings>,
   directory: ProviderDirectory,
+  onStore?: (usage: ProviderUsageStore) => void,
 ): () => void {
   let connection: ConnectionHandle
   try {
@@ -64,6 +68,7 @@ export function installProviderUsage(
     return () => {}
   }
   const usage = createProviderUsageStore(connection.rpc, key => directory.reader(key))
+  onStore?.(usage)
   let directoryGeneration = 0
   let lastConfig = ''
   const reconcile = (): void => {
@@ -99,7 +104,11 @@ export function installProviderUsage(
     name: 'sidebar.footer.action',
     id: 'llm-providers-usage',
     order: 0,
-    inject: (): ProviderUsageActionFace => ({ usage, toggleVisibility, showAll, reorder }),
+    inject: (): ProviderUsageActionFace => ({
+      usage, toggleVisibility, showAll, reorder,
+      subscribeSettings: listener => orderScope.subscribe(listener),
+      readShowSidebarUsage: () => orderScope.getSnapshot().value?.showSidebarUsage ?? true,
+    }),
   }, ProviderUsageAction))
   const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, reconcile)
   const stopSettings = orderScope.subscribe(reconcile)
@@ -107,7 +116,8 @@ export function installProviderUsage(
     directoryGeneration += 1
     reconcile()
   })
+  const stopInvalidate = directory.onInvalidateUsage(key => { usage.invalidate([key]) })
   return () => {
-    disposeReverse([stopDirectory, stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
+    disposeReverse([stopInvalidate, stopDirectory, stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
   }
 }

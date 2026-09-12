@@ -3,11 +3,12 @@
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import { applySavedOrder } from '../order.js'
 
-import type { ProviderUsageReader, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js'
-import { recordUsageValue, nonEmptyString, nonNegativeNumber } from '../usage-readers.js'
+import type { ProviderUsageReader, ProviderUsageSummary } from '../usage-readers.js'
+import { readUsageCache, writeUsageCache, dropPersistedUsageKeys, hasUsageData } from '../usage-readers.js'
+export { peekCachedUsage, rememberCachedUsage, rememberHeadlineQuota, headerQuotaFromCache, clearProviderUsageCache } from '../usage-readers.js'
 
 export type { ProviderUsageReader, ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js'
-export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow } from '../usage-readers.js'
+export { createCodexUsageReader, createCommandCodeUsageReader, createCursorUsageReader, createGrokUsageReader, createOllamaUsageReader, createOpenCodeGoUsageReader, pickPrimaryWindow, formatResetLabel, formatResetInstant } from '../usage-readers.js'
 export interface ProviderUsageStoreSnapshot {
   providers: readonly ProviderUsageSummary[]
   hiddenKeys: readonly string[]
@@ -23,7 +24,6 @@ export interface ProviderUsageConfig {
 export const USAGE_POLL_MS = 15 * 60 * 1000
 export const USAGE_MIN_REFETCH_MS = 5 * 60 * 1000
 export const USAGE_READ_TIMEOUT_MS = 20_000
-const USAGE_CACHE_KEY = 'dsh-llm-providers-ui:usage-cache'
 const USAGE_MAX_IN_FLIGHT = 3
 
 export interface ProviderUsageStore {
@@ -31,101 +31,21 @@ export interface ProviderUsageStore {
   subscribe(listener: () => void): () => void
   configure(config: ProviderUsageConfig): void
   refresh(keys?: readonly string[]): void
+  /**
+   * Drop cached quota for keys and refetch. Unlike refresh, invalidation
+   * purges stored windows first, so a failed reread reports an error instead
+   * of resurrecting the previous account's quota as stale. Providers call this
+   * (via providerDirectory.invalidateUsage) after sign-out or account switch.
+   * @param keys - provider keys to invalidate; every configured key when omitted.
+   */
+  invalidate(keys?: readonly string[]): void
   dispose(): void
 }
 
-function hasUsageData(summary: ProviderUsageSummary | undefined): summary is ProviderUsageSummary {
-  return summary !== undefined && summary.windows.length > 0 && (summary.status === 'ready' || summary.status === 'stale')
-}
-
-function cachedSummary(value: unknown): ProviderUsageSummary | undefined {
-  const item = recordUsageValue(value)
-  if (item === undefined || !nonEmptyString(item.providerKey) || !nonEmptyString(item.name)) return undefined
-  const status = item.status
-  if (status !== 'ready' && status !== 'stale') return undefined
-  if (!Array.isArray(item.windows) || item.windows.length === 0) return undefined
-  const windows: UsageWindowSummary[] = []
-  for (const windowValue of item.windows) {
-    const quotaWindow = recordUsageValue(windowValue)
-    if (quotaWindow === undefined || !nonEmptyString(quotaWindow.id) || !nonEmptyString(quotaWindow.label) || !nonEmptyString(quotaWindow.shortLabel) || !nonEmptyString(quotaWindow.valueText)) return undefined
-    if (quotaWindow.remainingPercent !== undefined && (!nonNegativeNumber(quotaWindow.remainingPercent) || quotaWindow.remainingPercent > 100)) return undefined
-    if (quotaWindow.resetsAt !== undefined && !nonEmptyString(quotaWindow.resetsAt)) return undefined
-    windows.push({
-      id: quotaWindow.id,
-      label: quotaWindow.label,
-      shortLabel: quotaWindow.shortLabel,
-      valueText: quotaWindow.valueText,
-      ...(quotaWindow.remainingPercent === undefined ? {} : { remainingPercent: quotaWindow.remainingPercent }),
-      ...(quotaWindow.resetsAt === undefined ? {} : { resetsAt: quotaWindow.resetsAt }),
-    })
-  }
-  return {
-    providerKey: item.providerKey,
-    name: item.name,
-    status: 'ready',
-    windows,
-    ...(nonEmptyString(item.fetchedAt) ? { fetchedAt: item.fetchedAt } : {}),
-  }
-}
-
-let memoryUsageCache = new Map<string, ProviderUsageSummary>()
-
-function storageGet(): string | null {
-  try {
-    return globalThis.localStorage?.getItem(USAGE_CACHE_KEY) ?? globalThis.sessionStorage?.getItem(USAGE_CACHE_KEY) ?? null
-  } catch { return null }
-}
-
-function storageSet(value: string): void {
-  try { globalThis.localStorage?.setItem(USAGE_CACHE_KEY, value) } catch { /* quota */ }
-  try { globalThis.sessionStorage?.setItem(USAGE_CACHE_KEY, value) } catch { /* quota */ }
-}
-
-function parseUsageCache(raw: string | null): Map<string, ProviderUsageSummary> {
-  const cached = new Map<string, ProviderUsageSummary>()
-  if (raw === null) return cached
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return cached
-    for (const value of parsed) {
-      const item = cachedSummary(value)
-      if (item !== undefined) cached.set(item.providerKey, item)
-    }
-  } catch { /* malformed */ }
-  return cached
-}
-
-function readUsageCache(): Map<string, ProviderUsageSummary> {
-  const fromStorage = parseUsageCache(storageGet())
-  if (fromStorage.size > 0) {
-    memoryUsageCache = new Map(fromStorage)
-    return fromStorage
-  }
-  return new Map(memoryUsageCache)
-}
-
-export function clearProviderUsageCache(): void {
-  memoryUsageCache = new Map()
-  try { globalThis.localStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
-  try { globalThis.sessionStorage?.removeItem(USAGE_CACHE_KEY) } catch { /* ignore */ }
-}
-
-function writeUsageCache(current: Map<string, ProviderUsageSummary>): void {
-  const merged = parseUsageCache(storageGet())
-  for (const [key, item] of memoryUsageCache) merged.set(key, item)
-  for (const item of current.values()) if (hasUsageData(item)) merged.set(item.providerKey, {
-    providerKey: item.providerKey,
-    name: item.name,
-    status: 'ready',
-    windows: item.windows,
-    ...(item.fetchedAt === undefined ? {} : { fetchedAt: item.fetchedAt }),
-  })
-  if (merged.size === 0) return
-  memoryUsageCache = merged
-  storageSet(JSON.stringify([...merged.values()]))
-}
-
 function keepUsage(old: ProviderUsageSummary | undefined, next: ProviderUsageSummary): ProviderUsageSummary {
+  // Signed out means those windows are not this account's any more, so they are
+  // dropped rather than relabelled stale. A provider that still has credentials
+  // and merely failed to answer keeps its last good windows, marked stale.
   if (next.status === 'logged-out') return next
   if (!hasUsageData(next) && hasUsageData(old)) return { ...old, status: 'stale' }
   return next
@@ -155,6 +75,10 @@ export function createProviderUsageStore(
   const notify = (): void => { for (const listener of listeners) listener() }
   const pending = (key: string): boolean => active.has(key) || queued.some(item => item.key === key)
   const publish = (): void => {
+    // A reader that reports signed-out revokes that account's windows. Drop their
+    // stored copies before writing, or writeUsageCache merges them straight back.
+    const signedOut = configuredKeys.filter(key => current.get(key)?.status === 'logged-out')
+    if (signedOut.length > 0) dropPersistedUsageKeys(signedOut)
     snapshot = {
       providers: configuredKeys.map(key => {
         const item = current.get(key)
@@ -239,22 +163,48 @@ export function createProviderUsageStore(
         const item = queued[index]
         if (item !== undefined && (!configuredKeys.includes(item.key) || snapshot.hiddenKeys.includes(item.key))) queued.splice(index, 1)
       }
-      for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) { current.delete(key) }
-      for (const key of configuredKeys) if (!current.has(key)) {
-        const reader = readerForKey(key)
-        if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
+      const persisted = readUsageCache()
+      if (configuredKeys.length > 0) {
+        for (const key of [...current.keys()]) if (!configuredKeys.includes(key)) current.delete(key)
+      }
+      for (const key of configuredKeys) {
+        const existing = current.get(key)
+        if (existing?.status === 'logged-out' || hasUsageData(existing)) continue
+        const cached = persisted.get(key)
+        if (hasUsageData(cached)) current.set(key, cached)
+        else if (existing === undefined) {
+          const reader = readerForKey(key)
+          if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
+        }
       }
       sync(false)
       startPoll()
     },
     refresh: (keys) => {
+      const targets = visibleKeys(keys).filter(key => {
+        if (pending(key)) return false
+        const status = current.get(key)?.status
+        return status !== 'logged-out' && status !== 'unsupported'
+      })
+      if (targets.length === 0) return
+      sync(true, targets)
+    },
+    invalidate: (keys) => {
+      const targets = keys === undefined ? [...configuredKeys] : keys.filter(key => configuredKeys.includes(key))
+      if (targets.length === 0) return
       refreshGeneration += 1
-      const targets = visibleKeys(keys)
       for (const [key, controller] of active) if (targets.includes(key)) { controller.abort(); active.delete(key) }
       for (let index = queued.length - 1; index >= 0; index -= 1) {
         const item = queued[index]
         if (item !== undefined && targets.includes(item.key)) queued.splice(index, 1)
       }
+      for (const key of targets) current.delete(key)
+      dropPersistedUsageKeys(targets)
+      for (const key of targets) {
+        const reader = readerForKey(key)
+        if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
+      }
+      publish()
       sync(true, keys)
     },
     dispose: () => {
