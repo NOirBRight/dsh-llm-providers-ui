@@ -106,19 +106,6 @@ export const settingsCCss = `
 [data-providers-section] .c-full [data-sortable-move]{display:none!important}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:32px minmax(0,1fr)!important;align-items:center}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-sortable-handle]{width:32px!important;min-width:32px!important;min-height:32px;align-self:center}
-[data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 32px 32px!important;align-items:center!important;column-gap:8px;row-gap:4px;padding:10px 8px!important}
-[data-providers-section] .c-full [data-provider-model]>.c-field-label{grid-row:1;font-size:11px;color:var(--c-muted);line-height:1.2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-[data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(1){grid-column:1}
-[data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(2){grid-column:2}
-[data-providers-section] .c-full [data-provider-model]>input:nth-of-type(1){grid-column:1;grid-row:2}
-[data-providers-section] .c-full [data-provider-model]>input:nth-of-type(2){grid-column:2;grid-row:2}
-[data-providers-section] .c-full [data-provider-model]>button{grid-row:2;align-self:center;justify-self:center;width:32px;height:32px;min-height:32px}
-[data-providers-section] .c-full [data-provider-model]>button[aria-expanded]{grid-column:3}
-[data-providers-section] .c-full [data-provider-model]>button:not([aria-expanded]){grid-column:4}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 32px!important}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]>button[aria-expanded]{display:none!important}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model]>button:not([aria-expanded]){grid-column:3}
-[data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])) [data-provider-model] input{pointer-events:none;background:var(--c-subtle);color:var(--c-muted);border-color:var(--c-line)}
 [data-providers-section] .c-notice{margin:0;color:var(--c-muted);font-size:12px;line-height:1.5}
 [data-providers-section] .c-account-actions{display:flex;align-items:center;gap:8px;flex:none}
 [data-providers-section] .c-account-body{margin-top:10px}
@@ -156,9 +143,6 @@ export const settingsCCss = `
  [data-providers-section] .c-models-actions{margin-left:auto}
  [data-providers-section] .c-models-actions{flex:0 0 auto;flex-wrap:nowrap!important}
  [data-providers-section] .c-filters .c-btn{min-height:28px!important;padding:4px 11px!important;font-size:12px;line-height:1.2}
- [data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px!important;column-gap:6px}
- [data-providers-section] .c-full [data-provider-model]>button[aria-expanded]{grid-column:3;grid-row:1}
- [data-providers-section] .c-full [data-provider-model]>button:not([aria-expanded]){grid-column:3;grid-row:2}
 }
 /* Narrow phones: keep the heading and all three actions on one row by tightening
    the toolbar rather than wrapping it (the prototype keeps one row). */
@@ -174,12 +158,6 @@ export const settingsCCss = `
 @media (max-width:520px){
  [data-providers-section] .c-extra-grid{grid-auto-flow:row;grid-template-columns:minmax(0,1fr)}
  [data-providers-section] .c-extra-grid>*{max-width:none}
- [data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1fr) 32px!important;row-gap:4px}
- [data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(1){grid-column:1;grid-row:1}
- [data-providers-section] .c-full [data-provider-model]>input:nth-of-type(1){grid-column:1;grid-row:2}
- [data-providers-section] .c-full [data-provider-model]>.c-field-label:nth-of-type(2){grid-column:1;grid-row:3}
- [data-providers-section] .c-full [data-provider-model]>input:nth-of-type(2){grid-column:1;grid-row:4}
- [data-providers-section] .c-full [data-provider-model]>button{grid-row:1/span 4;grid-column:2}
  [data-providers-section] .c-account{flex-direction:column!important;align-items:flex-start!important}
  [data-providers-section] .c-plugin .c-sort{min-width:0!important}
  [data-providers-section] .c-models-actions .c-btn,

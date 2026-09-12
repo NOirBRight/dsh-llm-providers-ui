@@ -125,7 +125,7 @@ systemctl --user restart dsh-lab.service
 17. **测试断言的是旧内联样式时，改断言而不是改回旧实现**：把 `style.minHeight === '32px'` 换成 `className` 包含共享类。
 ## 6. 迁移顺序（按风险与覆盖面）
 
-1. **Grok**（OAuth + 搜索 + 能力开关）：模型列表是 `<SortableList>` + `renderItem`，整体搬到 `models.list` 即可；
+1. **Grok**（OAuth + 搜索 + 能力开关）：把每行映射成 `items`，行内字段放进 `extra`，删掉插件自己的行 JSX；
 2. **OpenCode Go**（API Key + 多窗口）：额度要展示全部窗口，重置时间用原始 ISO；
 3. Cursor、Codex（零模型）、Ollama、CommandCode（API Key 账号卡）、Antigravity（`role: 'agent'`）。
 
