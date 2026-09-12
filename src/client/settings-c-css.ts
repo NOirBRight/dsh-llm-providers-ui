@@ -83,7 +83,7 @@ export const settingsCCss = `
 [data-providers-section] .c-model-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px 32px;gap:10px;align-items:end}
 [data-providers-section] .c-field{display:flex;flex-direction:column;gap:4px;min-width:0}
 [data-providers-section] .c-field-label{font-size:11px;line-height:1.4;color:var(--c-muted)}
-[data-providers-section] .c-input{width:100%;min-width:0;min-height:34px;border:1px solid var(--c-line);border-radius:6px;padding:6px 9px;font:inherit;font-size:12px;color:var(--c-ink);background:var(--c-bg)}
+[data-providers-section] .c-input{width:100%;min-width:0;min-height:34px;border:1px solid var(--c-line);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;color:var(--c-ink);background:var(--c-bg)}
 [data-providers-section] .c-icon-only{width:32px;min-width:32px;height:34px;padding:0!important;justify-content:center}
 [data-providers-section] .c-icon-only[aria-expanded=true] .c-ico{transform:rotate(90deg)}
 [data-providers-section] .c-input[readonly]{background:var(--c-subtle);color:var(--c-muted)}
@@ -91,8 +91,10 @@ export const settingsCCss = `
 [data-providers-section] .c-icon-label .c-ico{flex:none;width:14px;height:14px}
 [data-providers-section] .c-add-model{align-self:flex-start}
 [data-providers-section] .c-model-extra{margin-top:10px;padding-top:10px;border-top:1px solid var(--c-line)}
-[data-providers-section] .c-extra-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px;align-items:end}
-[data-providers-section] .c-extra-checks{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+[data-providers-section] .c-extra-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,200px));justify-content:start;gap:10px 14px;align-items:end}
+[data-providers-section] .c-extra-checks{display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:34px;align-self:end}
+[data-providers-section] .c-extra-checks label{display:inline-flex;align-items:center;gap:7px;min-height:34px;font-size:12px}
+[data-providers-section] .c-extra-checks input[type=checkbox]{accent-color:var(--c-ink);width:15px;height:15px;min-height:0;padding:0;margin:0;flex:none}
 [data-providers-section] .c-models-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 [data-providers-section] .c-models-actions .c-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-height:34px;padding:6px 10px!important;font-size:12px;line-height:1;white-space:nowrap}
 [data-providers-section] .c-models-actions .c-btn.quiet{min-width:92px}

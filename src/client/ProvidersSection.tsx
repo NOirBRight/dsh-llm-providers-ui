@@ -84,20 +84,20 @@ const API_KEY_AUTH = /(?:ollama|opencode-go|commandcode)$/u
  * @returns the display name for the overview row.
  */
 function windowName(window: { readonly label: string, readonly shortLabel?: string }, t: (key: ProviderSectionLocaleKey) => string): string {
-  const canonical = (token: string): string | undefined => {
+  const canonical = (token: string, scoped = false): string | undefined => {
     const value = token.trim().toLowerCase()
-    if (/^(?:5h|5 h|5-hour|5 hour|h|hour|hourly|session)$/u.test(value)) return t('windowHour')
-    if (/^(?:w|wk|week|weekly)$/u.test(value)) return t('windowWeek')
-    if (/^(?:m|mo|month|monthly)$/u.test(value)) return t('windowMonth')
+    if (/^(?:5h|5 h|5-hour|5 hour|h|hour|hourly|session)$/u.test(value)) return t(scoped ? 'windowHourShort' : 'windowHour')
+    if (/^(?:w|wk|week|weekly)$/u.test(value)) return t(scoped ? 'windowWeekShort' : 'windowWeek')
+    if (/^(?:m|mo|month|monthly)$/u.test(value)) return t(scoped ? 'windowMonthShort' : 'windowMonth')
     return undefined
   }
   const label = window.label.trim()
   const direct = canonical(label)
   if (direct !== undefined) return direct
-  // "GPT-5.3-Codex-Spark · 5h" keeps its scope but spells the window out.
+  // "GPT-5.3-Codex-Spark · 5h" keeps its scope and spells only the period out.
   const parts = label.split('\u00b7')
   const tail = parts.at(-1)?.trim() ?? ''
-  const mapped = canonical(tail)
+  const mapped = canonical(tail, true)
   if (mapped !== undefined && parts.length > 1) return [...parts.slice(0, -1).map(part => part.trim()), mapped].join(' · ')
   const short = window.shortLabel === undefined ? '' : canonical(window.shortLabel)
   return short === undefined || label.length > 0 ? label : short
