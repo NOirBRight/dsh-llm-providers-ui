@@ -1,3 +1,9 @@
+## v0.2.7
+
+侧边栏/详情的额度窗口按 5 小时 → 周 → 月显示。
+
+解码器在 0.2.6 已按这个顺序产出，但 Provider Usage 把解码后的 windows 缓存在 localStorage，刷新页面仍用旧顺序。读缓存和写入缓存时都 `orderUsageWindows`，旧缓存也会重排。
+
 ## v0.2.6
 
 Command Code 额度窗口顺序改为 5 小时 → 周 → 月（月在最后），侧边栏 Provider Usage 与详情页共用同一 `windows` 数组。

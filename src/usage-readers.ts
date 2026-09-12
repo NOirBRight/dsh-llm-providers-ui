@@ -134,6 +134,20 @@ export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): Usage
   return best
 }
 
+/** Shortest period first: 5-hour, week, month. Cached summaries keep emission order, so display sorts. */
+function displayWindowRank(quotaWindow: { readonly id: string, readonly label: string, readonly shortLabel: string }): number {
+  const id = quotaWindow.id.toLowerCase()
+  const shortLabelValue = quotaWindow.shortLabel.toLowerCase()
+  if (id === 'fivehour' || id === 'five-hour' || id === '5h' || shortLabelValue === '5h') return 0
+  if (id === 'weekly' || id === 'week' || shortLabelValue === 'w') return 1
+  if (id === 'monthly' || id === 'month' || shortLabelValue === 'm') return 2
+  return 3
+}
+
+export function orderUsageWindows(windows: readonly UsageWindowSummary[]): UsageWindowSummary[] {
+  return [...windows].sort((left, right) => displayWindowRank(left) - displayWindowRank(right))
+}
+
 function formatRemainingDuration(ms: number): string {
   const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'always' })
   const days = Math.round(ms / 86_400_000)
@@ -484,7 +498,7 @@ function cachedSummary(value: unknown): ProviderUsageSummary | undefined {
     providerKey: item.providerKey,
     name: item.name,
     status,
-    windows,
+    windows: orderUsageWindows(windows),
     ...(nonEmptyString(item.fetchedAt) ? { fetchedAt: item.fetchedAt } : {}),
   }
 }
@@ -561,7 +575,7 @@ function persistableUsage(summary: ProviderUsageSummary): ProviderUsageSummary {
     providerKey: summary.providerKey,
     name: summary.name,
     status: summary.status,
-    windows: summary.windows,
+    windows: orderUsageWindows(summary.windows),
     ...(summary.fetchedAt === undefined ? {} : { fetchedAt: summary.fetchedAt }),
   }
 }
