@@ -11,13 +11,14 @@ describe('ProviderMark', () => {
   it('renders the supplied Antigravity silhouette', () => {
     const html = mark('antigravity')
     expect(html).toContain('<svg')
-    expect(html).toContain('viewBox="0 0 169 148"')
+    // The box is the mark's measured ink, so every brand fills the sidebar slot the same way.
+    expect(html).toContain('viewBox="13.4 8.4 142.1 129.9"')
   })
 
   it('renders the supplied CommandCode squircle with theme-token cutout', () => {
     const html = mark('commandcode')
     expect(html).toContain('<svg')
-    expect(html).toContain('viewBox="0 0 137 137"')
+    expect(html).toContain('viewBox="-8.2 -8.2 152.5 152.5"')
     // Canonical BrandMark: currentColor squircle plus bg-layer-1 glyph cutout for light/dark.
     expect(html).toContain('fill="currentColor"')
     expect(html).toContain('var(--dsw-alias-bg-layer-1)')
