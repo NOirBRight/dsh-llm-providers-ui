@@ -430,7 +430,7 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
             <span>{props.copy.advancedHeading}</span>
             <span className="c-advanced-note">{props.copy.advancedNote}</span>
           </summary>
-          <div className="c-advanced-body">{props.advanced}</div>
+          <div className="c-advanced-content">{props.advanced}</div>
         </details>
       )}
 
