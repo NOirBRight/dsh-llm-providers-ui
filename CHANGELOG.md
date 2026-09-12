@@ -10,6 +10,18 @@
 - 概览：窗口名统一（5 小时 / 每周 / 每月窗口），模型数由插件发布。
 - **接口有破坏性变更**：插件必须使用 slot 上下文中的 `template`/`copy`，并在 `items`/`extra` 下提供模型行；旧版插件需同步升级（本版本与 7 个插件 0.2.x 一起发布）。
 
+## v0.2.0
+
+共享详情模板 0.2.0 —— 7 个 provider 插件的协调发布起点。
+
+- 新增 `dsh-llm-providers-ui/provider-detail`：ProviderDetail 模板（身份 → 提示 → 账号 → 额度 → 模型 → 折叠高级设置 → 页脚 → 保存条）、`providerDetailCopy`（中英）、以及设置页下发卡片的 `ProviderItemSlotContext`（`mode`/`usage`/`accountState`/`onRefresh`/`copy`/`template`）。
+- 目录契约扩展：`name`、`modelCount`、`detail: 'shared'`，以及 `nameOf`/`modelCountOf`/`detailOf`/`update`。
+- 声明 `detail: 'shared'` 的卡片自己渲染详情：设置页不再运行 DOM 规范化、探针与插件样式覆盖。
+- 模型行由模板渲染（固定字段列槽、排序只读、排序时收起、单层圆角），插件通过 `items` + `extra` 提供数据与私有字段。
+- 高级设置、分区分隔线、草稿栏、移动端工具条与 token（圆角/内衬/复选框）按锁定原型对齐。
+- 概览：窗口名统一（5 小时 / 每周 / 每月窗口），模型数由插件发布。
+- **接口有破坏性变更**：插件必须使用 slot 上下文中的 `template`/`copy`，并在 `items`/`extra` 下提供模型行；旧版插件需同步升级（本版本与 7 个插件 0.2.x 一起发布）。
+
 # Changelog
 
 # v0.2.0
