@@ -1,3 +1,7 @@
+## v0.2.6
+
+Command Code 额度窗口顺序改为 5 小时 → 周 → 月（月在最后），侧边栏 Provider Usage 与详情页共用同一 `windows` 数组。
+
 ## v0.2.5
 
 提交重建后的 `lib/usage-readers.js`。
