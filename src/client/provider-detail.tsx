@@ -6,7 +6,7 @@ import { ProviderRoleBadge } from './provider-ui.js'
 import type { ProviderRoleBadgeProps } from './provider-ui.js'
 import type { UsageWindowSummary } from '../usage-readers.js'
 import { formatResetLabel } from '../usage-readers.js'
-import { copy as sectionCopy } from './provider-section.js'
+import { copy as sectionCopy, windowNameOf } from './provider-section.js'
 import { SortableList } from './SortableList.js'
 
 /** Account block: plugin owns the business state, the template owns the card. */
@@ -127,6 +127,9 @@ export interface ProviderDetailCopy {
   readonly resetOverdue: string
   readonly resetMissing: string
   readonly connectToSee: string
+  readonly windowHour: string
+  readonly windowWeek: string
+  readonly windowMonth: string
   readonly unsupportedQuota: string
   readonly loadingQuota: string
   readonly errorQuota: string
@@ -165,6 +168,9 @@ function detailCopyOf(locale: 'zh' | 'en'): ProviderDetailCopy {
     unsupportedQuota: source.unsupportedQuota,
     loadingQuota: source.loadingQuota,
     errorQuota: source.errorQuota,
+    windowHour: source.windowHour,
+    windowWeek: source.windowWeek,
+    windowMonth: source.windowMonth,
     resetAt: source.resetAt,
     resetOverdue: source.resetOverdue,
     resetMissing: source.resetMissing,
@@ -293,7 +299,9 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
           {props.quota.windows.length === 0
             ? <div className="c-missing">{quotaEmptyLabel(props.quota.status, props.copy)}</div>
             : props.quota.windows.map(window => {
-                const detail = formatResetLabel(window.resetsAt, window.label, {
+                // The detail spells the period out exactly like the overview row does.
+                const windowLabel = windowNameOf(window.label, { hour: props.copy.windowHour, week: props.copy.windowWeek, month: props.copy.windowMonth })
+                const detail = formatResetLabel(window.resetsAt, windowLabel, {
                   at: props.copy.resetAt,
                   overdue: props.copy.resetOverdue,
                   missing: props.copy.resetMissing,
@@ -301,7 +309,7 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
                 return (
                   <ProviderQuotaMeter
                     key={window.id}
-                    label={window.label}
+                    label={windowLabel}
                     {...(window.remainingPercent === undefined ? {} : { remainingPercent: window.remainingPercent })}
                     emptyLabel={window.valueText}
                     {...(detail === undefined ? {} : { detail })}

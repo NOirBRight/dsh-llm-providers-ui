@@ -1,4 +1,16 @@
 /** Shared Settings > LLM Providers section. The dsh-llm-providers-ui client owns the nav row. */
+/**
+ * Canonical window wording, shared by the overview rows and the detail quota block:
+ * "Monthly", "Cursor Models · Monthly" and "M" all read as the same full phrase.
+ * @param label - the provider-supplied window label.
+ * @param names - the locale's canonical hour/week/month phrases.
+ * @returns the label to display.
+ */
+export declare function windowNameOf(label: string, names: {
+    readonly hour: string;
+    readonly week: string;
+    readonly month: string;
+}): string;
 export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_SETTINGS_NS, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, decodeProviderOrder, providerRoute, sortCatalogGroups, } from '../order.js';
 export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from '../order.js';
 /** Locale copy: empty state names all six providers. */

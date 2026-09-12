@@ -2,6 +2,32 @@
 
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 
+/**
+ * Canonical window wording, shared by the overview rows and the detail quota block:
+ * "Monthly", "Cursor Models · Monthly" and "M" all read as the same full phrase.
+ * @param label - the provider-supplied window label.
+ * @param names - the locale's canonical hour/week/month phrases.
+ * @returns the label to display.
+ */
+export function windowNameOf(label: string, names: { readonly hour: string, readonly week: string, readonly month: string }): string {
+  const canonical = (token: string): string | undefined => {
+    const value = token.trim().toLowerCase()
+    if (/^(?:5h|5 h|5-hour|5 hour|hour|hourly)$/u.test(value)) return names.hour
+    if (/^(?:w|wk|week|weekly)$/u.test(value)) return names.week
+    if (/^(?:m|mo|month|monthly)$/u.test(value)) return names.month
+    return undefined
+  }
+  const trimmed = label.trim()
+  const direct = canonical(trimmed)
+  if (direct !== undefined) return direct
+  // "Cursor Models · Monthly" keeps its scope and spells the period out in full.
+  const parts = trimmed.split('·')
+  const tail = parts.at(-1)?.trim() ?? ''
+  const mapped = canonical(tail)
+  if (mapped !== undefined && parts.length > 1) return [...parts.slice(0, -1).map(part => part.trim()), mapped].join(' · ')
+  return trimmed
+}
+
 export {
   PROVIDERS_SECTION_ID,
   PROVIDERS_ITEM_SLOT,
