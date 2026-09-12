@@ -164,37 +164,6 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     expect(onRefresh).toHaveBeenCalledWith('llm-cursor')
   })
 
-  it('normalizes a plugin card into account, quota, models, and one closed advanced block', () => {
-    const tallies = { toggle: 0 }
-    const renderPlugin = (): ReactElement => {
-      const card = pluginCard()
-      return card
-    }
-    const host = mount(createElement(ProvidersSection, {
-      t,
-      registeredKeys: ['llm-cursor'],
-      renderSlot: () => renderPlugin(),
-    }))
-    act(() => { host.querySelector('[data-action="open-provider"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const toggle = host.querySelector('[aria-label="Model catalog"] button')
-    toggle?.addEventListener('click', () => { tallies.toggle += 1 })
-    act(() => { host.querySelector('.c-crumb')?.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-
-    const usage = host.querySelector('section[aria-label="Subscription usage"]')
-    expect(usage?.getAttribute('data-c-hide')).toBe('')
-    const account = host.querySelector('section[aria-label="Signed in as demo@example.com."]')
-    expect(account?.classList.contains('c-account')).toBe(true)
-    expect(host.querySelector('.c-account-head')?.textContent).toBe('accountHeading')
-    const advanced = host.querySelector('details[data-c-advanced]')
-    expect(advanced).not.toBeNull()
-    expect((advanced as HTMLDetailsElement).open).toBe(false)
-    expect(advanced?.querySelector('summary')?.textContent).toContain('advancedHeading')
-    expect(advanced?.querySelector('section[aria-label="Capabilities"]')).not.toBeNull()
-    const addButtons = [...host.querySelectorAll('button')].filter(button => /add model/iu.test(button.textContent ?? ''))
-    expect(addButtons.filter(button => button.getAttribute('data-c-own') === 'add')).toHaveLength(1)
-    expect(addButtons.filter(button => button.getAttribute('data-c-plugin-chrome') === 'add')).toHaveLength(1)
-    expect(tallies.toggle).toBeLessThanOrEqual(1)
-  })
   it('hands a migrated card its mode, usage snapshot, and refresh callback', () => {
     const seen: Array<{ props: Record<string, unknown>, entryKey?: string }> = []
     const capture = (_name: string, props: object, opts?: { entryKey?: string }): ReactElement => {

@@ -46,7 +46,6 @@ export const settingsCCss = `
 [data-providers-section] .c-full *{min-width:0;box-sizing:border-box}
 [data-providers-section] .c-plugin,[data-providers-section] .c-plugin [data-provider-slot],[data-providers-section] .c-plugin [data-provider-card],[data-providers-section] .c-plugin [data-provider-body]{display:contents!important}
 [data-providers-section] .c-plugin [data-provider-body]>p{margin:0 0 16px;color:var(--c-muted);font-size:12px}
-[data-providers-section] .c-full:not([data-ready]) [data-provider-body]>*{visibility:hidden}
 [data-providers-section] .c-detail-title{padding:0 0 16px;border-bottom:1px solid var(--c-line);margin-bottom:16px}
 [data-providers-section] .c-detail-title .c-name{font-size:18px}
 [data-providers-section] .c-quota-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
@@ -66,7 +65,6 @@ export const settingsCCss = `
 [data-providers-section] .c-account-name{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px;font-size:13px;font-weight:600;text-align:left!important}
 [data-providers-section] .c-account-meta{margin-top:3px;font-size:11px;color:var(--c-faint);text-align:left!important}
 [data-providers-section] .c-account button{flex:none;min-height:34px}
-[data-providers-section] .c-full [data-c-plugin-chrome],[data-providers-section] .c-full [data-c-hide]{display:none!important}
 [data-providers-section] .c-full details.c-advanced{border:1px solid var(--c-line);border-radius:12px;margin:6px 0 0;background:transparent}
 [data-providers-section] .c-full details.c-advanced>summary{display:flex;align-items:center;gap:8px;padding:12px 14px;min-height:44px;list-style:none;cursor:pointer;font-size:13px;font-weight:650}
 [data-providers-section] .c-full details.c-advanced>summary::-webkit-details-marker{display:none}
@@ -86,8 +84,6 @@ export const settingsCCss = `
 [data-providers-section] .c-models-actions .c-btn.quiet:hover{background:var(--c-hover)!important}
 [data-providers-section] .c-models-actions .c-btn[disabled]{opacity:.5;cursor:default}
 [data-providers-section] .c-models-hint{margin:0 0 12px;font-size:11px;color:var(--c-faint)}
-[data-providers-section] .c-full [data-c-own=add]{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px!important;width:auto!important;max-width:100%;align-self:flex-start;margin-top:12px;min-height:34px;padding:6px 10px!important;font-size:12px}
-[data-providers-section] .c-full [data-c-own=add] .c-ico{display:block;flex:none;width:14px;height:14px}
 [data-providers-section] .c-plugin .c-sort{min-width:96px}
 [data-providers-section] .c-full [data-sortable-move]{display:none!important}
 [data-providers-section] .c-full [data-sortable-row]:has([data-sortable-handle]:not([hidden])){grid-template-columns:32px minmax(0,1fr)!important;align-items:center}

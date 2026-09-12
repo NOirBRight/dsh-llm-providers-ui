@@ -42,7 +42,6 @@ export interface ProvidersSectionProps {
     } | undefined;
     onRefresh?: (key?: string) => void;
 }
-/** Bind the shared page to live keyed-slot and settings snapshots. */
 export declare function bindProvidersSection(listRegisteredKeys: () => readonly string[], subscribe: (listener: () => void) => () => void, readPage: () => {
     keys: readonly string[];
     disabled: boolean;
