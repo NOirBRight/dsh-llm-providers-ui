@@ -28,7 +28,6 @@ export const settingsCCss = `
 [data-providers-section] .c-labels,[data-providers-section] .c-row-grid{display:grid;--quota-column:minmax(170px,calc((100% - 90px)/2.05));grid-template-columns:minmax(140px,1fr) var(--quota-column) 72px;gap:20px;align-items:center}
 [data-providers-section] .c-labels{padding:0 12px 10px;font-size:10px;color:var(--c-faint);border-bottom:1px solid var(--c-line)}
 [data-providers-section] .c-row-grid{position:relative;padding:19px 12px;border-bottom:1px solid var(--c-line);min-height:96px;box-sizing:border-box}
-[data-providers-section] .c-probe{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);pointer-events:none}
 [data-providers-section] .c-row-grid:last-child{border-bottom:0}
 [data-providers-section][data-sorting] .c-labels,[data-providers-section][data-sorting] .c-row-grid{grid-template-columns:minmax(0,1fr) var(--quota-column)}
 [data-providers-section][data-sorting] .c-labels>span:last-child,[data-providers-section][data-sorting] [data-action=open-provider]{display:none}
@@ -68,8 +67,7 @@ export const settingsCCss = `
 [data-providers-section] .c-full details.c-advanced>summary .c-advanced-note{margin-left:auto;font-size:11px;font-weight:400;color:var(--c-faint)}
 [data-providers-section] .c-full details.c-advanced>section{padding:0}
 [data-providers-section] .c-full details.c-advanced>section>section{padding:0}
-[data-providers-section] .c-models-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px 12px;flex-wrap:wrap!important;margin:0 0 10px}
-[data-providers-section] [data-provider-models],[data-providers-section] [data-c-quota]{border-top:1px solid var(--c-line);padding-top:16px;margin-top:16px}
+[data-providers-section] .c-models-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px 12px;flex-wrap:nowrap!important;margin:0 0 10px}
 [data-providers-section] .c-models-title{display:flex;align-items:baseline;gap:7px;min-width:0}
 [data-providers-section] .c-models-title h3{margin:0;font-size:13px;font-weight:650}
 [data-providers-section] .c-models-title .c-count{font-size:11px;color:var(--c-faint)}
@@ -117,7 +115,7 @@ export const settingsCCss = `
 [data-providers-section] .c-advanced>summary .c-ico{flex:none;transition:transform .15s ease}
 [data-providers-section] .c-advanced[open]>summary .c-ico{transform:rotate(90deg)}
 [data-providers-section] .c-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:14px;border-top:1px solid var(--c-line);color:var(--c-faint);font-size:11px}
-[data-providers-section] .c-draft{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;padding:10px 14px;border-top:1px solid var(--c-line);background:var(--c-subtle);border-radius:0 0 10px 10px;font-size:12px}
+[data-providers-section] .c-draft{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;padding:10px 14px;border-top:1px solid var(--c-line);background:var(--c-subtle);font-size:12px}
 [data-providers-section] .c-draft-actions{display:flex;align-items:center;gap:7px;margin-left:auto}
 [data-providers-section] .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (max-width:560px){
@@ -146,26 +144,16 @@ export const settingsCCss = `
 }
 /* Narrow phones: keep the heading and all three actions on one row by tightening
    the toolbar rather than wrapping it (the prototype keeps one row). */
-@media (max-width:430px){
- [data-providers-section] .c-models-head{gap:4px!important}
- [data-providers-section] .c-models-title{min-width:0!important;flex:1 1 auto}
- [data-providers-section] .c-models-actions{gap:3px!important}
- [data-providers-section] .c-models-actions .c-btn,
- [data-providers-section] .c-models-actions .c-btn.quiet{padding:3px 6px!important;gap:4px!important;min-width:0!important}
- [data-providers-section] .c-models-actions .c-btn .c-ico,
- [data-providers-section] .c-models-actions .c-btn.quiet .c-ico{width:12px!important;height:12px!important}
-}
 @media (max-width:520px){
  [data-providers-section] .c-extra-grid{grid-auto-flow:row;grid-template-columns:minmax(0,1fr)}
  [data-providers-section] .c-extra-grid>*{max-width:none}
  [data-providers-section] .c-account{flex-direction:column!important;align-items:flex-start!important}
  [data-providers-section] .c-plugin .c-sort{min-width:0!important}
  [data-providers-section] .c-models-actions .c-btn,
- [data-providers-section] .c-models-actions .c-btn.quiet{padding:4px 8px!important;font-size:11px!important;line-height:1;min-height:30px!important;min-width:0!important;gap:5px!important}
+ [data-providers-section] .c-models-actions .c-btn.quiet{padding:4px 8px!important;font-size:11px!important;line-height:1;min-height:30px!important;gap:5px!important}
  [data-providers-section] .c-models-actions .c-btn .c-ico,
  [data-providers-section] .c-models-actions .c-btn.quiet .c-ico{width:13px!important;height:13px!important;flex:none}
  [data-providers-section] .c-models-actions{gap:4px}
- [data-providers-section] .c-models-actions .c-btn.quiet{background:var(--c-bg)}
  [data-providers-section] .c-models-title h3{font-size:13px}
  [data-providers-section] .c-models-title .c-count{font-size:11px}
  [data-providers-section] .c-filters{flex-wrap:nowrap!important;gap:8px}
@@ -174,6 +162,15 @@ export const settingsCCss = `
  [data-providers-section] .c-filters .c-btn{height:26px!important;min-height:26px!important;max-height:26px!important;padding:0 10px!important;font-size:11px;line-height:1;display:inline-flex!important;align-items:center;justify-content:center;flex:none}
  [data-providers-section] .c-detail-title .c-name{font-size:16px}
  [data-providers-section] .c-quota-head h3{font-size:12px}
+}
+@media (max-width:430px){
+ [data-providers-section] .c-models-head{gap:4px!important}
+ [data-providers-section] .c-models-title{min-width:0!important;flex:1 1 auto}
+ [data-providers-section] .c-models-actions{gap:3px!important}
+ [data-providers-section] .c-models-actions .c-btn,
+ [data-providers-section] .c-models-actions .c-btn.quiet{padding:3px 6px!important;gap:4px!important;min-width:0!important}
+ [data-providers-section] .c-models-actions .c-btn .c-ico,
+ [data-providers-section] .c-models-actions .c-btn.quiet .c-ico{width:12px!important;height:12px!important}
 }
 /* Reserve the scrollbar gutter inside the providers dialog so content never
    shifts sideways when the detail grows past the viewport. */

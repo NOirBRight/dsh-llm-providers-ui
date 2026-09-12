@@ -23,7 +23,7 @@ export interface ProviderDetailQuota {
     readonly refreshing?: boolean;
     readonly onRefresh?: () => void;
 }
-/** Models block: the shared header plus the plugin's own list or editor. */
+/** Models block: the shared header, toolbar, and the rows the template renders from provider data. */
 export interface ProviderDetailModels {
     readonly count?: number;
     /** Extra header actions after the shared three. */
