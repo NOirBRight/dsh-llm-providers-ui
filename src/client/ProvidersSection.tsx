@@ -76,6 +76,33 @@ const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 
 const API_KEY_AUTH = /(?:ollama|opencode-go|commandcode)$/u
 
+/**
+ * Overview meter label: the provider's full window name, with bare abbreviations
+ * replaced by the shared localized wording so every provider reads the same.
+ * @param window - primary usage window.
+ * @param t - section locale binding.
+ * @returns the display name for the overview row.
+ */
+function windowName(window: { readonly label: string, readonly shortLabel?: string }, t: (key: ProviderSectionLocaleKey) => string): string {
+  const canonical = (token: string): string | undefined => {
+    const value = token.trim().toLowerCase()
+    if (/^(?:5h|5 h|5-hour|5 hour|h|hour|hourly|session)$/u.test(value)) return t('windowHour')
+    if (/^(?:w|wk|week|weekly)$/u.test(value)) return t('windowWeek')
+    if (/^(?:m|mo|month|monthly)$/u.test(value)) return t('windowMonth')
+    return undefined
+  }
+  const label = window.label.trim()
+  const direct = canonical(label)
+  if (direct !== undefined) return direct
+  // "GPT-5.3-Codex-Spark · 5h" keeps its scope but spells the window out.
+  const parts = label.split('\u00b7')
+  const tail = parts.at(-1)?.trim() ?? ''
+  const mapped = canonical(tail)
+  if (mapped !== undefined && parts.length > 1) return [...parts.slice(0, -1).map(part => part.trim()), mapped].join(' · ')
+  const short = window.shortLabel === undefined ? '' : canonical(window.shortLabel)
+  return short === undefined || label.length > 0 ? label : short
+}
+
 function linkState(key: string, account: { state: 'connected' | 'configured' | 'unconnected' } | undefined, summary: ProviderUsageSummary | undefined): 'connected' | 'configured' | 'unconnected' {
   if (account !== undefined) return account.state
   if (summary === undefined || summary.status === 'logged-out') return 'unconnected'
@@ -316,7 +343,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         <div className="c-mini">
           {missing === undefined && primary !== undefined
             ? <ProviderQuotaMeter
-                label={primary.shortLabel || primary.label}
+                label={windowName(primary, t)}
                 {...(primary.remainingPercent === undefined ? {} : { remainingPercent: primary.remainingPercent })}
                 emptyLabel={primary.valueText}
                 {...(reset === undefined ? {} : { detail: reset })}

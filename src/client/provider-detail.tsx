@@ -375,6 +375,7 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
                             <input
                               className="c-input"
                               value={row.id}
+                              readOnly={props.models?.sorting === true}
                               spellCheck={false}
                               autoComplete="off"
                               placeholder={props.copy.modelIdLabel}
@@ -387,6 +388,7 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
                             <input
                               className="c-input"
                               value={row.name ?? ''}
+                              readOnly={props.models?.sorting === true}
                               autoComplete="off"
                               placeholder={props.copy.modelNameLabel}
                               aria-label={props.copy.modelNameLabel + ' ' + String(index + 1)}

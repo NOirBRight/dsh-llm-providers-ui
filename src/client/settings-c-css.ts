@@ -86,6 +86,7 @@ export const settingsCCss = `
 [data-providers-section] .c-input{width:100%;min-width:0;min-height:34px;border:1px solid var(--c-line);border-radius:6px;padding:6px 9px;font:inherit;font-size:12px;color:var(--c-ink);background:var(--c-bg)}
 [data-providers-section] .c-icon-only{width:32px;min-width:32px;height:34px;padding:0!important;justify-content:center}
 [data-providers-section] .c-icon-only[aria-expanded=true] .c-ico{transform:rotate(90deg)}
+[data-providers-section] .c-input[readonly]{background:var(--c-subtle);color:var(--c-muted)}
 [data-providers-section] .c-icon-label{gap:6px}
 [data-providers-section] .c-icon-label .c-ico{flex:none;width:14px;height:14px}
 [data-providers-section] .c-add-model{align-self:flex-start}
@@ -139,12 +140,19 @@ export const settingsCCss = `
  [data-providers-section] .c-account{flex-wrap:wrap;gap:10px}
  [data-providers-section] .c-quota-meta{flex-direction:column;align-items:flex-start;gap:4px}
  [data-providers-section] .c-models-head{gap:8px!important;flex-wrap:nowrap!important}
- [data-providers-section] .c-models-title{width:auto!important;flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ [data-providers-section] .c-models-title{width:auto!important;flex:0 1 auto;min-width:max-content;white-space:nowrap;overflow:visible}
  [data-providers-section] .c-models-actions{flex:0 0 auto;flex-wrap:nowrap!important}
  [data-providers-section] .c-filters .c-btn{min-height:28px!important;padding:4px 11px!important;font-size:12px;line-height:1.2}
  [data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px!important;column-gap:6px}
  [data-providers-section] .c-full [data-provider-model]>button[aria-expanded]{grid-column:3;grid-row:1}
  [data-providers-section] .c-full [data-provider-model]>button:not([aria-expanded]){grid-column:3;grid-row:2}
+}
+/* Narrow phones: the three actions no longer fit beside the heading, so the
+   heading keeps its own row instead of pushing the buttons off the edge. */
+@media (max-width:430px){
+ [data-providers-section] .c-models-head{flex-wrap:wrap!important}
+ [data-providers-section] .c-models-title{flex:0 0 auto}
+ [data-providers-section] .c-models-actions{margin-left:auto}
 }
 @media (max-width:520px){
  [data-providers-section] .c-full [data-provider-model]{grid-template-columns:minmax(0,1fr) 32px!important;row-gap:4px}
@@ -155,7 +163,9 @@ export const settingsCCss = `
  [data-providers-section] .c-full [data-provider-model]>button{grid-row:1/span 4;grid-column:2}
  [data-providers-section] .c-account{flex-direction:column!important;align-items:flex-start!important}
  [data-providers-section] .c-plugin .c-sort{min-width:0!important}
- [data-providers-section] .c-models-actions .c-btn{padding:5px 7px!important;font-size:11px;min-height:30px}
+ [data-providers-section] .c-models-actions .c-btn{padding:4px 8px!important;font-size:11px;min-height:30px;min-width:0!important}
+ [data-providers-section] .c-models-actions .c-btn .c-ico{width:13px;height:13px}
+ [data-providers-section] .c-models-actions{gap:4px}
  [data-providers-section] .c-models-title h3{font-size:13px}
  [data-providers-section] .c-models-title .c-count{font-size:11px}
  [data-providers-section] .c-filters .c-btn{min-height:26px!important;padding:3px 10px!important;font-size:11px}

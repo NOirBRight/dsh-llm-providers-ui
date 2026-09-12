@@ -28,6 +28,9 @@ export declare const copy: {
         readonly connectedHint: "额度属于各自账户，不合并统计，也不互相替代。";
         readonly colProvider: "Provider / 连接状态";
         readonly colQuota: "主要窗口 · 剩余额度";
+        readonly windowHour: "5 小时窗口";
+        readonly windowWeek: "每周窗口";
+        readonly windowMonth: "每月窗口";
         readonly colConfig: "配置";
         readonly systemZone: "系统时区";
         readonly breadcrumbOverview: "额度总览";
@@ -86,6 +89,9 @@ export declare const copy: {
         readonly connectedHint: "Quota belongs to each account. Totals are not merged.";
         readonly colProvider: "Provider / connection";
         readonly colQuota: "Primary window · remaining";
+        readonly windowHour: "5-hour window";
+        readonly windowWeek: "Weekly window";
+        readonly windowMonth: "Monthly window";
         readonly colConfig: "Setup";
         readonly systemZone: "System time zone";
         readonly breadcrumbOverview: "Quota overview";
