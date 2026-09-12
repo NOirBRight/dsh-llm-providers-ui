@@ -45,6 +45,7 @@ export declare function nonEmptyString(value: unknown): value is string;
 export declare function nonNegativeNumber(value: unknown): value is number;
 /** Headline window: longest remaining-percent period. Text-only windows are skipped. */
 export declare function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): UsageWindowSummary | undefined;
+export declare function orderUsageWindows(windows: readonly UsageWindowSummary[]): UsageWindowSummary[];
 export interface ResetCopy {
     at: string;
     overdue: string;

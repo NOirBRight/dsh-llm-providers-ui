@@ -4,7 +4,7 @@ import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/cli
 import { applySavedOrder } from '../order.js'
 
 import type { ProviderUsageReader, ProviderUsageSummary } from '../usage-readers.js'
-import { readUsageCache, writeUsageCache, dropPersistedUsageKeys, hasUsageData } from '../usage-readers.js'
+import { readUsageCache, writeUsageCache, dropPersistedUsageKeys, hasUsageData, orderUsageWindows } from '../usage-readers.js'
 export { peekCachedUsage, rememberCachedUsage, rememberHeadlineQuota, headerQuotaFromCache, clearProviderUsageCache } from '../usage-readers.js'
 
 export type { ProviderUsageReader, ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from '../usage-readers.js'
@@ -126,7 +126,7 @@ export function createProviderUsageStore(
       if (disposed || generation !== refreshGeneration || controller.signal.aborted) return
       const old = current.get(key)
       const next: ProviderUsageSummary = result.status === 'ready'
-        ? { providerKey: key, name: reader.name, status: 'ready', fetchedAt: result.fetchedAt, windows: result.windows }
+        ? { providerKey: key, name: reader.name, status: 'ready', fetchedAt: result.fetchedAt, windows: orderUsageWindows(result.windows) }
         : { providerKey: key, name: reader.name, status: result.status, windows: [] }
       current.set(key, keepUsage(old, next))
     }).catch(() => {
