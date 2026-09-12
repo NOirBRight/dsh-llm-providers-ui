@@ -56,7 +56,9 @@ describe('ProviderDetail', () => {
       },
     })
     expect(markup).toMatch(/Week|2026|9\//)
-    expect(markup).toContain('Month · reset time not provided')
+    // The detail spells the period out with the same canonical phrase the overview uses.
+    expect(markup).toContain(copy.windowMonth + ' · reset time not provided')
+    expect(markup).toContain(copy.windowWeek)
   })
 
   it('renders each quota status as copy instead of a fake bar', () => {

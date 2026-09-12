@@ -1,3 +1,12 @@
+## v0.2.2
+
+统一详情页与概览的额度窗口文案。
+
+- 新增共享的 `windowNameOf(label, names)`（`provider-section.ts`）：把 `Monthly` / `Cursor Models · Monthly` / `M` 这类标签统一渲染成本地化的完整短语（中文「每月窗口」、英文 "Monthly window"）。概览行与详情额度块现在调用**同一个函数**，不再各写一份。
+- `ProviderDetailCopy` 增加 `windowHour` / `windowWeek` / `windowMonth`，插件无需改动即可获得统一文案（插件传入的 `copy` 由设置页构造）。
+- 详情额度块的重置说明行也使用同一短语。
+- 测试：详情断言改为校验规范化文案；共享文案表覆盖概览与详情两条路径。
+
 ## v0.2.1
 
 修复 0.2.0 的视觉回归，并补上样式表回归测试。

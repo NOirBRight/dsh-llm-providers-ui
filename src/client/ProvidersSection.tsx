@@ -8,6 +8,7 @@ import type {
   PropsRuntime,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { windowNameOf } from './provider-section.js'
 import type { ProviderSectionLocaleKey } from './provider-section.js'
 import { applySavedOrder, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS } from '../order.js'
 import { formatResetLabel, pickPrimaryWindow, type ProviderUsageSummary } from './usage.js'
@@ -84,22 +85,7 @@ const API_KEY_AUTH = /(?:ollama|opencode-go|commandcode)$/u
  * @returns the display name for the overview row.
  */
 function windowName(window: { readonly label: string, readonly shortLabel?: string }, t: (key: ProviderSectionLocaleKey) => string): string {
-  const canonical = (token: string): string | undefined => {
-    const value = token.trim().toLowerCase()
-    if (/^(?:5h|5 h|5-hour|5 hour|hour|hourly)$/u.test(value)) return t('windowHour')
-    if (/^(?:w|wk|week|weekly)$/u.test(value)) return t('windowWeek')
-    if (/^(?:m|mo|month|monthly)$/u.test(value)) return t('windowMonth')
-    return undefined
-  }
-  const label = window.label.trim()
-  const direct = canonical(label)
-  if (direct !== undefined) return direct
-  // "GPT-5.3-Codex-Spark · 5h" keeps its scope and spells the period out in full.
-  const parts = label.split('\u00b7')
-  const tail = parts.at(-1)?.trim() ?? ''
-  const mapped = canonical(tail)
-  if (mapped !== undefined && parts.length > 1) return [...parts.slice(0, -1).map(part => part.trim()), mapped].join(' · ')
-  return label
+  return windowNameOf(window.label, { hour: t('windowHour'), week: t('windowWeek'), month: t('windowMonth') })
 }
 
 function linkState(key: string, account: { state: 'connected' | 'configured' | 'unconnected' } | undefined, summary: ProviderUsageSummary | undefined): 'connected' | 'configured' | 'unconnected' {
