@@ -5,7 +5,6 @@ import { ProviderQuotaMeter } from './provider-ui.js'
 import { ProviderRoleBadge } from './provider-ui.js'
 import type { ProviderRoleBadgeProps } from './provider-ui.js'
 import type { UsageWindowSummary } from '../usage-readers.js'
-import { settingsCCss } from './settings-c-css.js'
 import { formatResetLabel } from '../usage-readers.js'
 import { copy as sectionCopy } from './provider-section.js'
 
@@ -135,6 +134,11 @@ export interface ProviderItemSlotContext {
   readonly accountState?: 'connected' | 'configured' | 'unconnected'
   /** Shared copy in the page's active locale, so every provider reads the same. */
   readonly copy?: ProviderDetailCopy
+  /**
+   * Shared detail template, injected by the settings page so provider plugins
+   * never bundle their own copy: one rebuild of the UI updates every provider.
+   */
+  readonly template?: (props: ProviderDetailProps) => ReactNode
   /** Manual quota refresh; only the detail surface offers it. */
   readonly onRefresh?: () => void
 }
@@ -181,7 +185,6 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
   const count = props.models?.count
   return (
     <article className="c-full" data-provider-detail="">
-      <style>{settingsCCss}</style>
       <div className="c-detail-title">
         <div className="c-identity">
           {props.mark === undefined ? null : <span className="c-brand">{props.mark}</span>}
@@ -285,7 +288,7 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
             </div>
           </div>
           <p className="c-models-hint">{props.models.hint ?? props.copy.modelsHint}</p>
-          {props.models.list}
+          <div className="c-models-list">{props.models.list}</div>
         </section>
       )}
 

@@ -78,6 +78,7 @@ export const settingsCCss = `
 [data-providers-section] .c-models-title{display:flex;align-items:baseline;gap:7px;min-width:0}
 [data-providers-section] .c-models-title h3{margin:0;font-size:13px;font-weight:650}
 [data-providers-section] .c-models-title .c-count{font-size:11px;color:var(--c-faint)}
+[data-providers-section] .c-models-list>*+*{margin-top:16px}
 [data-providers-section] .c-models-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 [data-providers-section] .c-models-actions .c-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-height:34px;padding:6px 10px!important;font-size:12px;line-height:1;white-space:nowrap}
 [data-providers-section] .c-models-actions .c-btn .c-ico{display:block;flex:none;width:14px;height:14px}

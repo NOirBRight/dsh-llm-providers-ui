@@ -197,6 +197,9 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     const detail = seen.find(entry => entry.entryKey === 'llm-grok')
     expect(detail?.props.mode).toBe('detail')
     expect(typeof detail?.props.onRefresh).toBe('function')
+    // The template travels with the context so cards never bundle their own copy.
+    expect(typeof detail?.props.template).toBe('function')
+    expect(detail?.props.copy).toBeDefined()
   })
   it('lets a migrated card own the detail body without page chrome', () => {
     const capture = (_name: string, _props: object, opts?: { entryKey?: string }): ReactElement =>

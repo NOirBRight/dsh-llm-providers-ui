@@ -90,6 +90,11 @@ export interface ProviderItemSlotContext {
     readonly accountState?: 'connected' | 'configured' | 'unconnected';
     /** Shared copy in the page's active locale, so every provider reads the same. */
     readonly copy?: ProviderDetailCopy;
+    /**
+     * Shared detail template, injected by the settings page so provider plugins
+     * never bundle their own copy: one rebuild of the UI updates every provider.
+     */
+    readonly template?: (props: ProviderDetailProps) => ReactNode;
     /** Manual quota refresh; only the detail surface offers it. */
     readonly onRefresh?: () => void;
 }
