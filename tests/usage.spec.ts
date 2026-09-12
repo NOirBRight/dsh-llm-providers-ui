@@ -217,9 +217,9 @@ describe('Provider Usage readers', () => {
     expect(result).toMatchObject({
       status: 'ready',
       windows: [
-        { id: 'monthly', shortLabel: 'M', remainingPercent: 7, resetsAt: '2026-09-26T00:00:00.000Z' },
         { id: 'fiveHour', remainingPercent: 100 },
         { id: 'weekly', remainingPercent: 91, resetsAt: '2026-09-17T03:38:00.000Z' },
+        { id: 'monthly', shortLabel: 'M', remainingPercent: 7, resetsAt: '2026-09-26T00:00:00.000Z' },
       ],
     })
     if (result.status === 'ready') {
