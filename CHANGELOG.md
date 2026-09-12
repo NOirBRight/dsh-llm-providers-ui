@@ -1,3 +1,12 @@
+## v0.2.4
+
+Command Code 月度额度补上重置时间。
+
+官方 Studio 的 MONTHLY LIMIT「Resets on Sep 26」来自订阅的 `currentPeriodEnd`（计费周期结束），不是 `windowLimits.monthly.resetAt`。解码月度窗口时之前只算了剩余百分比，没带这个时间戳，详情页就落到「重置时间未提供」。
+
+- `decodeCommandCodeUsage` 把 `plan.currentPeriodEnd` 接到月度窗口的 `resetsAt`。
+- 5 小时窗口在无用量时官方本身就不给 reset（文案是 "No usage in this window yet"）；周窗口本来就会读 `windowLimits.weekly.resetAt`，这次用例一并锁住。
+
 ## v0.2.3
 
 修复侧边栏 Provider Usage 面板的 Provider 图标被裁切与大小不一。
