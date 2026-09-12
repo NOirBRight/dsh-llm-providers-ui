@@ -35,6 +35,21 @@ describe('collapsed quota cache', () => {
     expect(peekCachedUsage('llm-cursor')).toBeUndefined()
   })
 
+  it('reorders a cached Command Code summary to 5-hour, week, month', () => {
+    stubStorage({})
+    rememberCachedUsage({
+      providerKey: 'llm-commandcode',
+      name: 'CommandCode',
+      status: 'ready',
+      windows: [
+        { id: 'monthly', label: 'Month', shortLabel: 'M', valueText: '7%', remainingPercent: 7, resetsAt: '2026-09-26T00:00:00.000Z' },
+        { id: 'fiveHour', label: '5-hour', shortLabel: '5h', valueText: '100%', remainingPercent: 100 },
+        { id: 'weekly', label: 'Week', shortLabel: 'W', valueText: '91%', remainingPercent: 91, resetsAt: '2026-09-17T03:38:00.000Z' },
+      ],
+    })
+    expect(peekCachedUsage('llm-commandcode')?.windows.map(window => window.id)).toEqual(['fiveHour', 'weekly', 'monthly'])
+  })
+
   it('keeps stale status across a storage round-trip', () => {
     stubStorage({})
     rememberCachedUsage({ ...fullCursor, status: 'stale' })
