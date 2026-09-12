@@ -41,6 +41,30 @@ export interface ProviderDetailModels {
     readonly chooseDisabled?: boolean;
     /** The list itself (rows/editor) plus any trailing action such as add-model. */
     readonly list?: ReactNode;
+    /**
+     * Rows the template renders itself. Providers hand over data and handlers so
+     * every card shows the same row chrome; `extra` carries provider-specific fields.
+     */
+    readonly items?: readonly ProviderDetailModelRow[];
+    readonly expanded?: readonly string[];
+    readonly onPatch?: (rowId: string, patch: {
+        id?: string;
+        name?: string;
+    }) => void;
+    readonly onRemove?: (rowId: string) => void;
+    readonly onToggle?: (rowId: string) => void;
+    readonly onReorder?: (rowIds: readonly string[]) => void;
+    /** Renders the shared "add model" button when provided. */
+    readonly onAdd?: () => void;
+    readonly addDisabled?: boolean;
+    /** Provider-specific fields for an expanded row. */
+    readonly extra?: (row: ProviderDetailModelRow) => ReactNode;
+}
+/** One editable model row rendered by the shared template. */
+export interface ProviderDetailModelRow {
+    readonly rowId: string;
+    readonly id: string;
+    readonly name?: string;
 }
 /** Locale copy contract so the template stays locale-free. */
 export interface ProviderDetailCopy {
@@ -58,6 +82,11 @@ export interface ProviderDetailCopy {
     readonly modelsCount: string;
     readonly modelsHint: string;
     readonly expandAll: string;
+    readonly modelIdLabel: string;
+    readonly modelNameLabel: string;
+    readonly addModelLabel: string;
+    readonly removeModelLabel: string;
+    readonly dragModelLabel: string;
     readonly collapseAll: string;
     readonly sort: string;
     readonly done: string;

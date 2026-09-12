@@ -7,6 +7,7 @@ import type { ProviderRoleBadgeProps } from './provider-ui.js'
 import type { UsageWindowSummary } from '../usage-readers.js'
 import { formatResetLabel } from '../usage-readers.js'
 import { copy as sectionCopy } from './provider-section.js'
+import { SortableList } from './SortableList.js'
 
 /** Account block: plugin owns the business state, the template owns the card. */
 export interface ProviderDetailAccount {
@@ -49,6 +50,51 @@ export interface ProviderDetailModels {
   readonly chooseDisabled?: boolean
   /** The list itself (rows/editor) plus any trailing action such as add-model. */
   readonly list?: ReactNode
+  /**
+   * Rows the template renders itself. Providers hand over data and handlers so
+   * every card shows the same row chrome; `extra` carries provider-specific fields.
+   */
+  readonly items?: readonly ProviderDetailModelRow[]
+  readonly expanded?: readonly string[]
+  readonly onPatch?: (rowId: string, patch: { id?: string; name?: string }) => void
+  readonly onRemove?: (rowId: string) => void
+  readonly onToggle?: (rowId: string) => void
+  readonly onReorder?: (rowIds: readonly string[]) => void
+  /** Renders the shared "add model" button when provided. */
+  readonly onAdd?: () => void
+  readonly addDisabled?: boolean
+  /** Provider-specific fields for an expanded row. */
+  readonly extra?: (row: ProviderDetailModelRow) => ReactNode
+}
+
+/** Icon paths copied from the locked prototype so every card matches it. */
+const ICON = {
+  expand: 'M2 4h12M2 12h12M5 2v4M11 10v4',
+  sort: 'M5 2v12m-3-3 3 3 3-3M11 14V2m-3 3 3-3 3 3',
+  plus: 'M8 3v10M3 8h10',
+  chevron: 'M6 3l5 5-5 5',
+  trash: 'M3 4h10M6 4V2h4v2M4 4l1 10h6l1-10M7 7v4M9 7v4',
+} as const
+
+function modelLabelOf(row: ProviderDetailModelRow, index?: number): string {
+  const id = row.id.trim()
+  if (id.length > 0) return id
+  return index === undefined ? row.rowId : String(index + 1)
+}
+
+function DetailIcon({ path }: { readonly path: string }): ReactNode {
+  return (
+    <svg className="c-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={path} />
+    </svg>
+  )
+}
+
+/** One editable model row rendered by the shared template. */
+export interface ProviderDetailModelRow {
+  readonly rowId: string
+  readonly id: string
+  readonly name?: string
 }
 
 /** Locale copy contract so the template stays locale-free. */
@@ -67,6 +113,11 @@ export interface ProviderDetailCopy {
   readonly modelsCount: string
   readonly modelsHint: string
   readonly expandAll: string
+  readonly modelIdLabel: string
+  readonly modelNameLabel: string
+  readonly addModelLabel: string
+  readonly removeModelLabel: string
+  readonly dragModelLabel: string
   readonly collapseAll: string
   readonly sort: string
   readonly done: string
@@ -97,6 +148,11 @@ function detailCopyOf(locale: 'zh' | 'en'): ProviderDetailCopy {
     refreshing: source.refreshing,
     accountHeading: source.accountHeading,
     modelsHeading: source.modelsHeading,
+    modelIdLabel: source.modelIdLabel,
+    modelNameLabel: source.modelNameLabel,
+    addModelLabel: source.addModelLabel,
+    removeModelLabel: source.removeModelLabel,
+    dragModelLabel: source.dragModelLabel,
     modelsCount: source.modelsCount,
     modelsHint: source.modelsHint,
     expandAll: source.expandAll,
@@ -270,17 +326,20 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
             </div>
             <div className="c-models-actions">
               {props.models.onToggleAll === undefined ? null : (
-                <button type="button" className="c-btn quiet" aria-pressed={props.models.allOpen === true} onClick={props.models.onToggleAll}>
+                <button type="button" className="c-btn quiet c-icon-label" aria-pressed={props.models.allOpen === true} onClick={props.models.onToggleAll}>
+                  <DetailIcon path={ICON.expand} />
                   {props.models.allOpen === true ? props.copy.collapseAll : props.copy.expandAll}
                 </button>
               )}
               {props.models.onToggleSorting === undefined ? null : (
-                <button type="button" className="c-btn quiet" aria-pressed={props.models.sorting === true} disabled={props.models.sortDisabled === true} onClick={props.models.onToggleSorting}>
+                <button type="button" className="c-btn quiet c-icon-label" aria-pressed={props.models.sorting === true} disabled={props.models.sortDisabled === true} onClick={props.models.onToggleSorting}>
+                  <DetailIcon path={ICON.sort} />
                   {props.models.sorting === true ? props.copy.done : props.copy.sort}
                 </button>
               )}
               {props.models.onChooseFromAccount === undefined ? null : (
-                <button type="button" className="c-btn" disabled={props.models.chooseDisabled === true} onClick={props.models.onChooseFromAccount}>
+                <button type="button" className="c-btn c-icon-label" disabled={props.models.chooseDisabled === true} onClick={props.models.onChooseFromAccount}>
+                  <DetailIcon path={ICON.plus} />
                   {props.copy.chooseFromAccount}
                 </button>
               )}
@@ -288,13 +347,82 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
             </div>
           </div>
           <p className="c-models-hint">{props.models.hint ?? props.copy.modelsHint}</p>
-          <div className="c-models-list">{props.models.list}</div>
+          <div className="c-models-list">
+            {props.models.list}
+            {props.models.items === undefined ? null : (
+              <>
+                <SortableList
+                  items={props.models.items}
+                  getId={row => row.rowId}
+                  chrome="card"
+                  disabled={props.models.onReorder === undefined}
+                  sorting={props.models.sorting === true}
+                  moveButtons={props.models.sorting === true}
+                  dragLabel={row => props.copy.dragModelLabel + ': ' + modelLabelOf(row)}
+                  moveUpLabel={row => props.copy.dragModelLabel + ': ' + modelLabelOf(row)}
+                  moveDownLabel={row => props.copy.dragModelLabel + ': ' + modelLabelOf(row)}
+                  onReorder={rows => { props.models?.onReorder?.(rows.map(row => row.rowId)) }}
+                  renderItem={(row, index) => {
+                    const label = modelLabelOf(row, index)
+                    const expanded = props.models?.expanded?.includes(row.rowId) === true
+                    return (
+                      <div className="c-model-card" data-model-row={label} data-provider-model="">
+                        <div className="c-model-top">
+                          <label className="c-field">
+                            <span className="c-field-label">{props.copy.modelIdLabel}</span>
+                            <input
+                              className="c-input"
+                              value={row.id}
+                              spellCheck={false}
+                              autoComplete="off"
+                              placeholder={props.copy.modelIdLabel}
+                              aria-label={props.copy.modelIdLabel + ' ' + String(index + 1)}
+                              onChange={event => { props.models?.onPatch?.(row.rowId, { id: event.target.value }) }}
+                            />
+                          </label>
+                          <label className="c-field">
+                            <span className="c-field-label">{props.copy.modelNameLabel}</span>
+                            <input
+                              className="c-input"
+                              value={row.name ?? ''}
+                              autoComplete="off"
+                              placeholder={props.copy.modelNameLabel}
+                              aria-label={props.copy.modelNameLabel + ' ' + String(index + 1)}
+                              onChange={event => { props.models?.onPatch?.(row.rowId, { name: event.target.value }) }}
+                            />
+                          </label>
+                          {props.models?.onToggle === undefined ? null : (
+                            <button type="button" className="c-btn quiet c-icon-only" aria-expanded={expanded} aria-label={props.copy.details + ': ' + label} onClick={() => { props.models?.onToggle?.(row.rowId) }}>
+                              <DetailIcon path={ICON.chevron} />
+                            </button>
+                          )}
+                          {props.models?.onRemove === undefined ? null : (
+                            <button type="button" className="c-btn quiet c-icon-only" aria-label={props.copy.removeModelLabel + ' ' + label} onClick={() => { props.models?.onRemove?.(row.rowId) }}>
+                              <DetailIcon path={ICON.trash} />
+                            </button>
+                          )}
+                        </div>
+                        {props.models?.extra === undefined || !expanded ? null : <div className="c-model-extra">{props.models.extra(row)}</div>}
+                      </div>
+                    )
+                  }}
+                />
+                {props.models.onAdd === undefined ? null : (
+                  <button type="button" className="c-btn c-icon-label c-add-model" disabled={props.models.addDisabled === true} onClick={props.models.onAdd}>
+                    <DetailIcon path={ICON.plus} />
+                    {props.copy.addModelLabel}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </section>
       )}
 
       {props.advanced === undefined ? null : (
         <details className="c-advanced">
           <summary>
+            <DetailIcon path={ICON.chevron} />
             <span>{props.copy.advancedHeading}</span>
             <span className="c-advanced-note">{props.copy.advancedNote}</span>
           </summary>

@@ -99,6 +99,53 @@ describe('ProviderDetail', () => {
         onToggleSorting: () => undefined,
       },
     })
-    expect(markup).toMatch(/<button[^>]*disabled[^>]*>Sort<\/button>/)
+    // Icons and labels share one button, so compare against icon-free markup.
+    const stripped = markup.replace(/<svg[\s\S]*?<\/svg>/g, '')
+    expect(stripped).toMatch(/<button[^>]*disabled[^>]*>Sort<\/button>/)
+  })
+
+  it('renders the shared model rows and the add button from provider data', () => {
+    const markup = html({
+      models: {
+        count: 2,
+        items: [
+          { rowId: 'r1', id: 'grok-4.6', name: 'Grok 4.6' },
+          { rowId: 'r2', id: '', name: '' },
+        ],
+        expanded: ['r2'],
+        onPatch: () => undefined,
+        onRemove: () => undefined,
+        onToggle: () => undefined,
+        onReorder: () => undefined,
+        onAdd: () => undefined,
+        extra: () => createElement('p', null, 'Extra fields'),
+      },
+    })
+
+    expect(markup).toContain('data-provider-model')
+    expect(markup).toContain('grok-4.6')
+    expect(markup).toContain(copy.modelIdLabel)
+    expect(markup).toContain(copy.modelNameLabel)
+    expect(markup).toContain(copy.addModelLabel)
+    expect(markup.split('data-model-row').length - 1).toBe(2)
+    // Only the expanded row shows provider-specific fields.
+    expect(markup.match(/Extra fields/g)?.length ?? 0).toBeGreaterThanOrEqual(1)
+    // An empty id falls back to the row position for its labels.
+    expect(markup).toContain('Remove 2')
+  })
+
+  it('puts the prototype icons on the three model actions', () => {
+    const markup = html({
+      models: {
+        count: 1,
+        allOpen: false,
+        onToggleAll: () => undefined,
+        sorting: false,
+        onToggleSorting: () => undefined,
+        onChooseFromAccount: () => undefined,
+      },
+    })
+    const actions = markup.slice(markup.indexOf('c-models-actions'), markup.indexOf('c-models-hint'))
+    expect(actions.match(/<svg/g)).toHaveLength(3)
   })
 })

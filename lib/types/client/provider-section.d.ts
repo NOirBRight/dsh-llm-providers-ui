@@ -49,6 +49,11 @@ export declare const copy: {
         readonly accountApiMeta: "API Key · 不会回显已保存的密钥";
         readonly expandAll: "全部展开";
         readonly collapseAll: "全部收起";
+        readonly modelIdLabel: "Model ID";
+        readonly modelNameLabel: "显示名称";
+        readonly addModelLabel: "手动添加模型";
+        readonly removeModelLabel: "删除";
+        readonly dragModelLabel: "拖动排序";
         readonly modelsHeading: "模型";
         readonly modelsCount: "{n} 个";
         readonly modelsHint: "名称和 ID 始终显示；展开箭头查看容量与能力参数。";
@@ -102,6 +107,11 @@ export declare const copy: {
         readonly accountApiMeta: "API Key · saved keys are never echoed";
         readonly expandAll: "Expand all";
         readonly collapseAll: "Collapse all";
+        readonly modelIdLabel: "Model ID";
+        readonly modelNameLabel: "Display name";
+        readonly addModelLabel: "Add model manually";
+        readonly removeModelLabel: "Remove";
+        readonly dragModelLabel: "Reorder";
         readonly modelsHeading: "Models";
         readonly modelsCount: "{n}";
         readonly modelsHint: "Names and IDs always show; expand a row for capacity and capability parameters.";
