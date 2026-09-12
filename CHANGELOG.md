@@ -1,3 +1,9 @@
+## v0.2.5
+
+提交重建后的 `lib/usage-readers.js`。
+
+v0.2.4 源码已把 `plan.currentPeriodEnd` 接到月度 `resetsAt`，但发布脚本在提交之后才 build，git 里的 `lib/` 仍是旧解码器。本次把产物一并纳入版本，和源码一致。
+
 ## v0.2.4
 
 Command Code 月度额度补上重置时间。
