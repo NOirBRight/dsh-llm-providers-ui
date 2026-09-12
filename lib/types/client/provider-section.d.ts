@@ -10,7 +10,7 @@ export declare const copy: {
         readonly empty: "安装 Cursor、Grok、Codex、Ollama Cloud、CommandCode 或 OpenCode Go 后，在这里连接账号并选择模型。";
         readonly drag: "拖动排序";
         readonly sort: "Provider 排序";
-        readonly done: "完成排序";
+        readonly done: "完成";
         readonly modelCount: "{n} 个模型";
         readonly moveUp: "上移";
         readonly moveDown: "下移";
@@ -68,7 +68,7 @@ export declare const copy: {
         readonly empty: "Install Cursor, Grok, Codex, Ollama Cloud, CommandCode, or OpenCode Go to connect an account and pick models here.";
         readonly drag: "Reorder";
         readonly sort: "Sort providers";
-        readonly done: "Done sorting";
+        readonly done: "Done";
         readonly modelCount: "{n} models";
         readonly moveUp: "Move up";
         readonly moveDown: "Move down";

@@ -14,8 +14,12 @@ export interface SortableListProps<T> {
     onReorder: (items: T[]) => void;
     /** Disable handles while the parent is busy or read-only. */
     disabled?: boolean;
-    /** row = inner model-list chrome; card = handle lives inside the provider card frame; plain = divider rows without frames. */
-    chrome?: 'row' | 'card' | 'plain';
+    /**
+     * row = inner model-list chrome; card = handle lives inside the provider card frame;
+     * plain = divider rows without frames; bare = the caller draws the card itself, so the
+     * row adds no border, radius, background, or handle divider.
+     */
+    chrome?: 'row' | 'card' | 'plain' | 'bare';
     /**
      * Whether reorder handles are available. False hides handles and move
      * buttons while keeping every row mounted, so slot state survives mode

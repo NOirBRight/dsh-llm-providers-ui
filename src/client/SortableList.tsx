@@ -17,8 +17,12 @@ export interface SortableListProps<T> {
   onReorder: (items: T[]) => void
   /** Disable handles while the parent is busy or read-only. */
   disabled?: boolean
-  /** row = inner model-list chrome; card = handle lives inside the provider card frame; plain = divider rows without frames. */
-  chrome?: 'row' | 'card' | 'plain'
+  /**
+   * row = inner model-list chrome; card = handle lives inside the provider card frame;
+   * plain = divider rows without frames; bare = the caller draws the card itself, so the
+   * row adds no border, radius, background, or handle divider.
+   */
+  chrome?: 'row' | 'card' | 'plain' | 'bare'
   /**
    * Whether reorder handles are available. False hides handles and move
    * buttons while keeping every row mounted, so slot state survives mode
@@ -79,6 +83,20 @@ const cardRowStyle: CSSProperties = {
   overflow: 'hidden',
 }
 const cardItemStyle: CSSProperties = { minWidth: 0, display: 'flex', flexDirection: 'column' }
+const bareRowStyle: CSSProperties = {
+  ...rowStyle,
+  border: 0,
+  borderRadius: 0,
+  background: 'transparent',
+  overflow: 'visible',
+}
+const bareHandleStyle: CSSProperties = {
+  ...handleStyle,
+  width: 22,
+  minHeight: 0,
+  borderRight: 0,
+  color: 'var(--dsw-alias-label-tertiary)',
+}
 const plainRowStyle: CSSProperties = {
   display: 'grid',
   alignItems: 'stretch',
@@ -137,6 +155,7 @@ export function SortableList<T>({
 }: SortableListProps<T>): ReactNode {
   const card = chrome === 'card'
   const plain = chrome === 'plain'
+  const bare = chrome === 'bare'
   const interactive = sorting && !disabled
   const showHandle = sorting
   const upLabel = moveUpLabel ?? ((): string => 'Move up')
@@ -344,7 +363,7 @@ export function SortableList<T>({
 
   // One geometry definition feeds both rows and the drag ghost, so the ghost
   // keeps its row's size by construction whatever chrome or caller renders it.
-  const rowChromeStyle = plain ? plainRowStyle : card ? cardRowStyle : rowStyle
+  const rowChromeStyle = bare ? bareRowStyle : plain ? plainRowStyle : card ? cardRowStyle : rowStyle
   const rowGridColumns = (showHandle ? '44px ' : '') + 'minmax(0,1fr)' + (moveButtons && showHandle ? ' auto auto' : '')
   const rowItemStyle: CSSProperties = plain ? plainItemStyle : card ? cardItemStyle : { minWidth: 0 }
 
@@ -384,7 +403,7 @@ export function SortableList<T>({
             <button
               type="button"
               data-sortable-handle=""
-              style={{ ...handleStyle, display: showHandle ? 'flex' : 'none', ...(plain ? { borderRight: 0 } : {}), cursor: disabled ? 'default' : draggedId === null ? 'grab' : 'grabbing' }}
+              style={{ ...(bare ? bareHandleStyle : handleStyle), display: showHandle ? 'flex' : 'none', ...(plain ? { borderRight: 0 } : {}), cursor: disabled ? 'default' : draggedId === null ? 'grab' : 'grabbing' }}
               aria-label={dragLabel(item, index)}
               aria-grabbed={dragging}
               title={dragLabel(item, index)}

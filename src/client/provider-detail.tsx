@@ -354,7 +354,7 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
                 <SortableList
                   items={props.models.items}
                   getId={row => row.rowId}
-                  chrome="card"
+                  chrome="bare"
                   disabled={props.models.onReorder === undefined}
                   sorting={props.models.sorting === true}
                   moveButtons={props.models.sorting === true}
@@ -364,9 +364,11 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
                   onReorder={rows => { props.models?.onReorder?.(rows.map(row => row.rowId)) }}
                   renderItem={(row, index) => {
                     const label = modelLabelOf(row, index)
-                    const expanded = props.models?.expanded?.includes(row.rowId) === true
+                    // Sorting folds every row; "expand all" opens them without touching state.
+                    const expanded = props.models?.sorting !== true
+                      && (props.models?.allOpen === true || props.models?.expanded?.includes(row.rowId) === true)
                     return (
-                      <div className="c-model-card" data-model-row={label} data-provider-model="">
+                      <div className="c-model-card" data-model-row={label}>
                         <div className="c-model-top">
                           <label className="c-field">
                             <span className="c-field-label">{props.copy.modelIdLabel}</span>
