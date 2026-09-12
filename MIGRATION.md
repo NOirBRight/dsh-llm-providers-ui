@@ -43,7 +43,7 @@ export function DeviceCard(props: PropsRuntime<'settings.provider.item'> & Devic
 | `notice` | 插件现有的说明或风险提示文案 |
 | `account` | 业务状态：`state` 用目录里发布的状态；`label` 账号标识（**不要放密钥**）；`meta` 说明行；`actions` 登录/退出等按钮；`body` API Key 输入等额外行 |
 | `quota` | **只用** `props.usage`（共享快照）+ `onRefresh`（详情才有）；不要再自己发额度请求 |
-| `models` | `count`、`allOpen`/`onToggleAll`、`sorting`/`onToggleSorting`、`onChooseFromAccount`、`list` = 你现有的模型编辑器 JSX |
+| `models` | `count`、`allOpen`/`onToggleAll`、`sorting`/`onToggleSorting`/`sortDisabled`、`onChooseFromAccount`/`chooseDisabled`、`items`（行数据：`rowId`/`id`/`name`）、`expanded`/`onPatch`/`onRemove`/`onToggle`/`onReorder`/`onAdd`，以及 `extra`（该行的插件私有字段）。模板自己渲染行卡片与「添加模型」按钮，插件不再传 JSX |
 | `advanced` | 你现有的能力/工具开关 JSX（模板会放进默认关闭的折叠区） |
 | `footer` | 版本/来源行（可选） |
 | `draft` | 保存/放弃条（仅在有草稿时渲染） |

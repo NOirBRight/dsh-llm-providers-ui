@@ -31,9 +31,6 @@ export declare const copy: {
         readonly windowHour: "5 小时窗口";
         readonly windowWeek: "每周窗口";
         readonly windowMonth: "每月窗口";
-        readonly windowHourShort: "5 小时";
-        readonly windowWeekShort: "每周";
-        readonly windowMonthShort: "每月";
         readonly colConfig: "配置";
         readonly systemZone: "系统时区";
         readonly breadcrumbOverview: "额度总览";
@@ -95,9 +92,6 @@ export declare const copy: {
         readonly windowHour: "5-hour window";
         readonly windowWeek: "Weekly window";
         readonly windowMonth: "Monthly window";
-        readonly windowHourShort: "5-hour";
-        readonly windowWeekShort: "Weekly";
-        readonly windowMonthShort: "Monthly";
         readonly colConfig: "Setup";
         readonly systemZone: "System time zone";
         readonly breadcrumbOverview: "Quota overview";

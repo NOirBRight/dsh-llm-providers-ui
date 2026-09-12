@@ -39,8 +39,6 @@ export interface ProviderDetailModels {
     readonly sortDisabled?: boolean;
     readonly onChooseFromAccount?: () => void;
     readonly chooseDisabled?: boolean;
-    /** The list itself (rows/editor) plus any trailing action such as add-model. */
-    readonly list?: ReactNode;
     /**
      * Rows the template renders itself. Providers hand over data and handlers so
      * every card shows the same row chrome; `extra` carries provider-specific fields.

@@ -1,6 +1,6 @@
 /** Settings > LLM Providers page shell. Provider cards arrive through settings.provider.item. */
 
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type {
   PropsLocale,
@@ -84,37 +84,28 @@ const API_KEY_AUTH = /(?:ollama|opencode-go|commandcode)$/u
  * @returns the display name for the overview row.
  */
 function windowName(window: { readonly label: string, readonly shortLabel?: string }, t: (key: ProviderSectionLocaleKey) => string): string {
-  const canonical = (token: string, scoped = false): string | undefined => {
+  const canonical = (token: string): string | undefined => {
     const value = token.trim().toLowerCase()
-    if (/^(?:5h|5 h|5-hour|5 hour|h|hour|hourly|session)$/u.test(value)) return t(scoped ? 'windowHourShort' : 'windowHour')
-    if (/^(?:w|wk|week|weekly)$/u.test(value)) return t(scoped ? 'windowWeekShort' : 'windowWeek')
-    if (/^(?:m|mo|month|monthly)$/u.test(value)) return t(scoped ? 'windowMonthShort' : 'windowMonth')
+    if (/^(?:5h|5 h|5-hour|5 hour|hour|hourly)$/u.test(value)) return t('windowHour')
+    if (/^(?:w|wk|week|weekly)$/u.test(value)) return t('windowWeek')
+    if (/^(?:m|mo|month|monthly)$/u.test(value)) return t('windowMonth')
     return undefined
   }
   const label = window.label.trim()
   const direct = canonical(label)
   if (direct !== undefined) return direct
-  // "GPT-5.3-Codex-Spark · 5h" keeps its scope and spells only the period out.
+  // "GPT-5.3-Codex-Spark · 5h" keeps its scope and spells the period out in full.
   const parts = label.split('\u00b7')
   const tail = parts.at(-1)?.trim() ?? ''
-  const mapped = canonical(tail, true)
+  const mapped = canonical(tail)
   if (mapped !== undefined && parts.length > 1) return [...parts.slice(0, -1).map(part => part.trim()), mapped].join(' · ')
-  const short = window.shortLabel === undefined ? '' : canonical(window.shortLabel)
-  return short === undefined || label.length > 0 ? label : short
+  return label
 }
 
 function linkState(key: string, account: { state: 'connected' | 'configured' | 'unconnected' } | undefined, summary: ProviderUsageSummary | undefined): 'connected' | 'configured' | 'unconnected' {
   if (account !== undefined) return account.state
   if (summary === undefined || summary.status === 'logged-out') return 'unconnected'
   return API_KEY_AUTH.test(key) ? 'configured' : 'connected'
-}
-
-function countModels(root: ParentNode): number | undefined {
-  const rows = root.querySelectorAll('[data-provider-model]').length
-  if (rows > 0) return rows
-  const text = [...root.querySelectorAll('[data-provider-header-summary]')].map(node => node.textContent ?? '').join(' ')
-  const match = /(\d+)\s*(?:models?|个模型)/iu.exec(text)
-  return match === null ? undefined : Number(match[1])
 }
 
 function IconSort(): ReactNode {
@@ -184,35 +175,10 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const [sorting, setSorting] = useState(false)
   const [filter, setFilter] = useState<'all' | 'llm' | 'agent'>('all')
   const [detail, setDetail] = useState<string | undefined>(undefined)
-  const [modelCounts, setModelCounts] = useState<Readonly<Record<string, number>>>({})
   // Settings policy: the overview paints from cache, then refreshes once when the page opens.
   const refreshRef = useRef(props.onRefresh)
   refreshRef.current = props.onRefresh
   useEffect(() => { refreshRef.current?.() }, [])
-  useLayoutEffect(() => {
-    const next: Record<string, number> = {}
-    document.querySelectorAll('[data-model-probe]').forEach(node => {
-      if (!(node instanceof HTMLElement) || node.dataset.modelProbe === undefined) return
-      const count = countModels(node)
-      if (count !== undefined) next[node.dataset.modelProbe] = count
-    })
-    const full = document.querySelector('[data-providers-section] .c-full')
-    if (full instanceof HTMLElement && detail !== undefined) {
-      const count = countModels(full)
-      if (count !== undefined) next[detail] = count
-    }
-    setModelCounts(prev => {
-      let changed = false
-      const merged = { ...prev }
-      for (const [key, count] of Object.entries(next)) {
-        if (merged[key] !== count) {
-          merged[key] = count
-          changed = true
-        }
-      }
-      return changed ? merged : prev
-    })
-  })
   const showToggle = keys.length > 1 && props.disabled !== true && detail === undefined
   const sortable = sorting && showToggle
   const orderBeforeSort = useRef<readonly string[] | undefined>(undefined)
@@ -266,7 +232,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       )
     const linked = linkState(item.key, account, summary)
     // Prefer the count the plugin publishes; the hidden probe is the legacy fallback.
-    const models = props.modelCountOf?.(item.key) ?? modelCounts[item.key]
+    const models = props.modelCountOf?.(item.key)
     const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }
     const identity = (
       <div className="c-identity">
@@ -286,8 +252,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     )
     if (detail !== undefined) {
       if (migrated) {
-        // The migrated card owns the detail body; the page already renders the breadcrumb.
-        return <article className="c-full">{card}</article>
+        // The migrated card renders the prototype layout itself; the page adds the breadcrumb only.
+        return card
       }
       const windows = summary?.windows ?? []
       return (
@@ -338,8 +304,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
     const reset = primary === undefined ? undefined : formatResetLabel(primary.resetsAt, primary.label, copy)
     return (
       <div className="c-row-grid" data-provider-row={item.key} data-provider-role={role}>
-        <div className="c-probe" data-model-probe={item.key} aria-hidden="true">{card}</div>
-        <div className="c-cell">{identity}</div>
+          <div className="c-cell">{identity}</div>
         <div className="c-mini">
           {missing === undefined && primary !== undefined
             ? <ProviderQuotaMeter

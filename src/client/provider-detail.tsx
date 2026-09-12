@@ -48,8 +48,6 @@ export interface ProviderDetailModels {
   readonly sortDisabled?: boolean
   readonly onChooseFromAccount?: () => void
   readonly chooseDisabled?: boolean
-  /** The list itself (rows/editor) plus any trailing action such as add-model. */
-  readonly list?: ReactNode
   /**
    * Rows the template renders itself. Providers hand over data and handlers so
    * every card shows the same row chrome; `extra` carries provider-specific fields.
@@ -348,7 +346,6 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
           </div>
           <p className="c-models-hint">{props.models.hint ?? props.copy.modelsHint}</p>
           <div className="c-models-list">
-            {props.models.list}
             {props.models.items === undefined ? null : (
               <>
                 <SortableList
@@ -435,7 +432,11 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
       )}
 
       {props.footer === undefined ? null : <div className="c-footer">{props.footer}</div>}
-      {props.draft === undefined ? null : <div className="c-draft">{props.draft}</div>}
+      {props.draft === undefined ? null : (
+        <div className="c-draft">
+          <div className="c-draft-actions">{props.draft}</div>
+        </div>
+      )}
     </article>
   )
 }

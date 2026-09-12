@@ -122,7 +122,7 @@ describe('ProviderDetail', () => {
       },
     })
 
-    expect(markup).toContain('data-provider-model')
+    expect(markup).toContain('c-model-card')
     expect(markup).toContain('grok-4.6')
     expect(markup).toContain(copy.modelIdLabel)
     expect(markup).toContain(copy.modelNameLabel)

@@ -51,7 +51,6 @@ describe('ProvidersSection', () => {
     expect(html).toContain('data-provider-role="llm"')
     expect(html).toContain('>LLM</span>')
     expect(html).toContain('>details</button>')
-    expect(html).toContain('data-model-probe="llm-cursor"')
     expect(html).not.toContain('class="c-btn c-sort"')
     expect(html).toContain('>subtitle</p>')
   })
@@ -217,9 +216,11 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     // The page keeps only the breadcrumb: no page-owned quota section, no normalising.
     expect(host.querySelector('.c-crumb')?.textContent).toContain('Grok')
     expect(host.querySelector('[data-c-quota]')).toBeNull()
-    expect(host.querySelector('.c-full')?.textContent).toContain('migrated card body')
+    // The card is the body: the page wraps nothing around it.
+    expect(host.querySelector('.c-full')).toBeNull()
+    expect(host.textContent).toContain('migrated card body')
   })
-  it('prefers the model count the plugin publishes over the hidden probe', () => {
+  it('shows the model count the plugin publishes', () => {
     // Render the real copy template so the assertion proves the number, not the key.
     const tCount = ((key: TKey) => (key === 'modelCount' ? '{n} models' : key)) as typeof t
     const host = mount(createElement(ProvidersSection, {
