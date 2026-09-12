@@ -90,6 +90,39 @@ systemctl --user restart dsh-lab.service
 6. 高级设置默认关闭，用户展开后不被重绘关回去；
 7. 零模型 provider（Codex）不出现闪烁与重复按钮。
 
+
+## 7. 迁移经验（做完 7 个插件后总结）
+
+### 顺序与粒度
+- **先做一个插件到「你自己满意」，再批量**：第一个（Cursor）定下的接口形状被后面 6 个复用，省掉 6 轮返工。
+- **先切接口，再谈样式**：`items` + `extra` 定下来之前改样式都是白改。
+
+### 接口设计（踩过的坑）
+1. **行渲染必须在模板里**：插件各画一套行 → 布局/交互永远不齐（Antigravity 用的是共享编辑器、OpenCode Go 与 CommandCode 又各自不同）。模板给 `items`（数据）+ `extra`（插件私有字段），插件不给 markup。
+2. **CSS 与模板代码都要由页面下发**：先做 CSS 抽离（页面注入样式表），再做组件抽离（slot 上下文传 `template`），否则每改一处都要重建 7 个包。
+3. **模板组件通过 slot 上下文传**（`props.template`），不要走 window 全局：页面本来就在传 `copy`/`usage`/`onRefresh`，多一个组件引用不需要新机制，也保住类型。
+4. **`mark` 也要页面/插件显式传**：模板画不出品牌图标。
+
+### 展开区（provider 私有字段）
+5. **固定列槽，不要自动排布**：`grid-template-columns:minmax(0,200px) max-content minmax(0,200px)`。用 `1fr`/`auto-fit` 时，某个字段缺失会让其它字段位置漂移（用户一眼就能看出来）。
+6. **复选框列按内容定宽 + `flex-wrap:nowrap`**，否则两个勾选会被挤成两行、并与输入框失去对齐。
+7. **对齐要用「中线一致」验证**，不是「容器 top 一致」：`inputMid == checksMid`。
+
+### 交互一致性
+8. **排序态要只读 + 收起展开行**，并保持按钮宽度稳定（文案长短切换会抖，用 `min-width` 或短文案）。
+9. **`SortableList` 的 `chrome` 模式**：调用方自己画卡片时必须用 `chrome="bare"`，否则行外壳与卡片各画一层边框/圆角，拖动幽灵还会比行更宽。
+10. **「全部展开」要真的展开行**：模板里 `expanded = !sorting && (allOpen || expanded.includes(rowId))`，不要只切旧的 catalog 状态。
+
+### 设计 token
+11. **从锁定原型里抓真实 token**（svg path、圆角、内衬、`accent-color`），不要凭印象：输入框 7px/`7px 9px`/34h、按钮 9px/`6px 12px`、复选框 15px + `accent-color:var(--c-ink)`、字号 12px。
+12. **插件旧 CSS 会污染模板行**：模板行不要再带插件的旧钩子属性（如 `data-provider-model`），否则插件样式表会命中它（`display:flex` 把网格打乱）。
+
+### 流程与事故预防
+13. **所有命令显式传工作目录**：我因为漏写 `cd` 把用户 main 仓库里未提交的改动误提交了一次（`git add -A`），用 `reset --soft HEAD~1 && git reset` 安全回滚；事后审计了 8 个 main 仓库的 HEAD。
+14. **`pnpm install` 对同名 tarball 不可靠**：换文件名（`-preview.N`）之外，遇到类型没更新就 `rm -rf node_modules/<pkg>` 再装。
+15. **插件包分 host/client 两份产物**：改 `src/usage.ts`（宿主侧）只替换 `lib/client.js` 不生效，必须一起替换 `lib/index.js`。
+16. **每次只验证一件事**：展开/收起、只读、列位、图标、宽度，逐项量（`aria-expanded`、`readonly` count、`getBoundingClientRect`、`gridTemplateColumns`），别用「看起来对」。
+17. **测试断言的是旧内联样式时，改断言而不是改回旧实现**：把 `style.minHeight === '32px'` 换成 `className` 包含共享类。
 ## 6. 迁移顺序（按风险与覆盖面）
 
 1. **Grok**（OAuth + 搜索 + 能力开关）：模型列表是 `<SortableList>` + `renderItem`，整体搬到 `models.list` 即可；
