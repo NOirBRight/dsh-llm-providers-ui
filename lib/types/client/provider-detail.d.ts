@@ -30,8 +30,12 @@ export interface ProviderDetailModels {
     readonly actions?: ReactNode;
     /** Hint line under the header. Defaults to the shared copy. */
     readonly hint?: ReactNode;
-    /** Expand-all switch state and handler. */
+    /**
+     * Unused for row disclosure and the toolbar label. Kept so existing plugin
+     * objects may still pass it. Expand-all follows `expanded` via `onToggle`.
+     */
     readonly allOpen?: boolean;
+    /** Used only when `onToggle` is absent. */
     readonly onToggleAll?: () => void;
     readonly sorting?: boolean;
     readonly onToggleSorting?: () => void;

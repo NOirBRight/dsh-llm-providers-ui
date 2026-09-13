@@ -20,7 +20,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha4')
 const FIXTURE_TARBALL_ROOT = join(FIXTURE_ROOT, 'tarballs')
 const PACKAGE_NAME = 'dsh-llm-providers-ui'
-const PACKAGE_VERSION = '0.1.12'
+const PACKAGE_VERSION = '0.2.6'
 const ROOT_ARCHIVE = join(ROOT, PACKAGE_NAME + '-' + PACKAGE_VERSION + '.tgz')
 const OFFICIAL_ALPHA4 = '0.1.2-alpha.4'
 const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.4'
@@ -60,6 +60,7 @@ const REQUIRED_FILES = [
   'lib/provider-ui.js',
   'lib/usage-readers.js',
   'lib/model-catalog.js',
+  'lib/provider-detail.js',
   'lib/types/index.d.ts',
   'lib/types/client/index.d.ts',
   'lib/types/order.d.ts',
@@ -70,6 +71,7 @@ const REQUIRED_FILES = [
   'lib/types/model-catalog.d.ts',
   'lib/types/client/ProvidersSection.d.ts',
   'lib/types/client/provider-section.d.ts',
+  'lib/types/client/provider-detail.d.ts',
 ]
 const EXPECTED_EXPORTS = {
   '.': { types: './lib/types/index.d.ts', default: './lib/index.js' },
@@ -80,6 +82,7 @@ const EXPECTED_EXPORTS = {
   './provider-ui': { types: './lib/types/provider-ui.d.ts', default: './lib/provider-ui.js' },
   './usage-readers': { types: './lib/types/usage-readers.d.ts', default: './lib/usage-readers.js' },
   './model-catalog': { types: './lib/types/model-catalog.d.ts', default: './lib/model-catalog.js' },
+  './provider-detail': { types: './lib/types/client/provider-detail.d.ts', default: './lib/provider-detail.js' },
 }
 const BUILTIN_MODULES = new Set([...builtinModules, ...builtinModules.map(name => 'node:' + name)])
 const SOURCE_SEGMENTS = new Set(['src', 'source', 'test', 'tests', '__tests__', 'scripts'])
@@ -370,12 +373,15 @@ function checkDependencySpecs(manifest, label) {
       if (/^(?:file|link|workspace|npm):/u.test(spec) || spec.startsWith('/') || /^[A-Za-z]:[\\/]/u.test(spec)) {
         fail(label + ' contains a local or alias dependency at ' + section + '.' + name)
       }
-      const allowsVerifiedDshRange = name.startsWith('@deepseek-ai/dsh-') && satisfiesRange(OFFICIAL_ALPHA4, spec) && satisfiesRange('0.1.2-rc.1', spec)
-      if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d)|\bnext\b)/iu.test(spec) && !allowsVerifiedDshRange) {
-        fail(label + ' contains a prerelease drift at ' + section + '.' + name + ': ' + spec)
+      if (name.startsWith('@deepseek-ai/dsh-')) {
+        if (label === 'packed package') {
+          if (section !== 'peerDependencies') fail(label + ' must declare DSH package ' + name + ' as a * peer, not ' + section)
+          if (spec !== '*') fail(label + ' DSH peer ' + name + ' must be *, got ' + spec)
+        }
+        continue
       }
-      if (name.startsWith('@deepseek-ai/dsh-') && label === 'packed package' && spec !== OFFICIAL_ALPHA4 && !allowsVerifiedDshRange) {
-        fail(label + ' DSH dependency ' + name + ' must include Alpha.4 and rc.1, got ' + spec)
+      if (/(?:0\.1\.2-alpha\.2|\brc(?:\.|-|\d)|\bnext\b)/iu.test(spec)) {
+        fail(label + ' contains a prerelease drift at ' + section + '.' + name + ': ' + spec)
       }
     }
   }
@@ -790,6 +796,19 @@ function fixtureOverrides(graph) {
   return overrides
 }
 
+function dshPeerRules(graph) {
+  const names = new Set()
+  for (const record of graph.records.values()) {
+    if (record.name.startsWith('@deepseek-ai/dsh-')) names.add(record.name)
+  }
+  for (const name of Object.keys(graph.root.manifest.peerDependencies ?? {})) {
+    if (name.startsWith('@deepseek-ai/dsh-')) names.add(name)
+  }
+  const allowedVersions = {}
+  for (const name of [...names].sort()) allowedVersions[name] = '*'
+  return { allowAny: ['@deepseek-ai/dsh-*'], allowedVersions }
+}
+
 function consumerDependencies(graph, ownerArchive) {
   const dependencies = { [PACKAGE_NAME]: pathToFileURL(ownerArchive).href }
   const add = (name, archive) => {
@@ -867,7 +886,7 @@ function installConsumer(ownerArchive, graph, work) {
     private: true,
     type: 'module',
     dependencies: consumerDependencies(graph, ownerArchive),
-    pnpm: { overrides: fixtureOverrides(graph) },
+    pnpm: { overrides: fixtureOverrides(graph), peerDependencyRules: dshPeerRules(graph) },
   }, null, 2) + '\n')
   writeFileSync(join(consumer, 'smoke.mjs'), CONSUMER_SMOKE + '\n')
   const env = {

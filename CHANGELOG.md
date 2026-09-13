@@ -1,3 +1,9 @@
+## v0.2.8
+
+Model row chevrons follow the `expanded` list only. `allOpen` no longer force-opens every row, so adding a model or clicking Expand all still lets a row collapse.
+
+DSH Host packages are no longer version-locked. `@deepseek-ai/dsh-*` peers are `*` and optional; unknown Hosts warn once and still mount. Cordis stays `>=4.0.2 <5.0.0`. Compile-target `devDependencies` remain `0.1.5-rc.1`.
+
 ## v0.2.7
 
 侧边栏/详情的额度窗口按 5 小时 → 周 → 月显示。
