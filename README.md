@@ -46,7 +46,7 @@ This package is a bundle and must be listed in the profile. Until DSH mounts tra
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
 ```
 
 No strict load order with providers is required. See `cordis.patch.yml`.
@@ -66,11 +66,11 @@ Until this package is published to npm, lab checkouts may use `link:../dsh-llm-p
 
 Shared LLM Providers settings page, navigation, card order, and picker sort owner. The published pack contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency. Pack-check fixtures and compile-target `devDependencies` are 0.1.5-rc.1.
 
-Latest installation (the URL never contains a version):
+Latest installation (asset name matches the current latest tarball):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
 ~~~
 
 Fixed-version installation (`v0.2.8`):
@@ -85,7 +85,7 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
