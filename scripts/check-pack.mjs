@@ -20,7 +20,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const FIXTURE_ROOT = join(ROOT, 'fixtures', 'alpha4')
 const FIXTURE_TARBALL_ROOT = join(FIXTURE_ROOT, 'tarballs')
 const PACKAGE_NAME = 'dsh-llm-providers-ui'
-const PACKAGE_VERSION = '0.2.6'
+const PACKAGE_VERSION = sourcePackageVersion()
 const ROOT_ARCHIVE = join(ROOT, PACKAGE_NAME + '-' + PACKAGE_VERSION + '.tgz')
 const OFFICIAL_ALPHA4 = '0.1.2-alpha.4'
 const OFFICIAL_TAG = 'dsh-v0.1.2-alpha.4'
@@ -130,6 +130,13 @@ function readJson(file, label = file) {
   } catch (error) {
     fail('invalid JSON in ' + label + ': ' + (error instanceof Error ? error.message : String(error)))
   }
+}
+
+/** Read the release version from the source manifest used by this pack gate. */
+function sourcePackageVersion() {
+  const version = readJson(join(ROOT, 'package.json'), 'source package manifest').version
+  if (typeof version !== 'string' || version.length === 0) fail('source package manifest has no version')
+  return version
 }
 
 function parsePackReport(output) {

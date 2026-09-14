@@ -15,7 +15,7 @@ import { formatResetLabel, pickPrimaryWindow, type ProviderUsageSummary } from '
 import { ProviderQuotaMeter } from './provider-ui.js'
 import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
-import type { ProviderDetailOwnership, ProviderHeaderOwnership, ProviderRole } from './directory.js'
+import type { ProviderAccountSnapshot, ProviderDetailOwnership, ProviderHeaderOwnership, ProviderRole } from './directory.js'
 import { providerUiCss, ProviderRoleBadge } from './provider-ui.js'
 import { settingsCCss } from './settings-c-css.js'
 import { ProviderDetail, providerDetailCopy } from './provider-detail.js'
@@ -56,7 +56,7 @@ export interface ProvidersSectionProps {
   showSidebarUsage?: boolean
   onShowSidebarUsage?: (show: boolean) => void
   usageSummaries?: readonly ProviderUsageSummary[]
-  accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined
+  accountOf?: (key: string) => ProviderAccountSnapshot | undefined
   onRefresh?: (key?: string) => void
 }
 
@@ -75,8 +75,6 @@ div:has([role="dialog"] [data-providers-section]){opacity:1!important;visibility
 const fallbackWrapStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }
 const fallbackBadgeAlign: CSSProperties = { alignSelf: 'flex-start' }
 
-const API_KEY_AUTH = /(?:ollama|opencode-go|commandcode)$/u
-
 /**
  * Overview meter label: the provider's full window name, with bare abbreviations
  * replaced by the shared localized wording so every provider reads the same.
@@ -88,10 +86,16 @@ function windowName(window: { readonly label: string, readonly shortLabel?: stri
   return windowNameOf(window.label, { hour: t('windowHour'), week: t('windowWeek'), month: t('windowMonth') })
 }
 
-function linkState(key: string, account: { state: 'connected' | 'configured' | 'unconnected' } | undefined, summary: ProviderUsageSummary | undefined): 'connected' | 'configured' | 'unconnected' {
-  if (account !== undefined) return account.state
-  if (summary === undefined || summary.status === 'logged-out') return 'unconnected'
-  return API_KEY_AUTH.test(key) ? 'configured' : 'connected'
+function linkState(account: ProviderAccountSnapshot | undefined): ProviderAccountSnapshot['state'] {
+  return account?.state ?? 'unconnected'
+}
+
+function linked(state: ProviderAccountSnapshot['state']): boolean {
+  return state === 'connected' || state === 'configured'
+}
+
+function usageOf(summaries: readonly ProviderUsageSummary[] | undefined, key: string): ProviderUsageSummary | undefined {
+  return summaries?.find(entry => entry.providerKey === key)
 }
 
 function IconSort(): ReactNode {
@@ -117,7 +121,7 @@ export function bindProvidersSection(
   headerOf?: (key: string) => ProviderHeaderOwnership,
   readUsage?: () => readonly ProviderUsageSummary[],
   subscribeUsage?: (listener: () => void) => () => void,
-  accountOf?: (key: string) => { state: 'connected' | 'configured' | 'unconnected' } | undefined,
+  accountOf?: (key: string) => ProviderAccountSnapshot | undefined,
   onRefresh?: (key?: string) => void,
   detailOf?: (key: string) => ProviderDetailOwnership,
   nameOf?: (key: string) => string | undefined,
@@ -188,8 +192,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
   const items = (detail === undefined ? visibleKeys : keys.filter(key => key === detail)).map(key => ({ key }))
   const renderCard = (item: { key: string }): ReactNode => {
     const role = props.roleOf?.(item.key) ?? 'llm'
-    const summary = props.usageSummaries?.find(entry => entry.providerKey === item.key)
-      ?? props.usageSummaries?.find(entry => item.key.endsWith(entry.providerKey) || entry.providerKey.endsWith(item.key))
+    const summary = usageOf(props.usageSummaries, item.key)
     const account = props.accountOf?.(item.key)
     const migrated = detail !== undefined && (props.detailOf?.(item.key) ?? 'legacy') === 'shared'
     // Migrated cards read this context and render the shared template; older cards ignore it.
@@ -202,7 +205,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       ...(summary === undefined
         ? {}
         : { usage: { status: summary.status, windows: summary.windows, ...(summary.fetchedAt === undefined ? {} : { fetchedAt: summary.fetchedAt }) } }),
-      ...(account === undefined ? {} : { accountState: account.state }),
+      ...(account === undefined || account.state === 'unknown' ? {} : { accountState: account.state }),
       ...(detail === undefined || props.onRefresh === undefined
         ? {}
         : { onRefresh: () => { props.onRefresh?.(item.key) } }),
@@ -216,7 +219,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
           {node}
         </div>
       )
-    const linked = linkState(item.key, account, summary)
+    const link = linkState(account)
     // Prefer the count the plugin publishes; the hidden probe is the legacy fallback.
     const models = props.modelCountOf?.(item.key)
     const copy = { at: t('resetAt'), overdue: t('resetOverdue'), missing: t('resetMissing') }
@@ -229,8 +232,8 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
             <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
           </div>
           <div className="c-sub">
-            <span className={'c-dot' + (linked === 'unconnected' ? '' : ' good')} />
-            {t(linked)}
+            <span className={'c-dot' + (linked(link) ? ' good' : '')} />
+            {t(link)}
             {models === undefined ? null : <><span aria-hidden="true">·</span>{t('modelCount').replace('{n}', String(models))}</>}
           </div>
         </div>
@@ -305,12 +308,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
       </div>
     )
   }
-  const linkedCount = keys.filter(key => {
-    const account = props.accountOf?.(key)
-    const summary = props.usageSummaries?.find(entry => entry.providerKey === key)
-      ?? props.usageSummaries?.find(entry => key.endsWith(entry.providerKey) || entry.providerKey.endsWith(key))
-    return linkState(key, account, summary) !== 'unconnected'
-  }).length
+  const linkedCount = keys.filter(key => linked(linkState(props.accountOf?.(key)))).length
   const body = keys.length === 0
     ? <p className="c-empty">{t('empty')}</p>
     : (

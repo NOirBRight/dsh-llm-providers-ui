@@ -231,4 +231,65 @@ describe('ProvidersSection refresh policy and detail normalizer', () => {
     }))
     expect(host.textContent).toContain('7 models')
   })
+
+  it('keeps unknown account state visible instead of pretending the card is disconnected', () => {
+    const host = mount(createElement(ProvidersSection, {
+      t,
+      registeredKeys: ['llm-codex'],
+      renderSlot,
+      accountOf: () => ({ state: 'unknown' }),
+    }))
+    expect(host.querySelector('.c-dot.good')).toBeNull()
+    expect(host.textContent).toContain('unknown')
+    expect(host.textContent).not.toContain('unconnected')
+  })
+
+  it('paints overview connection from a published account even when usage is ready', () => {
+    const host = mount(createElement(ProvidersSection, {
+      t,
+      registeredKeys: ['llm-codex'],
+      renderSlot,
+      usageSummaries: [{
+        providerKey: 'llm-codex',
+        name: 'Codex',
+        status: 'ready',
+        windows: [{ id: 'week', label: 'Week', remainingPercent: 40, valueText: '40%' }],
+      }],
+      accountOf: () => ({ state: 'unconnected' }),
+    }))
+    expect(host.querySelector('.c-dot.good')).toBeNull()
+    expect(host.textContent).toContain('unconnected')
+  })
+
+  it('does not guess configured from a key suffix when account is unpublished', () => {
+    const host = mount(createElement(ProvidersSection, {
+      t,
+      registeredKeys: ['llm-ollama'],
+      renderSlot,
+      usageSummaries: [{
+        providerKey: 'llm-ollama',
+        name: 'Ollama Cloud',
+        status: 'ready',
+        windows: [{ id: 'month', label: 'Month', remainingPercent: 90, valueText: '90%' }],
+      }],
+    }))
+    expect(host.textContent).toContain('unconnected')
+    expect(host.textContent).not.toContain('configured')
+  })
+
+  it('matches overview quota by the exact directory key', () => {
+    const host = mount(createElement(ProvidersSection, {
+      t,
+      registeredKeys: ['antigravity'],
+      renderSlot,
+      usageSummaries: [{
+        providerKey: 'agent-antigravity',
+        name: 'Stale',
+        status: 'ready',
+        windows: [{ id: 'week', label: 'Week', remainingPercent: 11, valueText: '11%' }],
+      }],
+      accountOf: () => ({ state: 'connected' }),
+    }))
+    expect(host.textContent).not.toContain('11%')
+  })
 })

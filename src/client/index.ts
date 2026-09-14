@@ -33,9 +33,11 @@ export const inject = ['slots', 'locale', 'settingsScope']
  * this entrypoint. No local module augmentation is needed downstream.
  */
 export type {
+  ProviderAccountSnapshot,
   ProviderDeclaration,
   ProviderDirectory,
   ProviderHeaderOwnership,
+  ProviderNativeBinding,
   ProviderRole,
 } from './directory.js'
 export type { ProviderSectionLocaleKey } from './provider-section.js'
