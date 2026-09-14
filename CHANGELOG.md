@@ -1,3 +1,7 @@
+## v0.2.9
+
+Unsaved pickers keep catalog order. `catalogRoutes` keys use `Object.hasOwn`. Live Agent catalog ids can follow saved card order.
+
 ## v0.2.8
 
 Model row chevrons follow the `expanded` list only. `allOpen` no longer force-opens every row, so adding a model or clicking Expand all still lets a row collapse.
