@@ -1,3 +1,7 @@
+## v0.2.10
+
+OpenCode Go headline uses monthly remaining, not the 5-hour window. `pickPrimaryWindow` ranks verbose/`月` labels and does not fall back from a monthly window to 5-hour when monthly is 100% with no reset.
+
 ## v0.2.9
 
 Unsaved pickers keep catalog order. `catalogRoutes` keys use `Object.hasOwn`. Live Agent catalog ids can follow saved card order.

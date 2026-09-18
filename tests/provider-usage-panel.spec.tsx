@@ -139,6 +139,21 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).not.toContain('title="S · 90% · W · 66% · M · 44%"')
   })
 
+  it('headlines OpenCode Go monthly remaining from the plugin window names', () => {
+    const providers: readonly ProviderUsageSummary[] = [{
+      providerKey: 'llm-opencode-go',
+      name: 'OpenCode Go',
+      status: 'ready',
+      windows: [
+        { id: 'session', label: '5-hour window', shortLabel: '5h', remainingPercent: 96, valueText: '96%' },
+        { id: 'weekly', label: 'Weekly window', shortLabel: 'Week', remainingPercent: 70, valueText: '70%' },
+        { id: 'monthly', label: 'Monthly window', shortLabel: 'Month', remainingPercent: 99, valueText: '99%' },
+      ],
+    }]
+    expect(staticHtml({ providers })).toContain('aria-label="OpenCode Go 99%"')
+    expect(staticHtml({ providers })).not.toContain('aria-label="OpenCode Go 96%"')
+  })
+
   it('prefers a provider-specific subscription cycle over a short hourly window', () => {
     const providers: readonly ProviderUsageSummary[] = [{
       providerKey: 'cursor',
