@@ -170,7 +170,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
   it('opens a local-time detail page and returns to the grid', () => {
     const container = mount()
     const row = container.querySelector('[aria-label="Codex 38%"]')
-    expect(row?.getAttribute('title')).toBe('Codex · 38%')
+    expect(row?.getAttribute('title')).toBe('Codex 38%')
     click(row)
     expect(container.querySelector('.pu-head')).toBeNull()
     expect(container.querySelector('[aria-label="选择侧栏显示的 Provider"]')).toBeNull()
@@ -309,7 +309,8 @@ describe('ProviderUsagePanel states', () => {
     expect(html).toContain('aria-label="Failed 加载失败"')
     expect(html).toContain('aria-label="Pending 加载中…"')
     // Stale keeps its old value and adds an expiry marker.
-    expect(html).toContain('aria-label="Stale 50%"')
+    expect(html).toContain('aria-label="Stale 50% · 已过期"')
+    expect(html).toContain('class="pu-stale"')
     expect(html).toContain('已过期')
   })
 

@@ -62,8 +62,6 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550;letter-spacing:.01em;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-actions{display:flex;gap:2px;margin-left:auto}',
   '[data-provider-usage-panel] .pu-mini-spin{display:inline-block;width:9px;height:9px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:middle;animation:pu-spin .55s linear infinite}',
-  '[data-provider-usage-panel] .pu-row-refresh{position:absolute;top:0;right:0;width:24px;height:24px}',
-  '@media (hover:hover) and (pointer:fine){[data-provider-usage-panel] .pu-row-refresh{opacity:0;pointer-events:none}[data-provider-usage-panel] .pu-cell:hover .pu-row-refresh,[data-provider-usage-panel] .pu-row-refresh:focus-visible,[data-provider-usage-panel] .pu-row-refresh.pu-spinning{opacity:1;pointer-events:auto}}',
   '[data-provider-usage-panel] .pu-detail-head .pu-icon-btn:last-child{margin-left:auto}',
   '[data-provider-usage-panel] .pu-icon-btn{display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}',
   '[data-provider-usage-panel] .pu-icon-btn:hover{background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary)}',
@@ -80,12 +78,11 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-row:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:-2px}',
   '[data-provider-usage-panel] .pu-mark{display:grid;place-items:center;flex:none;width:18px;height:18px;overflow:visible}',
   '[data-provider-usage-panel] .pu-logo{display:block;width:100%;height:100%;color:var(--dsw-alias-label-secondary)}',
-  '[data-provider-usage-panel] .pu-row .pu-mark{width:16px;height:16px}',
+  '[data-provider-usage-panel] .pu-row .pu-mark{position:relative;width:16px;height:16px}',
+  '[data-provider-usage-panel] .pu-stale{position:absolute;right:-3px;top:-7px;font-size:12px;color:var(--dsw-alias-label-secondary)}',
   '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:14px;height:14px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
-  '[data-provider-usage-panel] .pu-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:10px;font-weight:500;line-height:12px}',
-  '[data-provider-usage-panel] .pu-stale{flex:none;margin-left:auto;color:var(--dsw-alias-label-tertiary);font-size:8px}',
   '[data-provider-usage-panel] .pu-primary{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:12px;font-weight:650;line-height:16px;font-variant-numeric:tabular-nums}',
-  '[data-provider-usage-panel] .pu-warn .pu-primary,[data-provider-usage-panel] .pu-tip-value.pu-warn{color:color-mix(in srgb,#c47b08 58%,var(--dsw-alias-label-secondary))}',
+  '[data-provider-usage-panel] .pu-warn .pu-primary{color:color-mix(in srgb,#c47b08 58%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',
   '[data-provider-usage-panel] .pu-detail{box-sizing:border-box;display:flex;flex-direction:column;width:100%;min-width:0;padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}',
   '[data-provider-usage-panel] .pu-detail-head{display:flex;align-items:center;gap:6px;padding:0 6px;border-bottom:1px solid var(--dsw-alias-border-l2);flex:none}',
@@ -93,18 +90,6 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-detail-body{padding:8px 10px;display:grid;gap:10px}',
   '[data-provider-usage-panel] .pu-detail-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:550;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-detail-sub{margin:0;color:var(--dsw-alias-label-tertiary);font-size:11px}',
-  '[data-provider-usage-panel] .pu-win{display:flex;flex-direction:column;gap:5px;padding:8px 0 2px}',
-  '[data-provider-usage-panel] .pu-win + .pu-win{border-top:1px solid var(--dsw-alias-border-l2)}',
-  '[data-provider-usage-panel] .pu-win-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}',
-  '[data-provider-usage-panel] .pu-tip-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:12px}',
-  '[data-provider-usage-panel] .pu-tip-value{font-variant-numeric:tabular-nums;font-weight:500;font-size:12px;color:color-mix(in srgb,var(--dsw-alias-label-primary) 62%,var(--dsw-alias-label-secondary))}',
-  '[data-provider-usage-panel] .pu-bar{display:block;width:100%;height:6px;overflow:hidden;border:0;border-radius:99px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 10%,var(--dsw-alias-bg-layer-1));accent-color:color-mix(in srgb,var(--dsw-alias-state-business-primary) 42%,var(--dsw-alias-label-secondary))}',
-  '[data-provider-usage-panel] .pu-bar::-webkit-progress-bar{background:color-mix(in srgb,var(--dsw-alias-label-primary) 10%,var(--dsw-alias-bg-layer-1));border-radius:99px}',
-  '[data-provider-usage-panel] .pu-bar::-webkit-progress-value{background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 42%,var(--dsw-alias-label-secondary));border-radius:99px}',
-  '[data-provider-usage-panel] .pu-bar::-moz-progress-bar{background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 42%,var(--dsw-alias-label-secondary));border-radius:99px}',
-  '[data-provider-usage-panel] .pu-bar.pu-warn{accent-color:color-mix(in srgb,#c47b08 48%,var(--dsw-alias-label-secondary))}',
-  '[data-provider-usage-panel] .pu-bar.pu-warn::-webkit-progress-value,[data-provider-usage-panel] .pu-bar.pu-warn::-moz-progress-bar{background:color-mix(in srgb,#c47b08 48%,var(--dsw-alias-label-secondary))}',
-  '[data-provider-usage-panel] .pu-tip-reset{color:var(--dsw-alias-label-tertiary);font-size:11px}',
   '[data-provider-usage-panel] .pu-tip-empty{padding:8px 0;color:var(--dsw-alias-label-secondary);font-size:12px}',
   '[data-provider-usage-panel] .pu-empty{padding:22px 8px;color:var(--dsw-alias-label-tertiary);text-align:center;font-size:11px;line-height:18px}',
   '[data-provider-usage-panel] .pu-empty-btn{margin-top:8px;padding:4px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-state-business-primary);font-size:11px;cursor:pointer}',
@@ -127,13 +112,6 @@ const panelCss = [
   '@media (pointer:coarse){[data-provider-usage-panel] .pu-row{min-height:44px}[data-provider-usage-panel] .pu-icon-btn,[data-provider-usage-panel] .pu-detail-head .pu-icon-btn{width:44px;height:44px}[data-provider-usage-panel] .pu-head{height:44px;padding-bottom:0}}',
 ].join('\n')
 
-function headlineOf(summary: ProviderUsageSummary): string {
-  const hasData = summary.status === 'ready' || summary.status === 'stale'
-  const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
-  if (primary === undefined) return summary.status === 'ready' ? '—' : STATUS_TEXT[summary.status]
-  return windowValueText(primary)
-}
-
 /** Shared refresh glyph. */
 function RefreshIcon(): ReactNode {
   return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>
@@ -142,8 +120,9 @@ function RefreshIcon(): ReactNode {
 function ProviderRow(props: { summary: ProviderUsageSummary, onSelect: () => void }): ReactNode {
   const summary = props.summary
   const hasData = summary.status === 'ready' || summary.status === 'stale'
-  const primary = hasData ? pickPrimaryWindow(summary.windows) : undefined
-  const headline = headlineOf(summary)
+  const primary = hasData ? pickPrimaryWindow(summary.windows) ?? summary.windows[0] : undefined
+  const headline = primary === undefined ? (summary.status === 'loading' ? '…' : '—') : windowValueText(primary)
+  const label = summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline) + (summary.status === 'stale' ? ' · 已过期' : '')
   const low = usageLow(primary?.remainingPercent)
   return (
     <div className="pu-cell">
@@ -151,12 +130,12 @@ function ProviderRow(props: { summary: ProviderUsageSummary, onSelect: () => voi
         type="button"
         className={'pu-row' + (low ? ' pu-warn' : '')}
         data-usage-key={summary.providerKey}
-        aria-label={summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline)}
-        title={summary.name + ' · ' + headline + (summary.status === 'stale' ? ' · 已过期' : '')}
+        aria-label={label}
+        title={label}
         onClick={props.onSelect}
       >
-        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} /></span>
-        <span className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{primary === undefined ? (summary.status === 'loading' ? '…' : '—') : headline}</span>
+        <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} />{summary.status === 'stale' && <span className="pu-stale" aria-hidden="true">*</span>}</span>
+        <span className={'pu-primary' + (primary === undefined ? ' pu-empty-text' : '')}>{headline}</span>
       </button>
     </div>
   )
@@ -182,7 +161,7 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
         </button>
       </div>
       <div className="pu-detail-body">
-      <div className="pu-detail-sub">剩余额度</div>
+      <div className="pu-detail-sub">{summary.status === 'stale' ? '剩余额度 · 已过期' : '剩余额度'}</div>
       {summary.windows.length === 0
         ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
         : summary.windows.map(quotaWindow => {
@@ -283,7 +262,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
             aria-label="刷新全部"
             onClick={() => { props.onRefresh() }}
           >
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>
+            <RefreshIcon />
           </button>
         </span>
       </div>}

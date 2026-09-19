@@ -11,6 +11,7 @@ export interface ProviderUsageStoreSnapshot {
 }
 export interface ProviderUsageConfig {
     registeredKeys: readonly string[];
+    unconnectedKeys?: readonly string[];
     savedOrder: readonly string[];
     hiddenKeys: readonly string[];
 }
