@@ -80,7 +80,6 @@ const panelCss = [
   '[data-provider-usage-panel] .pu-logo{display:block;width:100%;height:100%;color:var(--dsw-alias-label-secondary)}',
   '[data-provider-usage-panel] .pu-row .pu-mark{position:relative;width:16px;height:16px}',
   '[data-provider-usage-panel] .pu-stale{position:absolute;right:-3px;top:-7px;font-size:12px;color:var(--dsw-alias-label-secondary)}',
-  '[data-provider-usage-panel] .pu-icon{display:grid;place-items:center;flex:none;width:14px;height:14px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-module-platform);font-size:8px;font-weight:750}',
   '[data-provider-usage-panel] .pu-primary{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:12px;font-weight:650;line-height:16px;font-variant-numeric:tabular-nums}',
   '[data-provider-usage-panel] .pu-warn .pu-primary{color:color-mix(in srgb,#c47b08 58%,var(--dsw-alias-label-secondary))}',
   '[data-provider-usage-panel] .pu-empty-text{color:var(--dsw-alias-label-tertiary);font-weight:550}',

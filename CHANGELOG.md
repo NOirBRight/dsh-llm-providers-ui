@@ -1,3 +1,10 @@
+## v0.2.11
+
+- Provider Usage 在网页和移动端以四列无边框图标＋额度显示；点击进入紧凑详情，详情仅保留单行返回／名称／刷新顶部。
+- 已知未配置或未登录的 Provider 自动隐藏，登录后恢复，不改写手动可见性设置。0% 及暂时错误仍保留。
+- 过期额度恢复可见标记、屏幕阅读器说明和详情提示；保留触屏 44px 目标。
+- 保留 v0.2.10 的目录路由、月度主额度、5 小时→周→月窗口顺序及缓存行为。
+
 ## v0.2.10
 
 OpenCode Go headline uses monthly remaining, not the 5-hour window. `pickPrimaryWindow` ranks verbose/`月` labels and does not fall back from a monthly window to 5-hour when monthly is 100% with no reset.

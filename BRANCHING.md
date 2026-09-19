@@ -43,16 +43,17 @@
 | 项 | 值 |
 |---|---|
 | 稳定分支 | `main` |
-| 当前稳定版（用户安装 / 回滚首选） | `v0.1.12` |
-| 上一稳定版（兜底回滚） | `v0.1.11` |
+| 当前稳定版（用户安装 / 回滚首选） | `v0.2.11` |
+| 上一稳定版（兜底回滚） | `v0.2.10` |
 | 集成分支 | `dev` |
-| dev HEAD | `9988aed chore: rebuild the tracked bundle for the integration branch` |
+| dev 发布同步 | 发布后将 `main` 合回 `dev`，用 `git merge-base --is-ancestor v0.2.11 dev` 验证 |
 
 ### 已折叠进 dev 的历史线
 
 - settings C and Task Panel B provider UI
 - prototype/provider-settings-three
 - prototype/task-panel-usage-popover
+- compact Provider Usage: 四列图标额度、紧凑详情、账号可见性与退出缓存清理；`fix/compact-provider-usage` 经 dev 集成后由 v0.2.11 发布，合并祖先检查后删除工作分支
 - keep the evolved Provider directory line (ui-9 feature superseded)
 - bring the 015 review-fix line into the integration branch
 
