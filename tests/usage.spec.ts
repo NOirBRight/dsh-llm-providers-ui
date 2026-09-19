@@ -236,8 +236,25 @@ describe('Provider Usage readers', () => {
     expect(pickPrimaryWindow([
       { id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 40, valueText: '40%', resetsAt: '2026-09-18T00:00:00.000Z' },
       { id: 'month', label: 'Month', shortLabel: 'M', remainingPercent: 100, valueText: '100%' },
-    ])?.id).toBe('week')
+    ])?.id).toBe('month')
+    expect(pickPrimaryWindow([
+      { id: 'session', label: '5-hour window', shortLabel: '5h', remainingPercent: 80, valueText: '80%', resetsAt: '2026-09-18T00:00:00.000Z' },
+      { id: 'monthly', label: 'Monthly window', shortLabel: 'Month', remainingPercent: 100, valueText: '100%' },
+    ])?.id).toBe('monthly')
     expect(pickPrimaryWindow([{ id: 'credits', label: 'Credits', shortLabel: 'Cr', valueText: '$8' }])).toBeUndefined()
+  })
+
+  it('ranks verbose OpenCode Go window names as monthly, not 5-hour', () => {
+    expect(pickPrimaryWindow([
+      { id: 'session', label: '5-hour window', shortLabel: '5h', remainingPercent: 96, valueText: '96%' },
+      { id: 'weekly', label: 'Weekly window', shortLabel: 'Week', remainingPercent: 70, valueText: '70%' },
+      { id: 'monthly', label: 'Monthly window', shortLabel: 'Month', remainingPercent: 99, valueText: '99%' },
+    ])?.id).toBe('monthly')
+    expect(pickPrimaryWindow([
+      { id: 'session', label: '5 小时窗口', shortLabel: '5h', remainingPercent: 96, valueText: '96%' },
+      { id: 'weekly', label: '每周额度', shortLabel: '周', remainingPercent: 70, valueText: '70%' },
+      { id: 'monthly', label: '每月额度', shortLabel: '月', remainingPercent: 99, valueText: '99%' },
+    ])?.id).toBe('monthly')
   })
 
   it('formats reset timestamps in the system zone without inventing a date', () => {

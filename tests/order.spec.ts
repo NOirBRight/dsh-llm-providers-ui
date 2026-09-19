@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { applySavedOrder, decodeProviderOrder, providerKeyForRoute, PROVIDER_ITEM_ORDER, sortCatalogGroups } from '../src/order.ts'
+import { applySavedOrder, decodeProviderOrder, providerKeyForRoute, sortCatalogGroups } from '../src/order.ts'
+
+const live = {
+  cursor: 'llm-cursor',
+  grok: 'llm-grok',
+  'ollama-cloud': 'llm-ollama',
+  commandcode: 'llm-commandcode',
+  'opencode-go': 'llm-opencode-go',
+  codex: 'llm-codex',
+}
 
 describe('applySavedOrder', () => {
   it('returns empty when nothing is installed so the settings page can show empty copy', () => {
@@ -74,8 +83,18 @@ describe('sortCatalogGroups', () => {
     { id: 'ollama-cloud', name: 'Ollama Cloud' },
   ]
 
-  it('orders mapped routes by saved card keys and appends unknown groups', () => {
+  it('keeps catalog order when no live routes are declared', () => {
     expect(sortCatalogGroups(groups, ['llm-grok', 'llm-cursor']).map(group => group.id)).toEqual([
+      'deepseek-official',
+      'commandcode',
+      'cursor',
+      'grok',
+      'ollama-cloud',
+    ])
+  })
+
+  it('orders declared routes by saved card keys and appends unknown groups', () => {
+    expect(sortCatalogGroups(groups, ['llm-grok', 'llm-cursor'], live).map(group => group.id)).toEqual([
       'grok',
       'cursor',
       'ollama-cloud',
@@ -85,17 +104,32 @@ describe('sortCatalogGroups', () => {
   })
 
   it('maps ollama-cloud through llm-ollama rather than stripping a prefix', () => {
-    expect(sortCatalogGroups(groups, ['llm-ollama']).map(group => group.id)[0]).toBe('ollama-cloud')
+    expect(sortCatalogGroups(groups, ['llm-ollama'], live).map(group => group.id)[0]).toBe('ollama-cloud')
   })
 
-  it('falls back to PROVIDER_ITEM_ORDER for mapped routes when saved order is empty', () => {
-    expect(sortCatalogGroups(groups, []).map(group => group.id)).toEqual([
+  it('keeps catalog order when saved card order is empty', () => {
+    expect(sortCatalogGroups(groups, [], live).map(group => group.id)).toEqual([
+      'deepseek-official',
+      'commandcode',
       'cursor',
       'grok',
       'ollama-cloud',
-      'commandcode',
-      'deepseek-official',
     ])
-    expect(PROVIDER_ITEM_ORDER[0]).toBe('llm-cursor')
+  })
+
+  it('does not treat Object.prototype names as live catalog keys', () => {
+    expect(sortCatalogGroups(
+      [{ id: 'toString' }, { id: 'cursor' }],
+      ['llm-cursor'],
+      { cursor: 'llm-cursor' },
+    ).map(group => group.id)).toEqual(['cursor', 'toString'])
+  })
+
+  it('ranks a live catalog id by saved card order even when it is not in PROVIDER_ROUTES', () => {
+    expect(sortCatalogGroups(
+      [{ id: 'codex' }, { id: 'antigravity' }],
+      ['antigravity', 'llm-codex'],
+      { antigravity: 'antigravity', ...live },
+    ).map(group => group.id)).toEqual(['antigravity', 'codex'])
   })
 })

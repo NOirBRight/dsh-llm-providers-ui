@@ -39,8 +39,12 @@ export interface ProviderDetailModels {
   readonly actions?: ReactNode
   /** Hint line under the header. Defaults to the shared copy. */
   readonly hint?: ReactNode
-  /** Expand-all switch state and handler. */
+  /**
+   * Unused for row disclosure and the toolbar label. Kept so existing plugin
+   * objects may still pass it. Expand-all follows `expanded` via `onToggle`.
+   */
   readonly allOpen?: boolean
+  /** Used only when `onToggle` is absent. */
   readonly onToggleAll?: () => void
   readonly sorting?: boolean
   readonly onToggleSorting?: () => void
@@ -226,6 +230,34 @@ export interface ProviderDetailProps {
   readonly draft?: ReactNode
 }
 
+/**
+ * Whether every catalog row is in the expanded list.
+ * @param items - rendered model rows.
+ * @param expanded - expanded row ids.
+ */
+function catalogAllOpen(
+  items: readonly ProviderDetailModelRow[] | undefined,
+  expanded: readonly string[] | undefined,
+): boolean {
+  if (items === undefined || items.length === 0) return false
+  const open = new Set(expanded ?? [])
+  return items.every(row => open.has(row.rowId))
+}
+
+function toggleAllModelRows(models: ProviderDetailModels): void {
+  const items = models.items ?? []
+  const expanded = models.expanded ?? []
+  const allOpen = catalogAllOpen(items, expanded)
+  if (models.onToggle !== undefined) {
+    for (const row of items) {
+      const open = expanded.includes(row.rowId)
+      if (allOpen === open) models.onToggle(row.rowId)
+    }
+    return
+  }
+  models.onToggleAll?.()
+}
+
 function quotaEmptyLabel(status: ProviderDetailQuota['status'], copy: ProviderDetailCopy): string {
   if (status === 'unsupported') return copy.unsupportedQuota
   if (status === 'loading') return copy.loadingQuota
@@ -331,10 +363,14 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
               <span className="c-count">{props.copy.modelsCount.replace('{n}', String(props.models.count ?? 0))}</span>
             </div>
             <div className="c-models-actions">
-              {props.models.onToggleAll === undefined ? null : (
-                <button type="button" className="c-btn quiet c-icon-label" aria-pressed={props.models.allOpen === true} onClick={props.models.onToggleAll}>
+              {props.models.onToggleAll === undefined && props.models.onToggle === undefined ? null : (
+                <button type="button" className="c-btn quiet c-icon-label" aria-pressed={catalogAllOpen(props.models.items, props.models.expanded)} onClick={() => {
+                  const models = props.models
+                  if (models === undefined) return
+                  toggleAllModelRows(models)
+                }}>
                   <DetailIcon path={ICON.expand} />
-                  {props.models.allOpen === true ? props.copy.collapseAll : props.copy.expandAll}
+                  {catalogAllOpen(props.models.items, props.models.expanded) ? props.copy.collapseAll : props.copy.expandAll}
                 </button>
               )}
               {props.models.onToggleSorting === undefined ? null : (
@@ -369,9 +405,8 @@ export function ProviderDetail(props: ProviderDetailProps): ReactNode {
                   onReorder={rows => { props.models?.onReorder?.(rows.map(row => row.rowId)) }}
                   renderItem={(row, index) => {
                     const label = modelLabelOf(row, index)
-                    // Sorting folds every row; "expand all" opens them without touching state.
                     const expanded = props.models?.sorting !== true
-                      && (props.models?.allOpen === true || props.models?.expanded?.includes(row.rowId) === true)
+                      && props.models?.expanded?.includes(row.rowId) === true
                     return (
                       <div className="c-model-card" data-model-row={label}>
                         <div className="c-model-top">

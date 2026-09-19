@@ -5,8 +5,15 @@ export type ProviderRole = 'llm' | 'agent';
 export type ProviderHeaderOwnership = 'shared' | 'legacy';
 /** Who owns the expanded Provider detail layout. */
 export type ProviderDetailOwnership = 'shared' | 'legacy';
+/** Overview connection only. Never carries an email. `unknown` means the plugin has not resolved auth or credential status yet. */
 export interface ProviderAccountSnapshot {
-    state: 'connected' | 'configured' | 'unconnected';
+    state: 'connected' | 'configured' | 'unconnected' | 'unknown';
+}
+/** Native-agent RPC descriptor published by an Agent plugin. Not an execution registry. */
+export interface ProviderNativeBinding {
+    readonly provider: string;
+    readonly channel: string;
+    readonly endpoint: string;
 }
 export interface ProviderDeclaration {
     key: string;
@@ -18,6 +25,13 @@ export interface ProviderDeclaration {
     detail?: ProviderDetailOwnership;
     usage?: ProviderUsageReader;
     account?: () => ProviderAccountSnapshot;
+    /** Catalog group id used by the model picker; omit when the card has no picker group. */
+    catalogId?: string;
+    /** Native-agent binding lookup; omit for LLM cards. */
+    binding?: {
+        channel: string;
+        endpoint: string;
+    };
     /** Active model count for the overview subline; omit when the plugin reports none. */
     modelCount?: () => number | undefined;
 }
@@ -27,9 +41,10 @@ export declare class ProviderDirectory {
     private readonly listeners;
     private readonly invalidationListeners;
     /**
-     * Publish a Provider declaration.
-     * @param declaration - Card key, role, and optional quota reader.
-     * @returns A disposer that removes the declaration.
+    * Publish a Provider declaration.
+    * @param declaration - Card key, role, and optional quota reader.
+    * @returns A disposer that removes the declaration.
+     * @throws {Error} When the card key, catalog route, or native binding descriptor conflicts with an active registration.
      */
     register(declaration: ProviderDeclaration): () => void;
     /**
@@ -68,6 +83,13 @@ export declare class ProviderDirectory {
     update(key: string): void;
     /** Overview connection only. Never returns an email. */
     accountOf(key: string): ProviderAccountSnapshot | undefined;
+    /** Live catalog-group-id → card-key map for picker/settings sort. */
+    catalogRoutes(): Record<string, string>;
+    /**
+     * Native-agent binding descriptors. Derived from Agent entries that published both `catalogId` and `binding`.
+     * @returns One descriptor per registered native agent; empty when none are declared.
+     */
+    nativeBindings(): readonly ProviderNativeBinding[];
     /**
      * Subscribe to changes in registered Providers.
      * @param listener - Called after a declaration is added or removed.

@@ -36,6 +36,7 @@ export declare const copy: {
         readonly connected: "已连接";
         readonly configured: "已配置";
         readonly unconnected: "未连接";
+        readonly unknown: "正在确认…";
         readonly connectedCount: "已连接的 Provider";
         readonly connectedHint: "额度属于各自账户，不合并统计，也不互相替代。";
         readonly colProvider: "Provider / 连接状态";
@@ -97,6 +98,7 @@ export declare const copy: {
         readonly connected: "Connected";
         readonly configured: "Configured";
         readonly unconnected: "Not connected";
+        readonly unknown: "Checking…";
         readonly connectedCount: "Connected providers";
         readonly connectedHint: "Quota belongs to each account. Totals are not merged.";
         readonly colProvider: "Provider / connection";
