@@ -1,4 +1,4 @@
-/** Sidebar Provider Usage panel, prototype B (two-column minis). Controlled and UI-only: no RPC, no persistence. */
+/** Sidebar Provider Usage panel, four-column icon strip. Controlled and UI-only: no RPC, no persistence. */
 import type { ReactNode } from 'react';
 import { type ProviderUsageSummary } from './usage.js';
 export type { ProviderUsageStatus, ProviderUsageSummary, UsageWindowSummary } from './usage.js';
@@ -15,6 +15,6 @@ export interface ProviderUsagePanelProps {
     onShowAll: () => void;
     onReorder?: (keys: readonly string[]) => void;
 }
-/** Controlled sidebar Provider Usage panel (two-column minis, tap for details). */
+/** Controlled sidebar Provider Usage panel (four-column icon strip, tap for details). */
 export declare function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode;
 //# sourceMappingURL=ProviderUsagePanel.d.ts.map
