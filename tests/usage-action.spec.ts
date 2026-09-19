@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import { ProviderDirectory } from '../src/client/directory.ts'
 import { installProviderUsage } from '../src/client/usage-action.tsx'
-import { createCursorUsageReader, type ProviderUsageStore } from '../src/client/usage.ts'
+import { createCursorUsageReader, peekCachedUsage, type ProviderUsageStore } from '../src/client/usage.ts'
 
 async function flush(): Promise<void> {
   for (let index = 0; index < 5; index += 1) await Promise.resolve()
@@ -46,6 +46,50 @@ describe('Provider Usage directory registration', () => {
     dispose()
   })
 })
+describe('Provider Usage account visibility', () => {
+  it('skips known unconfigured accounts and restores them on login without changing preferences', async () => {
+    let state: 'unconnected' | 'connected' = 'unconnected'
+    const directory = new ProviderDirectory()
+    const read = vi.fn(async () => ({ status: 'ready' as const, fetchedAt: new Date().toISOString(), windows: [{ id: 'month', label: 'Month', shortLabel: 'M', remainingPercent: 0, valueText: '0%' }] }))
+    directory.register({ key: 'example', account: () => ({ state }), usage: { providerKey: 'example', name: 'Example', read } })
+    const context = {
+      get: () => ({ rpc: {} }),
+      slots: {
+        entriesOfSlot: () => [{ options: { key: 'example' } }],
+        inject: () => () => undefined,
+        subscribe: () => () => undefined,
+      },
+    }
+    const set = vi.fn()
+    const orderScope = {
+      getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [] } }),
+      subscribe: () => () => undefined,
+      set,
+    }
+    let store: ProviderUsageStore | undefined
+    const dispose = installProviderUsage(context as never, orderScope as never, directory, usage => { store = usage })
+    try {
+      await flush()
+      expect(store?.getSnapshot().providers[0]?.status).toBe('logged-out')
+      expect(read).not.toHaveBeenCalled()
+      state = 'connected'
+      directory.update('example')
+      await flush()
+      expect(store?.getSnapshot().providers[0]?.windows[0]?.remainingPercent).toBe(0)
+      state = 'unconnected'
+      directory.update('example')
+      expect(store?.getSnapshot().providers[0]?.status).toBe('logged-out')
+      expect(peekCachedUsage('example')).toBeUndefined()
+      state = 'connected'
+      directory.invalidateUsage('example')
+      await flush()
+      expect(read).toHaveBeenCalledTimes(2)
+      expect(store?.getSnapshot().providers[0]?.status).toBe('ready')
+      expect(set).not.toHaveBeenCalled()
+    } finally { dispose() }
+  })
+})
+
 describe('Provider Usage sign-out invalidation', () => {
   it('purges sidebar quota through directory.invalidateUsage', async () => {
     let mode: 'ready' | 'broken' = 'ready'

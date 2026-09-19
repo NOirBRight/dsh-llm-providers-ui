@@ -10,8 +10,16 @@ export type ProviderHeaderOwnership = 'shared' | 'legacy'
 /** Who owns the expanded Provider detail layout. */
 export type ProviderDetailOwnership = 'shared' | 'legacy'
 
+/** Overview connection only. Never carries an email. `unknown` means the plugin has not resolved auth or credential status yet. */
 export interface ProviderAccountSnapshot {
-  state: 'connected' | 'configured' | 'unconnected'
+  state: 'connected' | 'configured' | 'unconnected' | 'unknown'
+}
+
+/** Native-agent RPC descriptor published by an Agent plugin. Not an execution registry. */
+export interface ProviderNativeBinding {
+  readonly provider: string
+  readonly channel: string
+  readonly endpoint: string
 }
 
 export interface ProviderDeclaration {
@@ -24,6 +32,10 @@ export interface ProviderDeclaration {
   detail?: ProviderDetailOwnership
   usage?: ProviderUsageReader
   account?: () => ProviderAccountSnapshot
+  /** Catalog group id used by the model picker; omit when the card has no picker group. */
+  catalogId?: string
+  /** Native-agent binding lookup; omit for LLM cards. */
+  binding?: { channel: string; endpoint: string }
   /** Active model count for the overview subline; omit when the plugin reports none. */
   modelCount?: () => number | undefined
 }
@@ -35,6 +47,8 @@ interface ProviderEntry {
   detail: ProviderDetailOwnership
   usage?: ProviderUsageReader
   account?: () => ProviderAccountSnapshot
+  catalogId?: string
+  binding?: { channel: string; endpoint: string }
   modelCount?: () => number | undefined
 }
 
@@ -45,23 +59,40 @@ export class ProviderDirectory {
   private readonly invalidationListeners = new Set<(key: string) => void>()
 
   /**
-   * Publish a Provider declaration.
-   * @param declaration - Card key, role, and optional quota reader.
-   * @returns A disposer that removes the declaration.
+  * Publish a Provider declaration.
+  * @param declaration - Card key, role, and optional quota reader.
+  * @returns A disposer that removes the declaration.
+   * @throws {Error} When the card key, catalog route, or native binding descriptor conflicts with an active registration.
    */
   register(declaration: ProviderDeclaration): () => void {
-    this.entries.set(declaration.key, {
+    if (this.entries.has(declaration.key)) throw new Error('Provider key is already registered: ' + declaration.key)
+    if (declaration.catalogId === '') throw new Error('Provider catalogId must not be empty')
+    if (declaration.binding !== undefined && (declaration.binding.channel === '' || declaration.binding.endpoint === '')) {
+      throw new Error('Provider binding channel and endpoint must not be empty')
+    }
+    if (declaration.catalogId !== undefined) {
+      for (const [key, entry] of this.entries) {
+        if (key !== declaration.key && entry.catalogId === declaration.catalogId) {
+          throw new Error('Provider catalogId is already registered: ' + declaration.catalogId)
+        }
+      }
+    }
+    const entry: ProviderEntry = {
       ...(declaration.name === undefined ? {} : { name: declaration.name }),
       role: declaration.role ?? 'llm',
       header: declaration.header ?? 'legacy',
       detail: declaration.detail ?? 'legacy',
       ...(declaration.usage === undefined ? {} : { usage: declaration.usage }),
       ...(declaration.account === undefined ? {} : { account: declaration.account }),
+      ...(declaration.catalogId === undefined ? {} : { catalogId: declaration.catalogId }),
+      ...(declaration.binding === undefined ? {} : { binding: { channel: declaration.binding.channel, endpoint: declaration.binding.endpoint } }),
       ...(declaration.modelCount === undefined ? {} : { modelCount: declaration.modelCount }),
-    })
+    }
+    this.entries.set(declaration.key, entry)
     this.notify()
     return () => {
-      if (!this.entries.delete(declaration.key)) return
+      if (this.entries.get(declaration.key) !== entry) return
+      this.entries.delete(declaration.key)
       this.notify()
     }
   }
@@ -125,6 +156,28 @@ export class ProviderDirectory {
   /** Overview connection only. Never returns an email. */
   accountOf(key: string): ProviderAccountSnapshot | undefined {
     return this.entries.get(key)?.account?.()
+  }
+
+  /** Live catalog-group-id → card-key map for picker/settings sort. */
+  catalogRoutes(): Record<string, string> {
+    const routes: Record<string, string> = {}
+    for (const [key, entry] of this.entries) {
+      if (entry.catalogId !== undefined) routes[entry.catalogId] = key
+    }
+    return routes
+  }
+
+  /**
+   * Native-agent binding descriptors. Derived from Agent entries that published both `catalogId` and `binding`.
+   * @returns One descriptor per registered native agent; empty when none are declared.
+   */
+  nativeBindings(): readonly ProviderNativeBinding[] {
+    const bindings: ProviderNativeBinding[] = []
+    for (const entry of this.entries.values()) {
+      if (entry.role !== 'agent' || entry.catalogId === undefined || entry.binding === undefined) continue
+      bindings.push({ provider: entry.catalogId, channel: entry.binding.channel, endpoint: entry.binding.endpoint })
+    }
+    return bindings
   }
 
   /**

@@ -94,8 +94,8 @@ const SHORT_LABELS: readonly [pattern: RegExp, label: string][] = [
   [/five|5h|5-hour/u, '5h'],
   [/two-hour|2-hour|2h/u, '2h'],
   [/session/u, 'S'],
-  [/week/u, 'W'],
-  [/month/u, 'M'],
+  [/week|周/u, 'W'],
+  [/month|月/u, 'M'],
   [/credit/u, 'Cr'],
   [/agent/u, 'A'],
   [/daily|day/u, 'D'],
@@ -109,11 +109,16 @@ function shortLabel(value: string): string {
   return SHORT_LABELS.find(([pattern]) => pattern.test(normalized))?.[1] ?? value.slice(0, 4)
 }
 
-const PERIOD_RANK: Readonly<Record<string, number>> = { M: 6, W: 5, D: 4, CURS: 3, S: 1, A: 0, L: 0, CR: -1 }
+const MONTHLY_PERIOD_RANK = 6
+const PERIOD_RANK: Readonly<Record<string, number>> = { M: MONTHLY_PERIOD_RANK, W: 5, D: 4, CURS: 3, S: 1, A: 0, L: 0, CR: -1 }
 
-function periodRank(shortLabelValue: string): number {
-  const normalized = shortLabelValue.toUpperCase()
+function periodTokenRank(value: string): number {
+  const normalized = shortLabel(value).toUpperCase()
   return PERIOD_RANK[normalized] ?? (/^\d+H$/.test(normalized) ? 2 : 0)
+}
+
+function periodRank(quotaWindow: Pick<UsageWindowSummary, 'id' | 'label' | 'shortLabel'>): number {
+  return Math.max(periodTokenRank(quotaWindow.shortLabel), periodTokenRank(quotaWindow.label), periodTokenRank(quotaWindow.id))
 }
 
 /** Headline window: longest remaining-percent period. Text-only windows are skipped. */
@@ -121,13 +126,15 @@ export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): Usage
   let best: UsageWindowSummary | undefined
   for (const quotaWindow of windows) {
     if (quotaWindow.remainingPercent === undefined) continue
-    if (best === undefined || periodRank(quotaWindow.shortLabel) > periodRank(best.shortLabel)) best = quotaWindow
+    if (best === undefined || periodRank(quotaWindow) > periodRank(best)) best = quotaWindow
   }
-  if (best !== undefined && best.remainingPercent === 100 && !nonEmptyString(best.resetsAt)) {
+  // Unused 100% windows without a reset are stubs, except monthly: OpenCode Go
+  // must stay the monthly headline, never a 5-hour fallback.
+  if (best !== undefined && best.remainingPercent === 100 && !nonEmptyString(best.resetsAt) && periodRank(best) < MONTHLY_PERIOD_RANK) {
     let fallback: UsageWindowSummary | undefined
     for (const quotaWindow of windows) {
       if (quotaWindow === best || !nonEmptyString(quotaWindow.resetsAt) || quotaWindow.remainingPercent === undefined) continue
-      if (fallback === undefined || periodRank(quotaWindow.shortLabel) > periodRank(fallback.shortLabel)) fallback = quotaWindow
+      if (fallback === undefined || periodRank(quotaWindow) > periodRank(fallback)) fallback = quotaWindow
     }
     if (fallback !== undefined) return fallback
   }

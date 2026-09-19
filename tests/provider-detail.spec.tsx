@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
-import { createElement } from 'react'
+import { createElement, useState, type ReactElement } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { act } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { ProviderDetail, providerDetailCopy } from '../src/client/provider-detail.tsx'
+
+;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const copy = providerDetailCopy.en
 
@@ -149,5 +153,139 @@ describe('ProviderDetail', () => {
     })
     const actions = markup.slice(markup.indexOf('c-models-actions'), markup.indexOf('c-models-hint'))
     expect(actions.match(/<svg/g)).toHaveLength(3)
+  })
+
+  it('does not force every model open when allOpen is set', () => {
+    const markup = html({
+      models: {
+        count: 2,
+        allOpen: true,
+        items: [
+          { rowId: 'r1', id: 'grok-4.6', name: 'Grok 4.6' },
+          { rowId: 'r2', id: 'grok-4.5', name: 'Grok 4.5' },
+        ],
+        expanded: ['r2'],
+        extra: row => createElement('p', null, 'Extra ' + row.rowId),
+        onToggle: () => undefined,
+        onToggleAll: () => undefined,
+      },
+    })
+    expect(markup).toContain('Extra r2')
+    expect(markup).not.toContain('Extra r1')
+    expect(markup).toContain(copy.expandAll)
+  })
+
+  it('labels the toolbar Collapse all only when every row is expanded', () => {
+    const markup = html({
+      models: {
+        count: 2,
+        items: [
+          { rowId: 'r1', id: 'a' },
+          { rowId: 'r2', id: 'b' },
+        ],
+        expanded: ['r1', 'r2'],
+        onToggle: () => undefined,
+      },
+    })
+    expect(markup).toContain(copy.collapseAll)
+  })
+})
+
+const mounted: Root[] = []
+afterEach(() => {
+  act(() => { while (mounted.length > 0) mounted.pop()?.unmount() })
+  document.body.innerHTML = ''
+})
+
+function mount(element: ReactElement): HTMLElement {
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  mounted.push(root)
+  act(() => { root.render(element) })
+  return host
+}
+
+function CatalogHarness(): ReactElement {
+  const [expanded, setExpanded] = useState<string[]>([])
+  const items = [
+    { rowId: 'r1', id: 'grok-4.6' },
+    { rowId: 'r2', id: 'grok-4.5' },
+  ]
+  return createElement(ProviderDetail, {
+    name: 'Grok',
+    copy,
+    quota: { status: 'ready', windows: [] },
+    models: {
+      count: 2,
+      items,
+      expanded,
+      allOpen: true,
+      onToggleAll: () => undefined,
+      onToggle: (rowId) => {
+        setExpanded(current => current.includes(rowId) ? current.filter(id => id !== rowId) : [...current, rowId])
+      },
+      extra: () => createElement('p', { className: 'extra' }, 'details'),
+    },
+  })
+}
+
+describe('ProviderDetail model disclosure', () => {
+  it('lets a row chevron collapse after expand-all even when allOpen stays true', () => {
+    const host = mount(createElement(CatalogHarness))
+    const expandAll = [...host.querySelectorAll('button')].find(button => button.textContent?.includes(copy.expandAll))
+    expect(expandAll).toBeDefined()
+    act(() => { expandAll?.click() })
+    expect(host.querySelectorAll('.extra')).toHaveLength(2)
+    const firstChevron = host.querySelector('[data-model-row="grok-4.6"] button[aria-expanded="true"]')
+    expect(firstChevron).not.toBeNull()
+    act(() => { (firstChevron as HTMLButtonElement).click() })
+    expect(host.querySelectorAll('.extra')).toHaveLength(1)
+    expect(host.querySelector('[data-model-row="grok-4.6"] .extra')).toBeNull()
+    act(() => { expandAll?.click() })
+    expect(host.querySelectorAll('.extra')).toHaveLength(2)
+    const collapse = [...host.querySelectorAll('button')].find(button => button.textContent?.includes(copy.collapseAll))
+    expect(collapse).toBeDefined()
+    act(() => { collapse?.click() })
+    expect(host.querySelectorAll('.extra')).toHaveLength(0)
+  })
+})
+
+function AddModelHarness(): ReactElement {
+  const [items, setItems] = useState([{ rowId: 'r1', id: 'grok-4.6' }])
+  const [expanded, setExpanded] = useState<string[]>([])
+  return createElement(ProviderDetail, {
+    name: 'Grok',
+    copy,
+    quota: { status: 'ready', windows: [] },
+    models: {
+      count: items.length,
+      items,
+      expanded,
+      onToggle: (rowId) => {
+        setExpanded(current => current.includes(rowId) ? current.filter(id => id !== rowId) : [...current, rowId])
+      },
+      onAdd: () => {
+        const row = { rowId: 'r2', id: '' }
+        setItems(current => [...current, row])
+        setExpanded(current => [...current, row.rowId])
+      },
+      extra: () => createElement('p', { className: 'extra' }, 'details'),
+    },
+  })
+}
+
+describe('ProviderDetail add model', () => {
+  it('expands only the new row and lets its chevron collapse', () => {
+    const host = mount(createElement(AddModelHarness))
+    const add = [...host.querySelectorAll('button')].find(button => button.textContent?.includes(copy.addModelLabel))
+    expect(add).toBeDefined()
+    act(() => { add?.click() })
+    expect(host.querySelectorAll('.extra')).toHaveLength(1)
+    expect(host.querySelector('[data-model-row="grok-4.6"] .extra')).toBeNull()
+    const newChevron = host.querySelector('[data-model-row="2"] button[aria-expanded="true"]')
+    expect(newChevron).not.toBeNull()
+    act(() => { (newChevron as HTMLButtonElement).click() })
+    expect(host.querySelectorAll('.extra')).toHaveLength(0)
   })
 })

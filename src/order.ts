@@ -90,20 +90,30 @@ export function providerRoute(key: string): string | undefined {
   return (PROVIDER_ROUTES as Record<string, string>)[key]
 }
 
+function ownCatalogKey(catalogKeys: Readonly<Record<string, string>>, id: string): string | undefined {
+  return Object.hasOwn(catalogKeys, id) ? catalogKeys[id] : undefined
+}
+
 /**
- * Sort picker/catalog groups: mapped providers follow saved card order,
- * groups the map does not know keep catalog order and append after.
+ * Sort picker/catalog groups from declared directory routes.
+ * With a saved card order, mapped providers follow that list; with none, groups keep catalog order.
+ * Groups the live map does not know keep catalog order and append after ranked routes.
+ * @param catalogKeys - live catalog-group-id → card-key map from ProviderDirectory.catalogRoutes().
  */
 export function sortCatalogGroups<T extends CatalogGroup>(
   groups: readonly T[],
   saved: readonly string[] = [],
+  catalogKeys: Readonly<Record<string, string>> = {},
 ): T[] {
+  if (saved.length === 0) return [...groups]
+  const idByKey = new Map<string, string>()
+  for (const [id, key] of Object.entries(catalogKeys)) idByKey.set(key, id)
   const ranked = applySavedOrder(
-    groups.map(group => ROUTE_TO_KEY.get(group.id)).filter((key): key is ProviderItemKey => key !== undefined),
+    groups.map(group => ownCatalogKey(catalogKeys, group.id)).filter((key): key is string => key !== undefined),
     saved,
   )
   const rank = new Map(ranked.flatMap((key, index) => {
-    const route = providerRoute(key)
+    const route = idByKey.get(key)
     return route === undefined ? [] : [[route, index] as const]
   }))
   const known: T[] = []

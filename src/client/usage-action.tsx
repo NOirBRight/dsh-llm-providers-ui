@@ -74,12 +74,13 @@ export function installProviderUsage(
   const reconcile = (): void => {
     const settings = orderScope.getSnapshot()
     const keys = providerKeys(ctx)
+    const unconnectedKeys = keys.filter(key => directory.accountOf(key)?.state === 'unconnected')
     const usageOrder = settings.value?.usageOrder ?? []
     const hidden = settings.value?.hiddenUsageProviders ?? []
-    const config = JSON.stringify([keys, usageOrder, hidden, directoryGeneration])
+    const config = JSON.stringify([keys, usageOrder, hidden, unconnectedKeys, directoryGeneration])
     if (config === lastConfig) return
     lastConfig = config
-    usage.configure({ registeredKeys: keys, savedOrder: usageOrder, hiddenKeys: hidden })
+    usage.configure({ registeredKeys: keys, unconnectedKeys, savedOrder: usageOrder, hiddenKeys: hidden })
   }
   const writeList = (field: 'hiddenUsageProviders' | 'usageOrder', value: readonly string[]): void => {
     const settings = orderScope.getSnapshot()
@@ -116,7 +117,7 @@ export function installProviderUsage(
     directoryGeneration += 1
     reconcile()
   })
-  const stopInvalidate = directory.onInvalidateUsage(key => { usage.invalidate([key]) })
+  const stopInvalidate = directory.onInvalidateUsage(key => { usage.invalidate([key]); reconcile() })
   return () => {
     disposeReverse([stopInvalidate, stopDirectory, stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
   }

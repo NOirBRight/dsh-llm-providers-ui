@@ -9,7 +9,7 @@ export declare const inject: string[];
  * the settings.provider.item slot visible to provider plugins importing only
  * this entrypoint. No local module augmentation is needed downstream.
  */
-export type { ProviderDeclaration, ProviderDirectory, ProviderHeaderOwnership, ProviderRole, } from './directory.js';
+export type { ProviderAccountSnapshot, ProviderDeclaration, ProviderDirectory, ProviderHeaderOwnership, ProviderNativeBinding, ProviderRole, } from './directory.js';
 export type { ProviderSectionLocaleKey } from './provider-section.js';
 /** Client configuration for the Providers page owner. */
 export interface Config {

@@ -31,8 +31,10 @@ export declare function providerKeyForRoute(route: string): ProviderItemKey | un
 /** Map a settings.provider.item key to its llm route id when known. */
 export declare function providerRoute(key: string): string | undefined;
 /**
- * Sort picker/catalog groups: mapped providers follow saved card order,
- * groups the map does not know keep catalog order and append after.
+ * Sort picker/catalog groups from declared directory routes.
+ * With a saved card order, mapped providers follow that list; with none, groups keep catalog order.
+ * Groups the live map does not know keep catalog order and append after ranked routes.
+ * @param catalogKeys - live catalog-group-id → card-key map from ProviderDirectory.catalogRoutes().
  */
-export declare function sortCatalogGroups<T extends CatalogGroup>(groups: readonly T[], saved?: readonly string[]): T[];
+export declare function sortCatalogGroups<T extends CatalogGroup>(groups: readonly T[], saved?: readonly string[], catalogKeys?: Readonly<Record<string, string>>): T[];
 //# sourceMappingURL=order.d.ts.map

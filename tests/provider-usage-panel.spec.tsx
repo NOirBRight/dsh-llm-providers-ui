@@ -126,7 +126,7 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(container.querySelector('.pu-stage')).not.toBeNull()
     const html = staticHtml({ providers })
     expect(html).toContain('.pu-stage{width:100%;min-width:0;height:auto;max-height:min(70dvh,420px);overflow:auto')
-    expect(html).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
+    expect(html).toContain('grid-template-columns:repeat(4,minmax(0,1fr))')
   })
 
   it('uses the longest-period quota as the headline and still shows every window', () => {
@@ -137,6 +137,21 @@ describe('ProviderUsagePanel six-provider grid', () => {
     expect(html).toContain('Ollama Cloud')
     expect(html).toContain('aria-label="Ollama Cloud 44%"')
     expect(html).not.toContain('title="S · 90% · W · 66% · M · 44%"')
+  })
+
+  it('headlines OpenCode Go monthly remaining from the plugin window names', () => {
+    const providers: readonly ProviderUsageSummary[] = [{
+      providerKey: 'llm-opencode-go',
+      name: 'OpenCode Go',
+      status: 'ready',
+      windows: [
+        { id: 'session', label: '5-hour window', shortLabel: '5h', remainingPercent: 96, valueText: '96%' },
+        { id: 'weekly', label: 'Weekly window', shortLabel: 'Week', remainingPercent: 70, valueText: '70%' },
+        { id: 'monthly', label: 'Monthly window', shortLabel: 'Month', remainingPercent: 99, valueText: '99%' },
+      ],
+    }]
+    expect(staticHtml({ providers })).toContain('aria-label="OpenCode Go 99%"')
+    expect(staticHtml({ providers })).not.toContain('aria-label="OpenCode Go 96%"')
   })
 
   it('prefers a provider-specific subscription cycle over a short hourly window', () => {
@@ -155,11 +170,12 @@ describe('ProviderUsagePanel six-provider grid', () => {
   it('opens a local-time detail page and returns to the grid', () => {
     const container = mount()
     const row = container.querySelector('[aria-label="Codex 38%"]')
-    expect(row?.getAttribute('title')).toBeNull()
+    expect(row?.getAttribute('title')).toBe('Codex 38%')
     click(row)
-    expect(container.textContent).toContain('Provider Usage')
-    expect(container.querySelector('[aria-label="选择侧栏显示的 Provider"]')).not.toBeNull()
-    expect(container.querySelector('[aria-label="刷新全部"]')).not.toBeNull()
+    expect(container.querySelector('.pu-head')).toBeNull()
+    expect(container.querySelector('[aria-label="选择侧栏显示的 Provider"]')).toBeNull()
+    expect(container.querySelector('[aria-label="刷新全部"]')).toBeNull()
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('返回全部 Provider')
     expect(container.textContent).toContain('剩余额度')
     expect(container.textContent).toContain('5h')
     expect(container.textContent).not.toContain('UTC')
@@ -171,15 +187,20 @@ describe('ProviderUsagePanel six-provider grid', () => {
     click(container.querySelector('[aria-label="返回全部 Provider"]'))
     expect(container.querySelector('.pu-rows')).not.toBeNull()
     expect(container.querySelector('[aria-label="Codex 38%"]')).not.toBeNull()
+    expect(container.querySelector('.pu-head')).not.toBeNull()
   })
 
-  it('renders a two-column mini grid without meters', () => {
+  it('renders four columns of icons and values without names or meters', () => {
     const html = staticHtml()
-    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px')
+    expect(html).toContain('.pu-rows{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px')
     expect(html).toContain('class="pu-logo"')
     expect(html).toContain('CommandCode')
     expect(html).not.toContain('pu-meter')
-    expect(mount().querySelector('[aria-label="OpenCode Go 93%"]')?.tagName).toBe('DIV')
+    const container = mount()
+    const row = container.querySelector('[aria-label="OpenCode Go 93%"]')
+    expect(row?.tagName).toBe('BUTTON')
+    expect(row?.textContent?.trim()).toBe('93%')
+    expect(container.querySelector('.pu-name')).toBeNull()
   })
 
   it('leaves the open quota detail uncapped', () => {
@@ -241,11 +262,35 @@ describe('ProviderUsagePanel states', () => {
     expect(staticHtml({ providers: [] })).toContain('暂无可查询的 Provider')
   })
 
+  it('updates automatic visibility after login without changing saved preferences', () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    mounted.push(root)
+    const onToggleVisibility = vi.fn()
+    const render = (status: ProviderUsageSummary['status']) => {
+      act(() => { root.render(createElement(ProviderUsagePanel, props({
+        providers: [{ providerKey: 'codex', name: 'Codex', status, windows: [] }],
+        onToggleVisibility,
+      }))) })
+    }
+    render('logged-out')
+    expect(container.querySelector('[data-usage-key="codex"]')).toBeNull()
+    openPopover(container)
+    expect(container.querySelector('input[aria-label="在侧栏显示 Codex"]')).toBeNull()
+    render('ready')
+    expect(container.querySelector('[data-usage-key="codex"]')).not.toBeNull()
+    expect(container.querySelector('input[aria-label="在侧栏显示 Codex"]')).not.toBeNull()
+    render('logged-out')
+    expect(container.querySelector('[data-usage-key="codex"]')).toBeNull()
+    expect(onToggleVisibility).not.toHaveBeenCalled()
+  })
+
   it('gives a ready provider without windows an accessible fallback', () => {
     expect(staticHtml({ providers: [{ providerKey: 'empty', name: 'Empty', status: 'ready', windows: [] }] })).toContain('aria-label="Empty 暂无额度数据"')
   })
 
-  it('renders per-provider logged-out, unsupported, error, loading and stale states', () => {
+  it('hides signed-out providers but retains unsupported, error, loading and stale states', () => {
     const html = staticHtml({
       providers: [
         { providerKey: 'a', name: 'Logged', status: 'logged-out', windows: [] },
@@ -259,12 +304,13 @@ describe('ProviderUsagePanel states', () => {
         },
       ],
     })
-    expect(html).toContain('aria-label="Logged 未登录"')
+    expect(html).not.toContain('aria-label="Logged 未登录"')
     expect(html).toContain('aria-label="Unsupported 不支持查询"')
     expect(html).toContain('aria-label="Failed 加载失败"')
     expect(html).toContain('aria-label="Pending 加载中…"')
     // Stale keeps its old value and adds an expiry marker.
-    expect(html).toContain('aria-label="Stale 50%"')
+    expect(html).toContain('aria-label="Stale 50% · 已过期"')
+    expect(html).toContain('class="pu-stale"')
     expect(html).toContain('已过期')
   })
 

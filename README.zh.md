@@ -4,15 +4,11 @@
 
 DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
-兼容性：本版本当前兼容/验证目标为 DeepSeek Harness `0.1.5-rc.1` 与 `@deepseek-ai/cordis@4.0.2`；与 Alpha.1–Alpha.3 不兼容。仍使用旧 runtime 的用户请保留为该 runtime 构建的最后一个插件 tag。
-
 ## 兼容性
 
-当前已验证/兼容运行时是 DeepSeek Harness `0.1.5-rc.1`（Cordis `4.0.2`）。历史证据也覆盖 `0.1.2-alpha.4` 与 `0.1.2-rc.1`；这份记录只是证据，不是 allowlist。
+宿主 `@deepseek-ai/dsh-*` 不锁定发行号：peer 为 `*` 且 optional。`devDependencies` 钉编译目标（`0.1.5-rc.1`）。Cordis 保持 `>=4.0.2 <5.0.0`。
 
-未知的新版本会先打一条 warning，再按正常挂载路径 best-effort 尝试，不会因为未验证而跳过。
-
-只有复现过的故障才会加入 blocklist；受影响版本、原因和证据见[兼容性记录](package.json)。
+`package.json#dsh.compatibility.dshReleases` 里的已验证宿主是证据，不是允许列表。未知的新宿主告警一次后仍按正常路径挂载。只有复现过的故障才会加入 blocklist。
 
 
 ## Ownership
@@ -49,7 +45,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## Consumer contract
 
-provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, header, usage }`； disposer 负责注销。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
+provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, header, usage, catalogId?, account?, binding? }`； disposer 负责注销。运行时选择器排序读取 `catalogRoutes()`。原生 Agent 插件发布 `binding`，由 `nativeBindings()` 列出 `{ provider, channel, endpoint }`，目录不是执行注册表。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
 已迁移的卡片使用 `dsh-llm-providers-ui/provider-ui` 的共享 header（`ProviderCardHeader`，`role`、调用方 `status` 与头条 `quota`；`title`/`mark`/`summary`/`open`/`unsaved` 保持旧 codex 布局），根节点标记 `li[data-provider-card][data-provider-role]`、header 按钮标记 `data-provider-card-header`、正文标记 `data-provider-body`，引入一份 `<style>{providerUiCss}</style>`，并声明 `header: 'shared'` 让外壳去掉兜底 badge。缺失额度不渲染 meter，绝不画成零；`normalizeQuotaRemaining` 保留精度，NaN/Infinity/越界一律视为不可用。
 provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 directory 与 slot 类型，不得在本地重复 module augmentation。退出登录或切换账户后，provider 调用 `ctx.providerDirectory.invalidateUsage(key)` 让侧栏丢弃缓存额度并重查；短暂读取失败仍把上次可用窗口标为过期展示。
 `dsh-model-switch` 经构建产物 `dsh-llm-providers-ui/order` 复用 `sortCatalogGroups`。
@@ -58,20 +54,20 @@ provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 dir
 
 ## Release 安装（Latest）
 
-共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。release 产物面向 DeepSeek Harness 0.1.5-rc.1，只含构建后的 Host/Client 文件；没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。
+共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。发布包只含构建后的 Host/Client 文件，没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。打包夹具与编译目标 `devDependencies` 为 0.1.5-rc.1。
 
 Latest 安装（URL 永不带版本号）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
 ~~~
 
-固定版本安装（`v0.1.12-015rc1e`）：
+固定版本安装（`v0.2.8`）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1e/dsh-llm-providers-ui-0.1.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.8/dsh-llm-providers-ui-0.2.11.tgz
 ~~~
 
 更新、卸载与验证：
@@ -79,7 +75,7 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到 Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -89,9 +85,9 @@ dsh plugin --profile web remove dsh-llm-providers-ui
 
 配置：Web UI 插件用 Settings 里的插件区，纯 Host 插件用 profile 的 dsh.profile.bundles 条目。从本 README 的最小 YAML/JSON 示例起步，凭据/后端地址显式给出。
 
-回滚：重跑上面的固定 v0.1.12-015rc1e 命令（或之前记录的不可变 tarball），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
+回滚：重跑上面的固定 v0.2.8 命令（或之前记录的不可变 tarball），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
 
-Release 与完整性随 0.1.5-rc.1 迁移 release 一起发布。
+Release 与完整性随 GitHub Release 发布，不锁定某一 Host 发行号。
 
 Codex 额度读取会明确请求后台刷新；手动刷新与缓存过期轮询的缓存策略统一由界面存储层控制。
 
