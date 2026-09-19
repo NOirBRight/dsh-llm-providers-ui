@@ -140,9 +140,13 @@ export function createProviderUsageStore(
       if (!disposed) { publish(); pump() }
     })
   }
+  const canRead = (key: string): boolean => configuredKeys.includes(key) && !snapshot.hiddenKeys.includes(key) && !unconnectedKeys.has(key)
+  const setEmptyUsage = (key: string): void => {
+    const reader = readerForKey(key)
+    if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: unconnectedKeys.has(key) ? 'logged-out' : 'loading', windows: [] })
+  }
   const visibleKeys = (keys?: readonly string[]): string[] => {
-    const wanted = keys === undefined ? configuredKeys : keys.filter(key => configuredKeys.includes(key))
-    return wanted.filter(key => !snapshot.hiddenKeys.includes(key) && !unconnectedKeys.has(key))
+    return (keys ?? configuredKeys).filter(canRead)
   }
   const sync = (force = false, keys?: readonly string[]): void => {
     const now = Date.now()
@@ -161,10 +165,10 @@ export function createProviderUsageStore(
       configuredKeys = [...new Set(ordered)]
       unconnectedKeys = new Set(config.unconnectedKeys ?? [])
       snapshot = { ...snapshot, hiddenKeys: [...new Set(config.hiddenKeys)] }
-      for (const [key, controller] of active) if (!configuredKeys.includes(key) || snapshot.hiddenKeys.includes(key) || unconnectedKeys.has(key)) { controller.abort(); active.delete(key) }
+      for (const [key, controller] of active) if (!canRead(key)) { controller.abort(); active.delete(key) }
       for (let index = queued.length - 1; index >= 0; index -= 1) {
         const item = queued[index]
-        if (item !== undefined && (!configuredKeys.includes(item.key) || snapshot.hiddenKeys.includes(item.key) || unconnectedKeys.has(item.key))) queued.splice(index, 1)
+        if (item !== undefined && (!canRead(item.key))) queued.splice(index, 1)
       }
       const persisted = readUsageCache()
       if (configuredKeys.length > 0) {
@@ -172,18 +176,14 @@ export function createProviderUsageStore(
       }
       for (const key of configuredKeys) {
         if (unconnectedKeys.has(key)) {
-          const reader = readerForKey(key)
-          if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'logged-out', windows: [] })
+          setEmptyUsage(key)
           continue
         }
         const existing = current.get(key)
         if (existing?.status === 'logged-out' || hasUsageData(existing)) continue
         const cached = persisted.get(key)
         if (hasUsageData(cached)) current.set(key, cached)
-        else if (existing === undefined) {
-          const reader = readerForKey(key)
-          if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: 'loading', windows: [] })
-        }
+        else if (existing === undefined) setEmptyUsage(key)
       }
       sync(false)
       startPoll()
@@ -208,10 +208,7 @@ export function createProviderUsageStore(
       }
       for (const key of targets) current.delete(key)
       dropPersistedUsageKeys(targets)
-      for (const key of targets) {
-        const reader = readerForKey(key)
-        if (reader !== undefined) current.set(key, { providerKey: key, name: reader.name, status: unconnectedKeys.has(key) ? 'logged-out' : 'loading', windows: [] })
-      }
+      for (const key of targets) setEmptyUsage(key)
       publish()
       sync(true, keys)
     },
