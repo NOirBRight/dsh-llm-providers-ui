@@ -56,11 +56,11 @@ provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 dir
 
 共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。发布包只含构建后的 Host/Client 文件，没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。打包夹具与编译目标 `devDependencies` 为 0.1.5-rc.1。
 
-Latest 安装（URL 永不带版本号）：
+Latest 安装（资产文件名须与当前最新版本一致）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
 ~~~
 
 固定版本安装（`v0.2.8`）：
@@ -75,7 +75,7 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到 Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -85,7 +85,7 @@ dsh plugin --profile web remove dsh-llm-providers-ui
 
 配置：Web UI 插件用 Settings 里的插件区，纯 Host 插件用 profile 的 dsh.profile.bundles 条目。从本 README 的最小 YAML/JSON 示例起步，凭据/后端地址显式给出。
 
-回滚：重跑上面的固定 v0.2.8 命令（或之前记录的不可变 tarball），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
+回滚：安装上一个稳定版本的不可变 tarball（当前推荐 v0.2.10，见 BRANCHING.md），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
 
 Release 与完整性随 GitHub Release 发布，不锁定某一 Host 发行号。
 

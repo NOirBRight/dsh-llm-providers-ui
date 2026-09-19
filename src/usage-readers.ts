@@ -109,7 +109,8 @@ function shortLabel(value: string): string {
   return SHORT_LABELS.find(([pattern]) => pattern.test(normalized))?.[1] ?? value.slice(0, 4)
 }
 
-const PERIOD_RANK: Readonly<Record<string, number>> = { M: 6, W: 5, D: 4, CURS: 3, S: 1, A: 0, L: 0, CR: -1 }
+const MONTHLY_PERIOD_RANK = 6
+const PERIOD_RANK: Readonly<Record<string, number>> = { M: MONTHLY_PERIOD_RANK, W: 5, D: 4, CURS: 3, S: 1, A: 0, L: 0, CR: -1 }
 
 function periodTokenRank(value: string): number {
   const normalized = shortLabel(value).toUpperCase()
@@ -129,7 +130,7 @@ export function pickPrimaryWindow(windows: readonly UsageWindowSummary[]): Usage
   }
   // Unused 100% windows without a reset are stubs, except monthly: OpenCode Go
   // must stay the monthly headline, never a 5-hour fallback.
-  if (best !== undefined && best.remainingPercent === 100 && !nonEmptyString(best.resetsAt) && periodRank(best) < 6) {
+  if (best !== undefined && best.remainingPercent === 100 && !nonEmptyString(best.resetsAt) && periodRank(best) < MONTHLY_PERIOD_RANK) {
     let fallback: UsageWindowSummary | undefined
     for (const quotaWindow of windows) {
       if (quotaWindow === best || !nonEmptyString(quotaWindow.resetsAt) || quotaWindow.remainingPercent === undefined) continue

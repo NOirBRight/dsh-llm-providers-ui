@@ -46,18 +46,18 @@ This package is a bundle and must be listed in the profile. Until DSH mounts tra
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
 ```
 
 No strict load order with providers is required. See `cordis.patch.yml`.
 
 ## Consumer contract
 
-Provider plugins register their card under `settings.provider.item` with their `settingsNs` key and register `{ key, role, header, usage, catalogId?, account?, binding? }` on `ctx.providerDirectory` inside an effect. The returned disposer owns the registration. Runtime picker sort reads `catalogRoutes()`. Native-agent plugins publish `binding` so `nativeBindings()` can list `{ provider, channel, endpoint }` without an execution registry. Usage-enabled providers import their reader factory from `dsh-llm-providers-ui/usage-readers`. Unregistered cards keep the LLM badge and do not receive a Provider Usage tile. The sidebar usage stage sizes to its rendered tiles (natural grid height up to the three-row cap, then scrolls), so hiding providers shrinks the panel instead of leaving blank rows. Quota and unavailable-status headlines stay on one line with ellipsis, keeping tiles equal-height and three rows fully visible at narrow sidebar widths.
+Provider plugins register their card under `settings.provider.item` with their `settingsNs` key and register `{ key, role, header, usage, catalogId?, account?, binding? }` on `ctx.providerDirectory` inside an effect. The returned disposer owns the registration. Runtime picker sort reads `catalogRoutes()`. Native-agent plugins publish `binding` so `nativeBindings()` can list `{ provider, channel, endpoint }` without an execution registry. Usage-enabled providers import their reader factory from `dsh-llm-providers-ui/usage-readers`. Unregistered cards keep the LLM badge and do not receive a Provider Usage tile. The sidebar shows four borderless icon/value buttons per row on desktop and mobile, wrapping additional providers within a scrollable stage. Known unconnected accounts and signed-out usage are omitted without changing saved visibility preferences; login restores eligible providers. Zero quota and transient failures remain visible. Clicking a button replaces the strip and outer title with a compact detail header (back, provider, refresh). Stale values carry a visible asterisk and an accessible expiry label; touch controls retain 44px targets.
 Migrated cards render the shared header from `dsh-llm-providers-ui/provider-ui` (`ProviderCardHeader` with `role`, caller `status`, and headline `quota`; `title`/`mark`/`summary`/`open`/`unsaved` keep the legacy codex layout), mark their root `li[data-provider-card][data-provider-role]`, their header button `data-provider-card-header`, and their body `data-provider-body`, include one `<style>{providerUiCss}</style>`, and declare `header: 'shared'` so the shell drops its fallback badge. Cards start their existing cached quota read when account readiness is known, independent of expansion; opening an already-loaded card does not refetch. Missing quota renders no meter, never a zero bar; `normalizeQuotaRemaining` keeps precision and reports NaN/Infinity/out-of-range as unavailable.
 The settings fallback preserves ancestor overflow clipping and the native settings title. Mobile layouts keep ownership of offscreen panels and dialog header spacing.
 
-Provider plugins import directory and slot types from `dsh-llm-providers-ui/client` with `import type {}` and must not duplicate the module augmentations locally. After sign-out or account switch, providers call `ctx.providerDirectory.invalidateUsage(key)` so the sidebar drops the cached quota and refetches; a Settings card reports the same event through `useProviderQuotaCache`'s `signedOut` verdict, which purges the stored entry. Transient read errors still show the last good windows as stale in the sidebar, while a card keeps its truthful unavailable dash.
+Provider plugins import directory and slot types from `dsh-llm-providers-ui/client` with `import type {}` and must not duplicate the module augmentations locally. After login or account-state changes, providers publish their updated `account()` snapshot and call `ctx.providerDirectory.update(key)`; `invalidateUsage(key)` also reconciles account availability. After sign-out or account switch, providers call `ctx.providerDirectory.invalidateUsage(key)` so the sidebar drops the cached quota and refetches; a Settings card reports the same event through `useProviderQuotaCache`'s `signedOut` verdict, which purges the stored entry. Transient read errors still show the last good windows as stale in the sidebar, while a card keeps its truthful unavailable dash.
 `dsh-model-switch` reuses `sortCatalogGroups` via the built `dsh-llm-providers-ui/order` export.
 
 Until this package is published to npm, lab checkouts may use `link:../dsh-llm-providers-ui` in dev, but workspace `package.json` must not commit `link:` specs.
@@ -70,7 +70,7 @@ Latest installation (asset name matches the current latest tarball):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
 ~~~
 
 Fixed-version installation (`v0.2.8`):
@@ -85,7 +85,7 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor

@@ -10,10 +10,10 @@ import { ProviderUsagePanel, type ProviderUsageSummary } from '../src/client/Pro
 
 const providers: ProviderUsageSummary[] = ['cursor', 'grok', 'codex', 'ollama', 'commandcode', 'opencode'].map((providerKey, index) => ({
   providerKey, name: providerKey, status: index === 1 ? 'unsupported' : 'ready',
-  windows: index === 1 ? [] : [{ id: 'fixture', label: 'Fixture', shortLabel: 'F', valueText: '60%', remainingPercent: 60 }],
+  windows: index === 1 ? [] : [{ id: 'fixture', label: 'Fixture', shortLabel: 'F', valueText: '100%', remainingPercent: 100 }],
 }))
 
-it('keeps status tiles equal-height and all three rows visible at narrow sidebar widths', () => {
+it('fits four borderless icon values per row at narrow sidebar widths', () => {
   const dir = mkdtempSync(join(tmpdir(), 'dsh-usage-layout-'))
   const chrome = process.env.CHROME_BIN ?? (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
   const html = renderToStaticMarkup(createElement(ProviderUsagePanel, { providers, onRefresh() {}, onToggleVisibility() {}, onShowAll() {} }))
@@ -21,13 +21,17 @@ it('keeps status tiles equal-height and all three rows visible at narrow sidebar
     for (const width of [240, 280]) {
       const markup = html
       const page = join(dir, 'fixture.html')
-      writeFileSync(page, '<!doctype html><meta charset="utf-8"><style>body{margin:0;width:' + width + 'px;font-family:sans-serif}*{box-sizing:border-box}</style>' + markup + '<pre id="result"></pre><script>const stage=document.querySelector(".pu-stage"),rows=[...document.querySelectorAll(".pu-row")];document.querySelector("#result").textContent=JSON.stringify({heights:rows.map(r=>r.getBoundingClientRect().height),full:rows[5].getBoundingClientRect().bottom<=stage.getBoundingClientRect().bottom,nowrap:getComputedStyle(document.querySelectorAll(".pu-primary")[1]).whiteSpace})</script>')
+      writeFileSync(page, '<!doctype html><meta charset="utf-8"><style>body{margin:0;width:' + width + 'px;font-family:sans-serif}*{box-sizing:border-box}</style>' + markup + '<pre id="result"></pre><script>const stage=document.querySelector(".pu-stage"),rows=[...document.querySelectorAll(".pu-row")];document.querySelector("#result").textContent=JSON.stringify({columns:getComputedStyle(document.querySelector(".pu-rows")).gridTemplateColumns.split(" ").length,overflow:rows.some(r=>r.scrollWidth>r.clientWidth || r.querySelector(".pu-primary").scrollWidth>r.querySelector(".pu-primary").clientWidth),border:getComputedStyle(rows[0]).borderWidth,heights:rows.map(r=>r.getBoundingClientRect().height),full:rows[5].getBoundingClientRect().bottom<=stage.getBoundingClientRect().bottom,nowrap:getComputedStyle(document.querySelectorAll(".pu-primary")[1]).whiteSpace})</script>')
       const run = spawnSync(chrome, ['--headless', '--no-sandbox', '--disable-dev-shm-usage', '--user-data-dir=' + join(dir, 'chrome'), '--dump-dom', '--virtual-time-budget=500', 'file://' + page], { encoding: 'utf8', timeout: 30000 })
       expect(run.status, run.stderr).toBe(0)
       const result = JSON.parse(run.stdout.match(new RegExp('<pre id="result">(.*?)</pre>'))![1]!)
       expect(new Set(result.heights).size).toBe(1)
       expect(result.nowrap).toBe('nowrap')
       expect(result.full).toBe(true)
+      expect(result.columns).toBe(4)
+      expect(result.overflow).toBe(false)
+      expect(result.border).toBe('0px')
+      expect(result.heights[0]).toBe(32)
     }
   } finally { rmSync(dir, { recursive: true, force: true }) }
 }, 90000)
