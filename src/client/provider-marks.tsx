@@ -14,10 +14,14 @@ export function ProviderMark(props: { providerKey: string }): ReactNode {
   const raw = props.providerKey
   const key = raw === 'cursor-agent' || raw === 'cursor' || raw === 'acp-cursor'
     ? 'llm-cursor'
+    : raw === 'claude-agent' || raw === 'claude' || raw === 'claude-code' || raw === 'acp-claude'
+      ? 'llm-claude'
     : raw.startsWith('llm-')
       ? raw
       : raw === 'opencode' ? 'llm-opencode-go' : 'llm-' + raw
   switch (key) {
+    case 'llm-claude':
+      return <Svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c.4 2.8 1.5 5.2 3.2 6.8C17.2 10.8 19.6 11.6 22 12c-2.4.4-4.8 1.2-6.8 3.2C13.5 16.8 12.4 19.2 12 22c-.4-2.8-1.5-5.2-3.2-6.8C6.8 13.2 4.4 12.4 2 12c2.4-.4 4.8-1.2 6.8-3.2C10.5 7.2 11.6 4.8 12 2z" /></Svg>
     case 'llm-cursor':
       return <Svg viewBox="0.24 -1.44 23.6 26.88"><path fill="currentColor" d={"M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"} /></Svg>
     case 'llm-antigravity':
