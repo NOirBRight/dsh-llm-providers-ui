@@ -228,7 +228,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         <span className="c-brand"><ProviderMark providerKey={item.key} /></span>
         <div>
           <div className="c-name-line">
-            <span className="c-name">{summary?.name ?? item.key}</span>
+            <span className="c-name">{props.nameOf?.(item.key) ?? summary?.name ?? item.key}</span>
             <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
           </div>
           <div className="c-sub">
