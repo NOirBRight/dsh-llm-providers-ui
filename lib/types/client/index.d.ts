@@ -18,8 +18,8 @@ export declare const Config: z<Config>;
 /**
  * Mount the sole LLM Providers page, locale, slot, and nav-icon adapter.
  * The page is independent of shell/provider load order and appears only after
- * the Host-owned settings namespace is available.
- * @param ctx - Web Cordis context with official slot, locale, and settingsScope faces.
+ * the Host-owned Loader Config entry is available.
+ * @param ctx - Web Cordis context with official slot, locale, and ConfigForms services.
  */
 export declare function apply(ctx: ClientContext, _config?: Config): void;
 //# sourceMappingURL=index.d.ts.map

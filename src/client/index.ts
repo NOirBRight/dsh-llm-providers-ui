@@ -2,18 +2,17 @@
 
 import z from '@deepseek-ai/schemastery'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-// These imports intentionally load the official Alpha.4 declaration merges:
-// settingsScope, locale, SlotRegistry, and the SlotCore contract table.
+// These imports intentionally load the alpha2 declaration merges:
+// locale, ConfigForms, SlotRegistry, and the SlotCore contract table.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-connection/client'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   PROVIDERS_ITEM_SLOT,
   PROVIDERS_LOCALE_NS,
   PROVIDERS_SECTION_ID,
-  PROVIDERS_SETTINGS_NS,
-  decodeProviderOrder,
+  PROVIDERS_CONFIG_ID,
   type ProviderOrderSettings,
 } from '../order.js'
 import { bindProvidersSection } from './ProvidersSection.js'
@@ -24,7 +23,7 @@ import { installProviderUsage } from './usage-action.js'
 import { ProviderDirectory } from './directory.js'
 
 export const name = 'dsh-llm-providers-ui-client'
-export const inject = ['slots', 'locale', 'settingsScope']
+export const inject = ['slots', 'locale', 'configForms']
 
 /**
  * Public directory and slot types. Re-exported (type-only, erased at runtime)
@@ -64,21 +63,21 @@ function pageVisible(snapshot: PageSnapshot): boolean {
 }
 
 /**
- * Warn once while the Host owner has not published the settings namespace.
- * @param orderScope - client scope bound to the Host-owned namespace.
+ * Warn once while the Host owner has not published the Loader Config entry.
+ * @param orderForm - ConfigForm bound to the Host owner's entry id.
  * @returns disposer for the deferred check and scope subscription.
  */
-function installMissingOwnerDiagnostic(orderScope: SettingsScope<ProviderOrderSettings>): Disposer {
+function installMissingOwnerDiagnostic(orderForm: ConfigForm<ProviderOrderSettings>): Disposer {
   let warned = false
   const check = (): void => {
-    const snapshot = orderScope.getSnapshot()
+    const snapshot = orderForm.getSnapshot()
     if (warned || pageVisible(snapshot)) return
     if (snapshot.status === 'loading') return
     warned = true
-    console.warn('[dsh-llm-providers-ui] llm-providers settings owner is unavailable; omitting the Providers page until the Host owner is loaded.')
+    console.warn('[dsh-llm-providers-ui] llm-providers-ui Config entry is unavailable; omitting the Providers page until the Host owner is loaded.')
   }
   const timer = setTimeout(check, 0)
-  const stop = orderScope.subscribe(check)
+  const stop = orderForm.subscribe(check)
   return () => {
     disposeReverse([
       () => { clearTimeout(timer) },
@@ -103,12 +102,12 @@ const MISSING_SECTION_GRACE_MS = 15_000
  * shell that declared the seat and later collapsed it is a reload, and warning
  * during one is the same false positive this grace exists to prevent.
  * @param ctx - Web Cordis context with the public SlotCore face.
- * @param orderScope - client scope used to gate the page transaction.
+ * @param orderForm - client ConfigForm used to gate the page transaction.
  * @returns disposer for the deferred check and both subscriptions.
  */
 function installMissingSectionDiagnostic(
   ctx: ClientContext,
-  orderScope: SettingsScope<ProviderOrderSettings>,
+  orderForm: ConfigForm<ProviderOrderSettings>,
 ): Disposer {
   const startedAt = Date.now()
   let warned = false
@@ -121,32 +120,32 @@ function installMissingSectionDiagnostic(
       return
     }
     if (Date.now() - startedAt < MISSING_SECTION_GRACE_MS) return
-    if (!pageVisible(orderScope.getSnapshot())) return
+    if (!pageVisible(orderForm.getSnapshot())) return
     warned = true
     console.warn('[dsh-llm-providers-ui] settings.section is missing; the Providers page cannot mount until the Web settings shell declares it.')
   }
   const timer = setTimeout(check, MISSING_SECTION_GRACE_MS)
   const stopSection = ctx.slots.subscribe('settings.section', check)
-  const stopScope = orderScope.subscribe(check)
+  const stopForm = orderForm.subscribe(check)
   return () => {
     disposeReverse([
       () => { clearTimeout(timer) },
       stopSection,
-      stopScope,
-    ], 'dsh-llm-providers-ui: section diagnostic cleanup failed')
+      stopForm,
+    ], 'dsh-llm-providers-ui: config form diagnostic cleanup failed')
   }
 }
 
 /**
- * Mount the page while Host settings are ready, or while remote Web uses process-local memory settings.
- * @param ctx - Web Cordis context with official slot and settings services.
- * @param orderScope - client scope used to gate the page transaction.
+ * Mount the page while Host config is ready, or while remote Web uses process-local memory settings.
+ * @param ctx - Web Cordis context with official slots, locale, and ConfigForms.
+ * @param orderForm - client ConfigForm used to gate and populate the page.
  * @param t - locale lookup for the page label.
- * @returns disposer for the scope listener and active page transaction.
+ * @returns disposer for the ConfigForm listener and active page transaction.
  */
-function installSectionTransaction(
+function installProvidersPageTransaction(
   ctx: ClientContext,
-  orderScope: SettingsScope<ProviderOrderSettings>,
+  orderForm: ConfigForm<ProviderOrderSettings>,
   t: () => string,
   directory: ProviderDirectory,
   usageRef: { current?: import('./usage.js').ProviderUsageStore },
@@ -162,7 +161,7 @@ function installSectionTransaction(
     disposeReverse([section, nav], 'dsh-llm-providers-ui: page unmount failed')
   }
   const mount = (): void => {
-    if (stopSection !== undefined || !pageVisible(orderScope.getSnapshot())) return
+    if (stopSection !== undefined || !pageVisible(orderForm.getSnapshot())) return
     const section = ctx.slots.inject('settings.section', () => ctx.slots.register({
       name: 'settings.section',
       id: PROVIDERS_SECTION_ID,
@@ -176,23 +175,23 @@ function installSectionTransaction(
         .filter((key): key is string => key !== undefined && key.length > 0),
       listener => {
         const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, listener)
-        const stopSettings = orderScope.subscribe(listener)
+        const stopConfig = orderForm.subscribe(listener)
         const stopDirectory = directory.subscribe(listener)
         return () => {
-          disposeReverse([stopDirectory, stopSlot, stopSettings], 'dsh-llm-providers-ui: section listener cleanup failed')
+          disposeReverse([stopDirectory, stopSlot, stopConfig], 'dsh-llm-providers-ui: section listener cleanup failed')
         }
       },
       () => {
-        const snapshot = orderScope.getSnapshot()
+        const snapshot = orderForm.getSnapshot()
         return {
           keys: snapshot.value?.order ?? [],
           disabled: snapshot.status !== 'ready' || !snapshot.writable,
           showSidebarUsage: snapshot.value?.showSidebarUsage ?? true,
         }
       },
-      keys => { void orderScope.set('order', keys) },
+      keys => { void orderForm.set('order', keys).then(accepted => { if (!accepted) console.warn('[dsh-llm-providers-ui] Host refused provider order update') }).catch(error => { console.warn('[dsh-llm-providers-ui] failed to save provider order', error) }) },
       key => directory.roleOf(key),
-      show => { void orderScope.set('showSidebarUsage', show) },
+      show => { void orderForm.set('showSidebarUsage', show).then(accepted => { if (!accepted) console.warn('[dsh-llm-providers-ui] Host refused sidebar usage visibility update') }).catch(error => { console.warn('[dsh-llm-providers-ui] failed to save sidebar usage visibility', error) }) },
       key => directory.headerOf(key),
       () => usageRef.current?.getSnapshot().providers ?? [],
       listener => usageRef.current?.subscribe(listener) ?? (() => undefined),
@@ -210,26 +209,26 @@ function installSectionTransaction(
     }
   }
   const reconcile = (): void => {
-    if (pageVisible(orderScope.getSnapshot())) mount()
+    if (pageVisible(orderForm.getSnapshot())) mount()
     else unmount()
   }
-  let stopScope: Disposer | undefined
+  let stopForm: Disposer | undefined
   try {
-    stopScope = orderScope.subscribe(reconcile)
+    stopForm = orderForm.subscribe(reconcile)
     reconcile()
   } catch (error) {
-    disposeAfterSetup(error, [stopScope, unmount], 'dsh-llm-providers-ui: transaction setup rollback failed')
+    disposeAfterSetup(error, [stopForm, unmount], 'dsh-llm-providers-ui: transaction setup rollback failed')
   }
   return () => {
-    disposeReverse([stopScope, unmount], 'dsh-llm-providers-ui: transaction cleanup failed')
+    disposeReverse([stopForm, unmount], 'dsh-llm-providers-ui: transaction cleanup failed')
   }
 }
 
 /**
  * Mount the sole LLM Providers page, locale, slot, and nav-icon adapter.
  * The page is independent of shell/provider load order and appears only after
- * the Host-owned settings namespace is available.
- * @param ctx - Web Cordis context with official slot, locale, and settingsScope faces.
+ * the Host-owned Loader Config entry is available.
+ * @param ctx - Web Cordis context with official slot, locale, and ConfigForms services.
  */
 export function apply(ctx: ClientContext, _config: Config = {}): void {
   ctx.effect(() => {
@@ -239,21 +238,18 @@ export function apply(ctx: ClientContext, _config: Config = {}): void {
     try {
       disposers.push(ctx.locale.register(PROVIDERS_LOCALE_NS, copy))
 
-      const orderScope: SettingsScope<ProviderOrderSettings> = ctx.settingsScope.bind({
-        namespace: PROVIDERS_SETTINGS_NS,
-        decode: decodeProviderOrder,
-      })
+      const orderForm = ctx.configForms.get<ProviderOrderSettings>(PROVIDERS_CONFIG_ID)
       const t = ctx.locale.bind(PROVIDERS_LOCALE_NS)
 
-      disposers.push(installMissingOwnerDiagnostic(orderScope))
-      disposers.push(installMissingSectionDiagnostic(ctx, orderScope))
+      disposers.push(installMissingOwnerDiagnostic(orderForm))
+      disposers.push(installMissingSectionDiagnostic(ctx, orderForm))
       const usageRef: { current?: import('./usage.js').ProviderUsageStore } = {}
       try {
-        disposers.push(installProviderUsage(ctx, orderScope, directory, store => { usageRef.current = store }))
+        disposers.push(installProviderUsage(ctx, orderForm, directory, store => { usageRef.current = store }))
       } catch (error) {
         console.warn('[dsh-llm-providers-ui] Provider Usage widget failed; keeping the Providers settings page', error)
       }
-      disposers.push(installSectionTransaction(ctx, orderScope, () => t('nav'), directory, usageRef))
+      disposers.push(installProvidersPageTransaction(ctx, orderForm, () => t('nav'), directory, usageRef))
     } catch (error) {
       disposeAfterSetup(error, disposers, 'dsh-llm-providers-ui: setup failed and cleanup failed')
     }

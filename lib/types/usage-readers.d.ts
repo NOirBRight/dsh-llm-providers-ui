@@ -61,8 +61,6 @@ export declare function formatResetInstant(resetsAt: string | undefined): {
 export declare function formatResetLabel(resetsAt: string | undefined, period?: string, copy?: ResetCopy): string | undefined;
 /** Create the Codex quota reader declared by the Codex client plugin. */
 export declare function createCodexUsageReader(): ProviderUsageReader;
-/** Create the Cursor quota reader declared by the Cursor client plugin. */
-export declare function createCursorUsageReader(): ProviderUsageReader;
 /** Create the Grok quota reader declared by the Grok client plugin. */
 export declare function createGrokUsageReader(): ProviderUsageReader;
 /** Create the Ollama Cloud quota reader declared by the Ollama client plugin. */

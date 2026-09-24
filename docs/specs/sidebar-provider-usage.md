@@ -84,17 +84,21 @@ Codex     38%
 - 默认显示所有可查询 Provider。
 - 新检测到的 Provider 默认显示，除非用户明确隐藏。
 
-生产设置存入现有 `llm-providers` namespace：
+生产设置存入 `llm-providers-ui` Loader entry 的 volatile Config：
 
 ```ts
-interface OrderConfig {
-  order: string[]
-  hiddenUsageProviders: string[]
+import type { Volatile } from '@deepseek-ai/cordis'
+interface Config {
+  order: Volatile<string[]>
+  hiddenUsageProviders: Volatile<string[]>
+  usageOrder: Volatile<string[]>
+  showSidebarUsage: Volatile<boolean>
 }
 ```
 
-使用隐藏列表而不是可见列表，使以后新增 Provider 默认出现。保存字符串 key；渲染时再与当前已检测 Provider 取交集。
-Usage 卡片顺序保存在独立的 `usageOrder`，只影响侧栏 Usage，不改 Provider 设置卡和模型列表；在「侧栏显示」里拖动手柄调整。
+旧 `llm-providers` settings namespace 不会自动别名到此 entry；需保留旧顺序或隐藏偏好的用户必须一次性迁移这些字段。隐藏列表而不是可见列表，使以后新增 Provider 默认出现。保存字符串 key；渲染时再与当前已检测 Provider 取交集。
+
+`usageOrder` 独立保存 Provider Usage 卡片顺序，只影响侧栏 Usage，不改设置卡片或模型列表；可在「侧栏显示」面板拖动调整。
 
 ## 3. 布局与扩展数量
 

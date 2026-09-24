@@ -3,7 +3,7 @@
 export const PROVIDERS_SECTION_ID = 'providers'
 export const PROVIDERS_ITEM_SLOT = 'settings.provider.item'
 export const PROVIDERS_LOCALE_NS = 'settings.providers'
-export const PROVIDERS_SETTINGS_NS = 'llm-providers'
+export const PROVIDERS_CONFIG_ID = 'llm-providers-ui'
 
 /** Display order for installed provider cards when the user has not saved one. */
 export const PROVIDER_ITEM_ORDER = [
@@ -38,24 +38,6 @@ export interface ProviderOrderSettings {
   hiddenUsageProviders: string[]
   usageOrder: string[]
   showSidebarUsage: boolean
-}
-
-function decodeStringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
-    : []
-}
-
-/** Decode the llm-providers settings section. Unknown input becomes an empty order with nothing hidden. */
-export function decodeProviderOrder(value: unknown): ProviderOrderSettings {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { order: [], hiddenUsageProviders: [], usageOrder: [], showSidebarUsage: true }
-  const record = value as { order?: unknown; hiddenUsageProviders?: unknown; usageOrder?: unknown; showSidebarUsage?: unknown }
-  return {
-    order: decodeStringList(record.order),
-    hiddenUsageProviders: decodeStringList(record.hiddenUsageProviders),
-    usageOrder: decodeStringList(record.usageOrder),
-    showSidebarUsage: record.showSidebarUsage !== false,
-  }
 }
 
 /**

@@ -36,7 +36,7 @@ function FilterRow(props: { summary: ProviderUsageSummary, hidden: boolean, onTo
 export interface ProviderUsagePanelProps {
   /** All queryable providers in display order; hiddenKeys filters the grid. */
   providers: readonly ProviderUsageSummary[]
-  /** Hidden provider keys (e.g. from llm-providers settings). Defaults to visible-all. */
+  /** Hidden provider keys (e.g. from provider Loader Config). Defaults to visible-all. */
   hiddenKeys?: readonly string[]
   /** Spins the refresh icon while a parent-driven refresh is in flight. */
   refreshing?: boolean
