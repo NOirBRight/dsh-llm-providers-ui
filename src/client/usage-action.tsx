@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { PROVIDERS_ITEM_SLOT, type ProviderOrderSettings } from '../order.js'
 import { ProviderUsagePanel } from './ProviderUsagePanel.js'
 import { createProviderUsageStore, type ProviderUsageStore } from './usage.js'
@@ -23,7 +23,7 @@ interface ProviderUsageActionFace {
   toggleVisibility: (providerKey: string, visible: boolean) => void
   showAll: () => void
   reorder: (keys: readonly string[]) => void
-  subscribeSettings: (listener: () => void) => () => void
+  subscribeForm: (listener: () => void) => () => void
   readShowSidebarUsage: () => boolean
 }
 
@@ -31,7 +31,7 @@ type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & Provider
 
 function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
   const usage = useSyncExternalStore(props.usage.subscribe, props.usage.getSnapshot, props.usage.getSnapshot)
-  const showSidebarUsage = useSyncExternalStore(props.subscribeSettings, props.readShowSidebarUsage, props.readShowSidebarUsage)
+  const showSidebarUsage = useSyncExternalStore(props.subscribeForm, props.readShowSidebarUsage, props.readShowSidebarUsage)
   if (!props.wide || !showSidebarUsage) return null
   return (
     <ProviderUsagePanel
@@ -55,7 +55,7 @@ function providerKeys(ctx: ClientContext): string[] {
 /** Install one root-scoped footer action and keep it synchronized with provider/settings slots. */
 export function installProviderUsage(
   ctx: ClientContext,
-  orderScope: SettingsScope<ProviderOrderSettings>,
+  orderForm: ConfigForm<ProviderOrderSettings>,
   directory: ProviderDirectory,
   onStore?: (usage: ProviderUsageStore) => void,
 ): () => void {
@@ -72,7 +72,7 @@ export function installProviderUsage(
   let directoryGeneration = 0
   let lastConfig = ''
   const reconcile = (): void => {
-    const settings = orderScope.getSnapshot()
+    const settings = orderForm.getSnapshot()
     const keys = providerKeys(ctx)
     const unconnectedKeys = keys.filter(key => directory.accountOf(key)?.state === 'unconnected')
     const usageOrder = settings.value?.usageOrder ?? []
@@ -83,9 +83,11 @@ export function installProviderUsage(
     usage.configure({ registeredKeys: keys, unconnectedKeys, savedOrder: usageOrder, hiddenKeys: hidden })
   }
   const writeList = (field: 'hiddenUsageProviders' | 'usageOrder', value: readonly string[]): void => {
-    const settings = orderScope.getSnapshot()
+    const settings = orderForm.getSnapshot()
     if (settings.status !== 'ready' || !settings.writable) return
-    void orderScope.set(field, [...value]).catch(error => {
+    void orderForm.set(field, [...value]).then(accepted => {
+      if (!accepted) console.warn('[dsh-llm-providers-ui] Host refused Provider Usage ' + field + ' update')
+    }).catch(error => {
       console.warn('[dsh-llm-providers-ui] failed to save Provider Usage ' + field, error)
     })
   }
@@ -93,7 +95,7 @@ export function installProviderUsage(
     writeList('hiddenUsageProviders', [...new Set(hidden)])
   }
   const toggleVisibility = (providerKey: string, visible: boolean): void => {
-    const hidden = new Set(orderScope.getSnapshot().value?.hiddenUsageProviders ?? [])
+    const hidden = new Set(orderForm.getSnapshot().value?.hiddenUsageProviders ?? [])
     if (visible) hidden.delete(providerKey)
     else hidden.add(providerKey)
     writeHidden([...hidden])
@@ -107,18 +109,18 @@ export function installProviderUsage(
     order: 0,
     inject: (): ProviderUsageActionFace => ({
       usage, toggleVisibility, showAll, reorder,
-      subscribeSettings: listener => orderScope.subscribe(listener),
-      readShowSidebarUsage: () => orderScope.getSnapshot().value?.showSidebarUsage ?? true,
+      subscribeForm: listener => orderForm.subscribe(listener),
+      readShowSidebarUsage: () => orderForm.getSnapshot().value?.showSidebarUsage ?? true,
     }),
   }, ProviderUsageAction))
   const stopSlot = ctx.slots.subscribe(PROVIDERS_ITEM_SLOT, reconcile)
-  const stopSettings = orderScope.subscribe(reconcile)
+  const stopForm = orderForm.subscribe(reconcile)
   const stopDirectory = directory.subscribe(() => {
     directoryGeneration += 1
     reconcile()
   })
   const stopInvalidate = directory.onInvalidateUsage(key => { usage.invalidate([key]); reconcile() })
   return () => {
-    disposeReverse([stopInvalidate, stopDirectory, stopSettings, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
+    disposeReverse([stopInvalidate, stopDirectory, stopForm, stopSlot, action, () => { usage.dispose() }], 'dsh-llm-providers-ui: usage cleanup failed')
   }
 }

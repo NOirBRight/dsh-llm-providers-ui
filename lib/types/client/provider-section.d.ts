@@ -11,7 +11,7 @@ export declare function windowNameOf(label: string, names: {
     readonly week: string;
     readonly month: string;
 }): string;
-export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_SETTINGS_NS, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, decodeProviderOrder, providerRoute, sortCatalogGroups, } from '../order.js';
+export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_CONFIG_ID, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, providerRoute, sortCatalogGroups, } from '../order.js';
 export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from '../order.js';
 /** Locale copy: empty state names all six providers. */
 export declare const copy: {

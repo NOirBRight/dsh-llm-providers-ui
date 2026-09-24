@@ -16,7 +16,7 @@ export interface ProvidersSectionProps {
     t?: ProviderTranslate;
     /** Live keyed contributions. */
     registeredKeys?: readonly string[];
-    /** Saved order from llm-providers settings. */
+    /** Saved order from provider Loader Config. */
     savedOrder?: readonly string[];
     /** Persist a new card order. */
     onReorder?: (keys: string[]) => void;

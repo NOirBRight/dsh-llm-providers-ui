@@ -1,34 +1,37 @@
 /**
- * Host plugin: sole owner of the llm-providers settings namespace.
+ * Host plugin: owner of the LLM Providers Loader Config entry.
  * Provider plugins register only their keyed card and llm route. This module
  * keeps the shared provider-order utilities for dsh-model-switch and the Web picker.
  * @module dsh-llm-providers-ui
  */
 import z from '@deepseek-ai/schemastery';
-import type { Context } from '@deepseek-ai/cordis';
-export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_SETTINGS_NS, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, decodeProviderOrder, providerRoute, sortCatalogGroups, } from './order.js';
+import type { Context, Volatile } from '@deepseek-ai/cordis';
+export { PROVIDERS_SECTION_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_LOCALE_NS, PROVIDERS_CONFIG_ID, PROVIDER_ITEM_ORDER, PROVIDER_ROUTES, applySavedOrder, providerRoute, sortCatalogGroups, } from './order.js';
 export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from './order.js';
 export declare const name = "dsh-llm-providers-ui";
-/** This owner can mount before the optional Settings service is available. */
+/** Settings is optional; this owner only disables its generated page when present. */
 export declare const inject: string[];
-/** Schema of the shared provider-order settings section. */
-export interface OrderConfig {
-    order: string[];
-    hiddenUsageProviders: string[];
-    usageOrder: string[];
-    showSidebarUsage: boolean;
-}
-export declare const OrderConfig: z<OrderConfig>;
-/** Host configuration for the providers-ui owner (currently no fields). */
+/** Live provider order and visibility fields exposed through this entry's ConfigForm. */
 export interface Config {
+    order: Volatile<string[]>;
+    hiddenUsageProviders: Volatile<string[]>;
+    usageOrder: Volatile<string[]>;
+    showSidebarUsage: Volatile<boolean>;
 }
-export declare const Config: z<Config>;
+export declare const Config: z<Schemastery.ObjectS<NoInfer<{
+    order: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    hiddenUsageProviders: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    usageOrder: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    showSidebarUsage: z<boolean, boolean, "volatile-defined">;
+}>>, Schemastery.ObjectT<NoInfer<{
+    order: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    hiddenUsageProviders: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    usageOrder: z<NoInfer<string[]>, NoInfer<string[]>, "volatile-defined">;
+    showSidebarUsage: z<boolean, boolean, "volatile-defined">;
+}>>, "plain">;
 /**
- * Host plugin apply: sole writer of the llm-providers namespace.
- * The registration rides the Host fiber, so unloading the owner drops the
- * namespace, and reloading recreates it. Providers continue to work
- * Host-side when the owner is absent; their llm routes remain registered.
- * Duplicate registration fails loud; only one Host owner may be installed.
+ * Host plugin: Loader Config owns provider order and visibility. Settings only
+ * disables the generic page because the client contributes the custom surface.
  * @param ctx - Host Cordis context.
  */
 export declare function apply(ctx: Context, _config?: Config): void;

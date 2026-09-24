@@ -32,11 +32,10 @@ export {
   PROVIDERS_SECTION_ID,
   PROVIDERS_ITEM_SLOT,
   PROVIDERS_LOCALE_NS,
-  PROVIDERS_SETTINGS_NS,
+  PROVIDERS_CONFIG_ID,
   PROVIDER_ITEM_ORDER,
   PROVIDER_ROUTES,
   applySavedOrder,
-  decodeProviderOrder,
   providerRoute,
   sortCatalogGroups,
 } from '../order.js'

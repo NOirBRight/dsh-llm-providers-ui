@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import { ProviderDirectory } from '../src/client/directory.ts'
 import { installProviderUsage } from '../src/client/usage-action.tsx'
-import { createCursorUsageReader, peekCachedUsage, type ProviderUsageStore } from '../src/client/usage.ts'
+import { createGrokUsageReader, peekCachedUsage, type ProviderUsageStore } from '../src/client/usage.ts'
 
 async function flush(): Promise<void> {
   for (let index = 0; index < 5; index += 1) await Promise.resolve()
@@ -21,7 +21,7 @@ describe('Provider Usage directory registration', () => {
     const context = {
       get: () => ({ rpc }),
       slots: {
-        entriesOfSlot: () => [{ options: { key: 'llm-cursor' } }],
+        entriesOfSlot: () => [{ options: { key: 'llm-grok' } }],
         inject: () => () => undefined,
         subscribe: (_name: string, listener: () => void) => {
           slotListeners.add(listener)
@@ -29,20 +29,20 @@ describe('Provider Usage directory registration', () => {
         },
       },
     }
-    const orderScope = {
+    const orderForm = {
       getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [], showSidebarUsage: true } }),
       subscribe: () => () => undefined,
-      set: async () => undefined,
+      set: async () => true,
     }
 
-    const dispose = installProviderUsage(context as never, orderScope as never, directory)
-    await flush()
-    expect(rpc.call).not.toHaveBeenCalled()
-
-    directory.register({ key: 'llm-cursor', usage: createCursorUsageReader() })
+    let face: ProviderUsageStore | undefined
+    const dispose = installProviderUsage(context as never, orderForm as never, directory, usage => { face = usage })
     await flush()
 
-    expect(rpc.call).toHaveBeenCalledWith('/cursor', 'usage/read', {}, expect.any(AbortSignal))
+    directory.register({ key: 'llm-grok', usage: createGrokUsageReader() })
+    await flush()
+
+    expect(face?.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
     dispose()
   })
 })
@@ -60,14 +60,14 @@ describe('Provider Usage account visibility', () => {
         subscribe: () => () => undefined,
       },
     }
-    const set = vi.fn()
-    const orderScope = {
+    const set = vi.fn(async () => true)
+    const orderForm = {
       getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [] } }),
       subscribe: () => () => undefined,
       set,
     }
     let store: ProviderUsageStore | undefined
-    const dispose = installProviderUsage(context as never, orderScope as never, directory, usage => { store = usage })
+    const dispose = installProviderUsage(context as never, orderForm as never, directory, usage => { store = usage })
     try {
       await flush()
       expect(store?.getSnapshot().providers[0]?.status).toBe('logged-out')
@@ -106,7 +106,7 @@ describe('Provider Usage sign-out invalidation', () => {
     const context = {
       get: () => ({ rpc }),
       slots: {
-        entriesOfSlot: () => [{ options: { key: 'llm-cursor' } }],
+        entriesOfSlot: () => [{ options: { key: 'llm-grok' } }],
         register: (spec: { inject?: () => { usage: ProviderUsageStore } }) => {
           const next = spec.inject?.()
           if (next !== undefined) face = next
@@ -116,21 +116,21 @@ describe('Provider Usage sign-out invalidation', () => {
         subscribe: () => () => undefined,
       },
     }
-    const orderScope = {
+    const orderForm = {
       getSnapshot: () => ({ status: 'ready', writable: true, value: { usageOrder: [], hiddenUsageProviders: [], showSidebarUsage: true } }),
       subscribe: () => () => undefined,
-      set: async () => undefined,
+      set: async () => true,
     }
 
-    const dispose = installProviderUsage(context as never, orderScope as never, directory)
-    directory.register({ key: 'llm-cursor', usage: createCursorUsageReader() })
+    const dispose = installProviderUsage(context as never, orderForm as never, directory)
+    directory.register({ key: 'llm-grok', usage: createGrokUsageReader() })
     await flush()
     expect(face?.usage.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })
 
     mode = 'broken'
-    directory.invalidateUsage('llm-cursor')
+    directory.invalidateUsage('llm-grok')
     await flush()
-    expect(face?.usage.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-cursor', name: 'Cursor', status: 'error', windows: [] })
+    expect(face?.usage.getSnapshot().providers[0]).toEqual({ providerKey: 'llm-grok', name: 'Grok', status: 'error', windows: [] })
     dispose()
   })
 })

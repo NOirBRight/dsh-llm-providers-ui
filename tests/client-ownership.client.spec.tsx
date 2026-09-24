@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { apply as applyOwner, inject as ownerInject } from '../src/client/index.ts'
 import { disposeAfterSetup, disposeReverse } from '../src/client/cleanup.ts'
-import { PROVIDERS_ITEM_SLOT, PROVIDERS_SECTION_ID } from '../src/order.ts'
+import { PROVIDERS_CONFIG_ID, PROVIDERS_ITEM_SLOT, PROVIDERS_SECTION_ID } from '../src/order.ts'
 
 interface SlotOptions {
   name: string
@@ -140,15 +140,15 @@ class FakeLocale extends Service {
   }
 }
 
-type ScopeStatus = 'loading' | 'ready' | 'unavailable'
+type ConfigStatus = 'loading' | 'ready' | 'unavailable'
 
-function makeSettingsScope(initialStatus: ScopeStatus = 'ready', mode: 'host' | 'memory' = 'host') {
+function makeConfigForm(initialStatus: ConfigStatus = 'ready', mode: 'host' | 'memory' = 'host') {
   let order: string[] = []
   let status = initialStatus
   const listeners = new Set<() => void>()
-  const scope = {
+  const form = {
     getSnapshot: () => ({
-      value: status === 'ready' ? { order } : undefined,
+      value: status === 'ready' ? { order, hiddenUsageProviders: [], usageOrder: [], showSidebarUsage: true } : undefined,
       writable: status === 'ready',
       status,
       mode,
@@ -157,14 +157,16 @@ function makeSettingsScope(initialStatus: ScopeStatus = 'ready', mode: 'host' | 
       listeners.add(listener)
       return () => { listeners.delete(listener) }
     },
-    set: async (_key: string, next: string[]) => {
-      order = [...next]
+    set: async (field: string, next: unknown): Promise<boolean> => {
+      if (status !== 'ready') return false
+      if (field === 'order' && Array.isArray(next)) order = next.filter((key): key is string => typeof key === 'string')
       for (const listener of listeners) listener()
+      return true
     },
   }
   return {
-    bind: () => scope,
-    setStatus(next: ScopeStatus): void {
+    form,
+    setStatus(next: ConfigStatus): void {
       status = next
       for (const listener of listeners) listener()
     },
@@ -172,24 +174,26 @@ function makeSettingsScope(initialStatus: ScopeStatus = 'ready', mode: 'host' | 
 }
 
 async function makeContext(
-  initialStatus: ScopeStatus = 'ready',
+  initialStatus: ConfigStatus = 'ready',
   mode: 'host' | 'memory' = 'host',
-): Promise<{
-  ctx: Context,
-  slots: FakeSlots,
-  locale: FakeLocale,
-  settingsScope: ReturnType<typeof makeSettingsScope>,
-}> {
+) {
   const ctx = new Context()
   await ctx.plugin(FakeSlots).await()
   await ctx.plugin(FakeLocale).await()
-  const settingsScope = makeSettingsScope(initialStatus, mode)
-  ctx.provide('settingsScope', settingsScope)
+  const configForm = makeConfigForm(initialStatus, mode)
+  const configForms = {
+    get: vi.fn((entryId: string) => {
+      if (entryId !== PROVIDERS_CONFIG_ID) throw new Error('unexpected Loader entry id: ' + entryId)
+      return configForm.form
+    }),
+  }
+  ctx.provide('configForms', configForms as never)
   return {
     ctx,
     slots: ctx.reflect.get('slots') as FakeSlots,
     locale: ctx.reflect.get('locale') as FakeLocale,
-    settingsScope,
+    configForm,
+    configForms,
   }
 }
 
@@ -216,9 +220,10 @@ afterEach(() => {
 
 describe('providers-ui Web ownership', () => {
   it('waits for settings.section and declares the keyed child slot', async () => {
-    const { ctx, slots, locale } = await makeContext()
+    const { ctx, slots, locale, configForms } = await makeContext()
     const owner = installOwner(ctx)
     await owner.await()
+    expect(configForms.get).toHaveBeenCalledWith(PROVIDERS_CONFIG_ID)
     expect(slots.count('settings.section')).toBe(0)
     expect(locale.count()).toBe(1)
 
@@ -235,15 +240,15 @@ describe('providers-ui Web ownership', () => {
   })
 
   it('withholds the diagnostic across the mobile seat timeline', async () => {
-    const { ctx, slots, settingsScope } = await makeContext('loading')
+    const { ctx, slots, configForm } = await makeContext('loading')
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.useFakeTimers()
     const owner = installOwner(ctx)
     await owner.await()
 
-    // The mobile shell has no usable settings snapshot until its settings shell settles.
+    // The client waits for an accepted Loader Config snapshot until its settings shell settles.
     vi.advanceTimersByTime(4_700)
-    settingsScope.setStatus('ready')
+    configForm.setStatus('ready')
     expect(warn).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(600)
@@ -277,7 +282,7 @@ describe('providers-ui Web ownership', () => {
   })
 
   it('keeps the diagnostic cancelled for its lifetime once settings.section has declared and collapsed', async () => {
-    const { ctx, slots, settingsScope } = await makeContext()
+    const { ctx, slots, configForm } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.useFakeTimers()
     const owner = installOwner(ctx)
@@ -291,7 +296,7 @@ describe('providers-ui Web ownership', () => {
     expect(warn).not.toHaveBeenCalled()
 
     // Even a snapshot turning the page visible again does not reopen the diagnostic.
-    settingsScope.setStatus('ready')
+    configForm.setStatus('ready')
     vi.advanceTimersByTime(60_000)
     expect(warn).not.toHaveBeenCalled()
 
@@ -302,7 +307,7 @@ describe('providers-ui Web ownership', () => {
   })
 
   it('warns once when settings.section stays undeclared past the grace', async () => {
-    const { ctx, settingsScope } = await makeContext()
+    const { ctx, configForm } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.useFakeTimers()
     const owner = installOwner(ctx)
@@ -311,13 +316,13 @@ describe('providers-ui Web ownership', () => {
     expect(warn).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(14_000)
-    settingsScope.setStatus('ready')
+    configForm.setStatus('ready')
     expect(warn).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(60_000)
     expect(warn).toHaveBeenCalledTimes(1)
     expect(warn.mock.calls[0]?.[0]).toContain('settings.section')
-    for (let index = 0; index < 5; index += 1) settingsScope.setStatus('ready')
+    for (let index = 0; index < 5; index += 1) configForm.setStatus('ready')
     vi.advanceTimersByTime(60_000)
     expect(warn).toHaveBeenCalledTimes(1)
 
@@ -327,8 +332,8 @@ describe('providers-ui Web ownership', () => {
     await ctx.fiber.dispose()
   })
 
-  it('omits the page and cards when the Host settings owner is unavailable', async () => {
-    const { ctx, slots, settingsScope } = await makeContext('unavailable')
+  it('omits the page and cards when the Host Config owner is unavailable', async () => {
+    const { ctx, slots, configForm } = await makeContext('unavailable')
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const provider = installProvider(ctx, 'llm-cursor')
     const owner = installOwner(ctx)
@@ -339,9 +344,9 @@ describe('providers-ui Web ownership', () => {
     expect(slots.count('settings.section')).toBe(0)
     expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(0)
     expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn.mock.calls[0]?.[0]).toContain('settings owner')
+    expect(warn.mock.calls[0]?.[0]).toContain('Config entry')
 
-    settingsScope.setStatus('ready')
+    configForm.setStatus('ready')
     expect(slots.count('settings.section')).toBe(1)
     expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(1)
 
@@ -370,7 +375,7 @@ describe('providers-ui Web ownership', () => {
   })
 
   it('unmounts and remounts the page across Host unload and reload', async () => {
-    const { ctx, slots, settingsScope } = await makeContext()
+    const { ctx, slots, configForm } = await makeContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const provider = installProvider(ctx, 'llm-cursor')
     const owner = installOwner(ctx)
@@ -379,12 +384,12 @@ describe('providers-ui Web ownership', () => {
     expect(slots.count('settings.section')).toBe(1)
     expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(1)
 
-    settingsScope.setStatus('unavailable')
-    expect(warn.mock.calls.some(call => String(call[0]).includes('settings owner'))).toBe(true)
+    configForm.setStatus('unavailable')
+    expect(warn.mock.calls.some(call => String(call[0]).includes('Config entry'))).toBe(true)
     expect(slots.count('settings.section')).toBe(0)
     expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(0)
 
-    settingsScope.setStatus('ready')
+    configForm.setStatus('ready')
     expect(slots.count('settings.section')).toBe(1)
     expect(slots.count(PROVIDERS_ITEM_SLOT)).toBe(1)
 

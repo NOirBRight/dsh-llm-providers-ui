@@ -2,7 +2,7 @@
 export declare const PROVIDERS_SECTION_ID = "providers";
 export declare const PROVIDERS_ITEM_SLOT = "settings.provider.item";
 export declare const PROVIDERS_LOCALE_NS = "settings.providers";
-export declare const PROVIDERS_SETTINGS_NS = "llm-providers";
+export declare const PROVIDERS_CONFIG_ID = "llm-providers-ui";
 /** Display order for installed provider cards when the user has not saved one. */
 export declare const PROVIDER_ITEM_ORDER: readonly ["llm-cursor", "llm-grok", "llm-codex", "llm-ollama", "llm-commandcode", "llm-opencode-go"];
 export type ProviderItemKey = (typeof PROVIDER_ITEM_ORDER)[number];
@@ -14,8 +14,6 @@ export interface ProviderOrderSettings {
     usageOrder: string[];
     showSidebarUsage: boolean;
 }
-/** Decode the llm-providers settings section. Unknown input becomes an empty order with nothing hidden. */
-export declare function decodeProviderOrder(value: unknown): ProviderOrderSettings;
 /**
  * Merge a saved key list with the keys that are actually installed.
  * Saved keys that are not installed are dropped; installed keys missing from

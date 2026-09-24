@@ -6,15 +6,17 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## 兼容性
 
-宿主 `@deepseek-ai/dsh-*` 不锁定发行号：peer 为 `*` 且 optional。`devDependencies` 钉编译目标（`0.1.5-rc.1`）。Cordis 保持 `>=4.0.2 <5.0.0`。
+Host `@deepseek-ai/dsh-*` peer 范围面向 `0.1.7-alpha.2` 至 `<0.1.8`；Cordis 面向 `~4.0.4`。开发依赖固定 alpha2 编译目标。
 
 `package.json#dsh.compatibility.dshReleases` 里的已验证宿主是证据，不是允许列表。未知的新宿主告警一次后仍按正常路径挂载。只有复现过的故障才会加入 blocklist。
 
 
 ## Ownership
 
-- Host 拥有 `llm-providers` 设置命名空间 `{ order: string[] }`（唯一写者）。卸载 owner 会删除该命名空间；重装后重建。各 provider 的 `llm` 路由相互独立，因此缺 owner 时 provider 在 Host 侧照常工作。
-- Web（client）拥有 `settings.section` 的 `id: providers`（order 12）及子项 `settings.provider.item`（keyed、root）、locale `settings.providers` 和导航图标。section 与子项声明只在 Host 侧 `llm-providers` scope 就绪后挂载；provider 插件只通过 `settings.provider.item` 贡献自己 keyed 的卡片。
+- Host Loader entry `llm-providers-ui` 通过 volatile Config 拥有 `order`、`hiddenUsageProviders`、`usageOrder` 与 `showSidebarUsage` 字段。Provider 的 `llm` 路由与该 owner 相互独立。
+- Web（client）拥有 `settings.section` 的 `id: providers`（order 12）及子项 `settings.provider.item`（keyed、root）、locale `settings.providers` 和导航图标。页面经 `ConfigForm` 读写 Host entry；表单 ready 或远程 memory 模式时挂载。
+
+旧 `llm-providers` settings-section 数据不会被别名读取；需要保留已保存顺序或可见性偏好的用户，必须一次性将这些字段迁移到 `llm-providers-ui` Loader entry。
 
 加载顺序无关紧要。卸载某个 provider 只移除它的卡片。卸载/重装 owner 不会损坏 provider 的 Host 服务；owner 回来后卡片经公共 slot 生命周期重新出现。
 
@@ -29,7 +31,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## Exports
 
-- `dsh-llm-providers-ui`（Host）：`applySavedOrder`、`decodeProviderOrder`、`sortCatalogGroups`、`PROVIDER_ITEM_ORDER` 等。构建产物：`lib/index.js` + `lib/types`。
+- `dsh-llm-providers-ui`（Host）：`applySavedOrder`、`sortCatalogGroups`、`PROVIDERS_CONFIG_ID`、`PROVIDER_ITEM_ORDER` 等。构建产物：`lib/index.js` + `lib/types`。
 - `dsh-llm-providers-ui/order`（纯函数，ESM）：同一套 order helper，供 `dsh-model-switch` 与 provider picker 使用的稳定构建产物。构建产物：`lib/order.js` + `lib/types/order.d.ts`。provider 插件 `alwaysBundle` 该构建产物；不要从 `src` import。
 - `dsh-llm-providers-ui/sortable`（client 工具，ESM）：`SortableList` 拖拽排序实现。构建产物：`lib/sortable.js` + `lib/types/sortable.d.ts`。唯一实现在 `src/client/SortableList.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/SortableList.tsx` import。
 - `dsh-llm-providers-ui/provider-ui`（client 工具，ESM）：共享 `ProviderCardHeader`、`ProviderQuotaMeter`、`normalizeQuotaRemaining`、`providerUiCss`，以及卡片头部与共享额度缓存的绑定 `useProviderQuotaCache`（含 `ProviderAuthState` 判定）。构建产物：`lib/provider-ui.js` + `lib/types/provider-ui.d.ts`。唯一实现在 `src/client/provider-ui.tsx`，此处 re-export；provider 插件 `alwaysBundle` 该构建文件。不要从 `src/client/provider-ui.tsx` import。

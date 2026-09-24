@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applySavedOrder, decodeProviderOrder, providerKeyForRoute, sortCatalogGroups } from '../src/order.ts'
+import { applySavedOrder, providerKeyForRoute, sortCatalogGroups } from '../src/order.ts'
 
 const live = {
   cursor: 'llm-cursor',
@@ -23,43 +23,6 @@ describe('applySavedOrder', () => {
   })
 })
 
-describe('decodeProviderOrder', () => {
-  it('reads string keys and ignores junk', () => {
-    expect(decodeProviderOrder({ order: ['llm-grok', 1, '', 'llm-cursor'] })).toEqual({
-      order: ['llm-grok', 'llm-cursor'],
-      hiddenUsageProviders: [],
-      usageOrder: [],
-      showSidebarUsage: true,
-    })
-    expect(decodeProviderOrder(null)).toEqual({ order: [], hiddenUsageProviders: [], usageOrder: [], showSidebarUsage: true })
-    expect(decodeProviderOrder(undefined)).toEqual({ order: [], hiddenUsageProviders: [], usageOrder: [], showSidebarUsage: true })
-  })
-
-  it('defaults a missing hidden list so old saves keep showing every provider', () => {
-    expect(decodeProviderOrder({ order: ['llm-grok'] })).toEqual({
-      order: ['llm-grok'],
-      hiddenUsageProviders: [],
-      usageOrder: [],
-      showSidebarUsage: true,
-    })
-    expect(decodeProviderOrder({
-      order: ['llm-grok'],
-      hiddenUsageProviders: ['llm-cursor', 1, '', 'llm-codex'],
-      usageOrder: ['llm-codex', 0, 'llm-grok'],
-    })).toEqual({
-      order: ['llm-grok'],
-      hiddenUsageProviders: ['llm-cursor', 'llm-codex'],
-      usageOrder: ['llm-codex', 'llm-grok'],
-      showSidebarUsage: true,
-    })
-  })
-
-  it('defaults showSidebarUsage on so old saves keep the Task Panel quota block', () => {
-    expect(decodeProviderOrder({ order: ['llm-grok'] }).showSidebarUsage).toBe(true)
-    expect(decodeProviderOrder({ showSidebarUsage: false }).showSidebarUsage).toBe(false)
-    expect(decodeProviderOrder({ showSidebarUsage: 'no' }).showSidebarUsage).toBe(true)
-  })
-})
 
 describe('applySavedOrder ignores hidden visibility settings', () => {
   it('still orders hidden keys because visibility filtering happens elsewhere', () => {

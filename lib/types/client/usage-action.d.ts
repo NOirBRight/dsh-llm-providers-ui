@@ -1,6 +1,6 @@
 /** Mounts the Provider Usage store into the sidebar footer slot. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis';
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client';
 import { type ProviderOrderSettings } from '../order.js';
 import { type ProviderUsageStore } from './usage.js';
 import type { ProviderDirectory } from './directory.js';
@@ -16,5 +16,5 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     }
 }
 /** Install one root-scoped footer action and keep it synchronized with provider/settings slots. */
-export declare function installProviderUsage(ctx: ClientContext, orderScope: SettingsScope<ProviderOrderSettings>, directory: ProviderDirectory, onStore?: (usage: ProviderUsageStore) => void): () => void;
+export declare function installProviderUsage(ctx: ClientContext, orderForm: ConfigForm<ProviderOrderSettings>, directory: ProviderDirectory, onStore?: (usage: ProviderUsageStore) => void): () => void;
 //# sourceMappingURL=usage-action.d.ts.map

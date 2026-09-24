@@ -35,7 +35,7 @@ export interface ProvidersSectionProps {
   t?: ProviderTranslate
   /** Live keyed contributions. */
   registeredKeys?: readonly string[]
-  /** Saved order from llm-providers settings. */
+  /** Saved order from provider Loader Config. */
   savedOrder?: readonly string[]
   /** Persist a new card order. */
   onReorder?: (keys: string[]) => void
@@ -228,7 +228,7 @@ export function ProvidersSection(props: ProvidersSectionProps): ReactNode {
         <span className="c-brand"><ProviderMark providerKey={item.key} /></span>
         <div>
           <div className="c-name-line">
-            <span className="c-name">{summary?.name ?? item.key}</span>
+            <span className="c-name">{props.nameOf?.(item.key) ?? summary?.name ?? item.key}</span>
             <ProviderRoleBadge {...(role === 'llm' ? {} : { role })} />
           </div>
           <div className="c-sub">

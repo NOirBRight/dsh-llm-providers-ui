@@ -6,15 +6,17 @@ Mounted owner of the **LLM Providers** Settings page for DeepSeek Harness.
 
 ## Compatibility
 
-Host `@deepseek-ai/dsh-*` packages are not version-locked: peers are `*` and optional. `devDependencies` pin the compile target (`0.1.5-rc.1`). Cordis stays `>=4.0.2 <5.0.0`.
+Host `@deepseek-ai/dsh-*` peers target `0.1.7-alpha.2` through `<0.1.8`; Cordis targets `~4.0.4`. Development dependencies pin the alpha2 compile target.
 
 Verified Hosts in `package.json#dsh.compatibility.dshReleases` are evidence, not an allowlist. Unknown newer Hosts warn once and keep the normal mount path. Only a reproduced failure is blocklisted.
 
 
 ## Ownership
 
-- Host owns the `llm-providers` settings namespace `{ order: string[] }` (sole writer). Unloading the owner drops the namespace; reloading recreates it. Providers continue to work Host-side when the owner is absent because their `llm` routes are independent.
-- Web (client) owns `settings.section` `id: providers` (order 12) with child `settings.provider.item` (keyed, root), locale `settings.providers`, and the nav-icon. The section and child declaration mount only while the Host-owned `llm-providers` scope is ready; provider plugins contribute only their keyed card via `settings.provider.item`.
+- Host Loader entry `llm-providers-ui` owns the volatile Config fields `order`, `hiddenUsageProviders`, `usageOrder`, and `showSidebarUsage`. Provider `llm` routes remain independent of this owner.
+- Web (client) owns `settings.section` `id: providers` (order 12) with child `settings.provider.item` (keyed, root), locale `settings.providers`, and the nav-icon. It reads and writes the Host entry through `ConfigForm`; the custom page mounts when that form is ready, or in remote memory mode.
+
+Existing `llm-providers` settings-section data is not aliased: users who need their saved order or visibility preferences must migrate those fields once into the `llm-providers-ui` Loader entry.
 
 Load order does not matter. Unloading a provider removes only its card. Unloading/reloading the owner does not corrupt provider Host services; cards reappear via the public slot lifecycle when the owner returns.
 
@@ -29,7 +31,7 @@ The 14px globe glyph on the nav row is an isolated temporary adapter (`src/clien
 
 ## Exports
 
-- `dsh-llm-providers-ui` (Host): `applySavedOrder`, `decodeProviderOrder`, `sortCatalogGroups`, `PROVIDER_ITEM_ORDER`, etc. Built artifact: `lib/index.js` + `lib/types`.
+- `dsh-llm-providers-ui` (Host): `applySavedOrder`, `sortCatalogGroups`, `PROVIDERS_CONFIG_ID`, `PROVIDER_ITEM_ORDER`, etc. Built artifact: `lib/index.js` + `lib/types`.
 - `dsh-llm-providers-ui/order` (pure, ESM): same order helpers, stable built utility for `dsh-model-switch` and provider pickers. Built artifact: `lib/order.js` + `lib/types/order.d.ts`. Provider plugins `alwaysBundle` this built export; do not import from `src`.
 - `dsh-llm-providers-ui/sortable` (client utility, ESM): `SortableList` drag-reorder implementation. Built artifact: `lib/sortable.js` + `lib/types/sortable.d.ts`. Single implementation lives in `src/client/SortableList.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/SortableList.tsx`.
 - `dsh-llm-providers-ui/provider-ui` (client utility, ESM): shared `ProviderCardHeader`, `ProviderQuotaMeter`, `ProviderMark`, `normalizeQuotaRemaining`, `providerUiCss`, and the header's binding to the shared usage cache, `useProviderQuotaCache` (with its `ProviderAuthState` verdict). Built artifact: `lib/provider-ui.js` + `lib/types/provider-ui.d.ts`. Single implementation lives in `src/client/provider-ui.tsx` and is re-exported here; provider plugins `alwaysBundle` the built file. Do not import from `src/client/provider-ui.tsx`.

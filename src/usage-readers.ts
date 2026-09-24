@@ -401,7 +401,7 @@ async function readCodexUsage(rpc: ClientConnectionRpc, signal: AbortSignal): Pr
   let last: ProviderUsageRead = { status: 'error', message: 'Codex usage unavailable' }
   while (!signal.aborted) {
     // The UI store owns freshness; auth/status otherwise retains nonempty quota indefinitely.
-    const result = await rpc.call('/codex', 'auth/status', { refresh: true }, signal)
+    const result = await rpc.call('/api', 'plugin-rpc/codex', { endpoint: 'auth/status', payload: { refresh: true } }, signal)
     last = result.ok
       ? decodeCodexAuthStatus(result.value)
       : credentialFailure(result.error) ? { status: 'logged-out' } : { status: 'error', message: result.error.message }
@@ -420,7 +420,7 @@ async function readUsage(
   signal: AbortSignal,
   decode: UsageDecoder,
 ): Promise<ProviderUsageRead> {
-  const result = await rpc.call(channel, 'usage/read', payload, signal)
+  const result = await rpc.call('/api', 'plugin-rpc' + channel, { endpoint: 'usage/read', payload }, signal)
   if (result.ok) return usageResult(result.value, decode)
   if (credentialFailure(result.error)) return { status: 'logged-out' }
   return { status: 'error', message: result.error.message }
@@ -431,14 +431,6 @@ export function createCodexUsageReader(): ProviderUsageReader {
   return { providerKey: 'llm-codex', name: 'Codex', read: (rpc, _refresh, signal) => readCodexUsage(rpc, signal) }
 }
 
-/** Create the Cursor quota reader declared by the Cursor client plugin. */
-export function createCursorUsageReader(): ProviderUsageReader {
-  return { providerKey: 'llm-cursor', name: 'Cursor', read: async (rpc, refresh, signal) => {
-    const first = await readUsage(rpc, '/cursor', refresh ? { refresh: true } : {}, signal, decodePercentUsage)
-    if (first.status !== 'unsupported') return first
-    return readUsage(rpc, '/cursor', { refresh: true }, signal, decodePercentUsage)
-  } }
-}
 
 /** Create the Grok quota reader declared by the Grok client plugin. */
 export function createGrokUsageReader(): ProviderUsageReader {
