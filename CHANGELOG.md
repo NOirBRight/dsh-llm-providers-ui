@@ -1,3 +1,9 @@
+## v0.2.12
+
+- 适配官方 DSH 0.1.7-alpha.2 Loader ConfigForms；Providers 排序与侧栏显示偏好继续通过插件配置保存。
+- Grok、Codex、Command Code 的额度读取改走官方 Connection 鉴权的插件 RPC；不再请求返回 405 的旧直接端点。
+- 保留稳定分支已有的 Provider 标记与名称更新，并从当前源码重建共享 Host、Client 及消费者可导入产物。
+
 ## v0.2.11
 
 - Provider Usage 在网页和移动端以四列无边框图标＋额度显示；点击进入紧凑详情，详情仅保留单行返回／名称／刷新顶部。
