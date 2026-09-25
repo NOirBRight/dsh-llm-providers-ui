@@ -10,6 +10,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const filename = `${manifest.name}-${manifest.version}.tgz`
 const work = mkdtempSync(join(tmpdir(), 'dsh-provider-ui-pack-'))
+const DSH_HOST_RANGE = /^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u
+
+function isDshHostPackage(name) {
+  return name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-')
+}
 
 try {
   const [report] = JSON.parse(execFileSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', work], {
@@ -18,7 +23,6 @@ try {
   }))
   assert.equal(report.filename, filename)
   const archive = join(work, filename)
-  assert.deepEqual(readFileSync(join(root, filename)), readFileSync(archive), 'tracked release archive differs from the current build')
   const packed = JSON.parse(execFileSync('tar', ['-xOzf', archive, 'package/package.json'], { encoding: 'utf8' }))
   assert.equal(packed.name, manifest.name)
   assert.equal(packed.version, manifest.version)
@@ -27,12 +31,16 @@ try {
   for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
     for (const [name, spec] of Object.entries(packed[section] ?? {})) {
       assert.doesNotMatch(spec, /^(?:file|link|workspace|npm):|^\//u, `${section}.${name} must not be local`)
-      if (name.startsWith('@deepseek-ai/dsh-')) {
+      if (isDshHostPackage(name)) {
         assert.equal(section, 'peerDependencies', `${name} must be a Host-provided peer`)
-        assert.match(spec, /^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u, `${name} must have no upper version bound`)
+        assert.match(spec, DSH_HOST_RANGE, `${section}.${name} must use an unbounded >= lower range`)
       }
     }
   }
+  for (const [name, spec] of Object.entries(packed.devDependencies ?? {})) {
+    if (isDshHostPackage(name)) assert.match(spec, DSH_HOST_RANGE, `devDependencies.${name} must use an unbounded >= lower range`)
+  }
+  assert.deepEqual(readFileSync(join(root, filename)), readFileSync(archive), 'tracked release archive differs from the current build')
   const paths = execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' }).trim().split('\n')
   assert.equal(paths.length, report.entryCount)
   assert(paths.every(path => path.startsWith('package/') && !path.includes('/../') && !/(?:^|\/)\.env(?:\.|$)/u.test(path)))
