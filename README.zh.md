@@ -6,7 +6,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## 兼容性
 
-Host 和开发用的 `@deepseek-ai/dsh-*` 依赖接受 `>=0.1.7-alpha.2`，包括 `0.1.7-rc.1` 及后续版本。锁文件记录已测试的 rc.1 构建。Cordis 接受 `>=4.0.4 <5.0.0`。
+Host 和开发用的 `@deepseek-ai/dsh-*` 依赖接受 `>=0.1.7-alpha.2`，包括 `0.1.7-rc.1` 及后续版本。锁文件记录已测试的 rc.2 构建。Cordis 接受 `>=4.0.4 <5.0.0`。
 
 `package.json#dsh.compatibility.dshReleases` 里的已验证宿主是证据，不是允许列表。未知的新宿主告警一次后仍按正常路径挂载。只有复现过的故障才会加入 blocklist。
 
@@ -47,6 +47,8 @@ Host 和开发用的 `@deepseek-ai/dsh-*` 依赖接受 `>=0.1.7-alpha.2`，包�
 
 ## Consumer contract
 
+侧栏额度的标题、控件、状态、空态和详情跟随 DSH 当前语言。
+
 provider 插件以自己的 `settingsNs` key 在 `settings.provider.item` 下注册卡片，并在 effect 内向 `ctx.providerDirectory` 注册 `{ key, role, header, usage, catalogId?, account?, binding? }`； disposer 负责注销。运行时选择器排序读取 `catalogRoutes()`。原生 Agent 插件发布 `binding`，由 `nativeBindings()` 列出 `{ provider, channel, endpoint }`，目录不是执行注册表。需要 Usage 的 provider 从 `dsh-llm-providers-ui/usage-readers` 导入对应 reader 工厂。
 已迁移的卡片使用 `dsh-llm-providers-ui/provider-ui` 的共享 header（`ProviderCardHeader`，`role`、调用方 `status` 与头条 `quota`；`title`/`mark`/`summary`/`open`/`unsaved` 保持旧 codex 布局），根节点标记 `li[data-provider-card][data-provider-role]`、header 按钮标记 `data-provider-card-header`、正文标记 `data-provider-body`，引入一份 `<style>{providerUiCss}</style>`，并声明 `header: 'shared'` 让外壳去掉兜底 badge。缺失额度不渲染 meter，绝不画成零；`normalizeQuotaRemaining` 保留精度，NaN/Infinity/越界一律视为不可用。
 provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 directory 与 slot 类型，不得在本地重复 module augmentation。退出登录或切换账户后，provider 调用 `ctx.providerDirectory.invalidateUsage(key)` 让侧栏丢弃缓存额度并重查；短暂读取失败仍把上次可用窗口标为过期展示。
@@ -56,13 +58,13 @@ provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 dir
 
 ## Release 安装（Latest）
 
-共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。发布包只含构建后的 Host/Client 文件，没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。锁文件将 DSH 开发依赖解析到 0.1.7-rc.1。
+共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。发布包只含构建后的 Host/Client 文件，没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。锁文件将 DSH 开发依赖解析到 0.1.7-rc.2。
 
 Latest 安装（资产文件名须与当前最新版本一致）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 ~~~
 
 固定版本安装（`v0.2.8`）：
@@ -77,17 +79,16 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到 Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 # 验证加载与版本
 dsh plugin --profile web list
-dsh plugin --profile web doctor
 # 只卸载本插件
 dsh plugin --profile web remove dsh-llm-providers-ui
 ~~~
 
 配置：Web UI 插件用 Settings 里的插件区，纯 Host 插件用 profile 的 dsh.profile.bundles 条目。从本 README 的最小 YAML/JSON 示例起步，凭据/后端地址显式给出。
 
-回滚：安装上一个稳定版本的不可变 tarball（当前推荐 v0.2.10，见 BRANCHING.md），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
+回滚：安装上一个稳定版本的不可变 tarball（当前推荐 v0.2.13，见 BRANCHING.md），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service；绝不在生产 profile 里放源码 checkout。
 
 Release 与完整性随 GitHub Release 发布，不锁定某一 Host 发行号。
 

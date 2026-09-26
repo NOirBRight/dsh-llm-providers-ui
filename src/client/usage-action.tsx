@@ -4,9 +4,9 @@ import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { PROVIDERS_ITEM_SLOT, type ProviderOrderSettings } from '../order.js'
+import { PROVIDERS_LOCALE_NS, PROVIDERS_ITEM_SLOT, type ProviderOrderSettings } from '../order.js'
 import { ProviderUsagePanel } from './ProviderUsagePanel.js'
 import { createProviderUsageStore, type ProviderUsageStore } from './usage.js'
 import type { ProviderDirectory } from './directory.js'
@@ -27,7 +27,7 @@ interface ProviderUsageActionFace {
   readShowSidebarUsage: () => boolean
 }
 
-type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & ProviderUsageActionFace
+type ProviderUsageActionProps = PropsRuntime<'sidebar.footer.action'> & PropsLocale<typeof PROVIDERS_LOCALE_NS> & ProviderUsageActionFace
 
 function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
   const usage = useSyncExternalStore(props.usage.subscribe, props.usage.getSnapshot, props.usage.getSnapshot)
@@ -35,6 +35,7 @@ function ProviderUsageAction(props: ProviderUsageActionProps): ReactNode {
   if (!props.wide || !showSidebarUsage) return null
   return (
     <ProviderUsagePanel
+      t={props.t}
       providers={usage.providers}
       hiddenKeys={usage.hiddenKeys}
       refreshing={usage.refreshing}
@@ -106,6 +107,7 @@ export function installProviderUsage(
   const action = ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'llm-providers-usage',
+    locale: PROVIDERS_LOCALE_NS,
     order: 0,
     inject: (): ProviderUsageActionFace => ({
       usage, toggleVisibility, showAll, reorder,

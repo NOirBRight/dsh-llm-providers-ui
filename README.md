@@ -6,7 +6,7 @@ Mounted owner of the **LLM Providers** Settings page for DeepSeek Harness.
 
 ## Compatibility
 
-Host and development `@deepseek-ai/dsh-*` dependencies accept `>=0.1.7-alpha.2`, including `0.1.7-rc.1` and later releases. The lockfile records the tested rc.1 build. Cordis accepts `>=4.0.4 <5.0.0`.
+Host and development `@deepseek-ai/dsh-*` dependencies accept `>=0.1.7-alpha.2`, including `0.1.7-rc.1` and later releases. The lockfile records the tested rc.2 build. Cordis accepts `>=4.0.4 <5.0.0`.
 
 Verified Hosts in `package.json#dsh.compatibility.dshReleases` are evidence, not an allowlist. Unknown newer Hosts warn once and keep the normal mount path. Only a reproduced failure is blocklisted.
 
@@ -48,14 +48,14 @@ This package is a bundle and must be listed in the profile. Until DSH mounts tra
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 ```
 
 No strict load order with providers is required. See `cordis.patch.yml`.
 
 ## Consumer contract
 
-Provider plugins register their card under `settings.provider.item` with their `settingsNs` key and register `{ key, role, header, usage, catalogId?, account?, binding? }` on `ctx.providerDirectory` inside an effect. The returned disposer owns the registration. Runtime picker sort reads `catalogRoutes()`. Native-agent plugins publish `binding` so `nativeBindings()` can list `{ provider, channel, endpoint }` without an execution registry. Usage-enabled providers import their reader factory from `dsh-llm-providers-ui/usage-readers`. Unregistered cards keep the LLM badge and do not receive a Provider Usage tile. The sidebar shows four borderless icon/value buttons per row on desktop and mobile, wrapping additional providers within a scrollable stage. Known unconnected accounts and signed-out usage are omitted without changing saved visibility preferences; login restores eligible providers. Zero quota and transient failures remain visible. Clicking a button replaces the strip and outer title with a compact detail header (back, provider, refresh). Stale values carry a visible asterisk and an accessible expiry label; touch controls retain 44px targets.
+Provider plugins register their card under `settings.provider.item` with their `settingsNs` key and register `{ key, role, header, usage, catalogId?, account?, binding? }` on `ctx.providerDirectory` inside an effect. The returned disposer owns the registration. Runtime picker sort reads `catalogRoutes()`. Native-agent plugins publish `binding` so `nativeBindings()` can list `{ provider, channel, endpoint }` without an execution registry. Usage-enabled providers import their reader factory from `dsh-llm-providers-ui/usage-readers`. Unregistered cards keep the LLM badge and do not receive a Provider Usage tile. The sidebar uses the active DSH language for its title, controls, status labels, empty states, and details. The sidebar shows four borderless icon/value buttons per row on desktop and mobile, wrapping additional providers within a scrollable stage. Known unconnected accounts and signed-out usage are omitted without changing saved visibility preferences; login restores eligible providers. Zero quota and transient failures remain visible. Clicking a button replaces the strip and outer title with a compact detail header (back, provider, refresh). Stale values carry a visible asterisk and an accessible expiry label; touch controls retain 44px targets.
 Migrated cards render the shared header from `dsh-llm-providers-ui/provider-ui` (`ProviderCardHeader` with `role`, caller `status`, and headline `quota`; `title`/`mark`/`summary`/`open`/`unsaved` keep the legacy codex layout), mark their root `li[data-provider-card][data-provider-role]`, their header button `data-provider-card-header`, and their body `data-provider-body`, include one `<style>{providerUiCss}</style>`, and declare `header: 'shared'` so the shell drops its fallback badge. Cards start their existing cached quota read when account readiness is known, independent of expansion; opening an already-loaded card does not refetch. Missing quota renders no meter, never a zero bar; `normalizeQuotaRemaining` keeps precision and reports NaN/Infinity/out-of-range as unavailable.
 The settings fallback preserves ancestor overflow clipping and the native settings title. Mobile layouts keep ownership of offscreen panels and dialog header spacing.
 
@@ -66,13 +66,13 @@ Until this package is published to npm, lab checkouts may use `link:../dsh-llm-p
 
 ## Release installation (Latest)
 
-Shared LLM Providers settings page, navigation, card order, and picker sort owner. The published pack contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency. The lockfile resolves DSH development dependencies to 0.1.7-rc.1.
+Shared LLM Providers settings page, navigation, card order, and picker sort owner. The published pack contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency. The lockfile resolves DSH development dependencies to 0.1.7-rc.2.
 
 Latest installation (asset name matches the current latest tarball):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 ~~~
 
 Fixed-version installation (`v0.2.8`):
@@ -87,10 +87,9 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 # Verify the loaded version
 dsh plugin --profile web list
-dsh plugin --profile web doctor
 # Uninstall only this plugin
 dsh plugin --profile web remove dsh-llm-providers-ui
 ~~~
