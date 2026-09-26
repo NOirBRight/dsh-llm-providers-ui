@@ -90,7 +90,6 @@ dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 # Verify the loaded version
 dsh plugin --profile web list
-dsh plugin --profile web doctor
 # Uninstall only this plugin
 dsh plugin --profile web remove dsh-llm-providers-ui
 ~~~

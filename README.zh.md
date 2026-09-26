@@ -82,14 +82,13 @@ dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 # 验证加载与版本
 dsh plugin --profile web list
-dsh plugin --profile web doctor
 # 只卸载本插件
 dsh plugin --profile web remove dsh-llm-providers-ui
 ~~~
 
 配置：Web UI 插件用 Settings 里的插件区，纯 Host 插件用 profile 的 dsh.profile.bundles 条目。从本 README 的最小 YAML/JSON 示例起步，凭据/后端地址显式给出。
 
-回滚：安装上一个稳定版本的不可变 tarball（当前推荐 v0.2.13，见 BRANCHING.md），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor；绝不在生产 profile 里放源码 checkout。
+回滚：安装上一个稳定版本的不可变 tarball（当前推荐 v0.2.13，见 BRANCHING.md），核对 profile 列表，然后重启一次 Web 服务。检查 journalctl --user -u dsh-web.service；绝不在生产 profile 里放源码 checkout。
 
 Release 与完整性随 GitHub Release 发布，不锁定某一 Host 发行号。
 
