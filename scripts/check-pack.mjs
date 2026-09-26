@@ -18,7 +18,8 @@ try {
   }))
   assert.equal(report.filename, filename)
   const archive = join(work, filename)
-  assert.deepEqual(readFileSync(join(root, filename)), readFileSync(archive), 'tracked release archive differs from the current build')
+  // Avoid constructing a potentially huge assertion diff for compressed binary data.
+  assert.ok(readFileSync(join(root, filename)).equals(readFileSync(archive)), 'tracked release archive differs from the current build')
   const packed = JSON.parse(execFileSync('tar', ['-xOzf', archive, 'package/package.json'], { encoding: 'utf8' }))
   assert.equal(packed.name, manifest.name)
   assert.equal(packed.version, manifest.version)

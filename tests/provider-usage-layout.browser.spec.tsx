@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
+import { copy } from '../src/client/provider-section.ts'
 import { ProviderUsagePanel, type ProviderUsageSummary } from '../src/client/ProviderUsagePanel.tsx'
 
 const providers: ProviderUsageSummary[] = ['cursor', 'grok', 'codex', 'ollama', 'commandcode', 'opencode'].map((providerKey, index) => ({
@@ -16,7 +17,7 @@ const providers: ProviderUsageSummary[] = ['cursor', 'grok', 'codex', 'ollama', 
 it('fits four borderless icon values per row at narrow sidebar widths', () => {
   const dir = mkdtempSync(join(tmpdir(), 'dsh-usage-layout-'))
   const chrome = process.env.CHROME_BIN ?? (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
-  const html = renderToStaticMarkup(createElement(ProviderUsagePanel, { providers, onRefresh() {}, onToggleVisibility() {}, onShowAll() {} }))
+  const html = renderToStaticMarkup(createElement(ProviderUsagePanel, { t: key => copy.en[key], providers, onRefresh() {}, onToggleVisibility() {}, onShowAll() {} }))
   try {
     for (const width of [240, 280]) {
       const markup = html

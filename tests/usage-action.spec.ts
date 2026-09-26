@@ -103,11 +103,13 @@ describe('Provider Usage sign-out invalidation', () => {
     } as unknown as ClientConnectionRpc
     const directory = new ProviderDirectory()
     let face: { usage: ProviderUsageStore } | undefined
+    let locale: string | undefined
     const context = {
       get: () => ({ rpc }),
       slots: {
         entriesOfSlot: () => [{ options: { key: 'llm-grok' } }],
-        register: (spec: { inject?: () => { usage: ProviderUsageStore } }) => {
+        register: (spec: { locale?: string, inject?: () => { usage: ProviderUsageStore } }) => {
+          locale = spec.locale
           const next = spec.inject?.()
           if (next !== undefined) face = next
           return () => undefined
@@ -123,6 +125,7 @@ describe('Provider Usage sign-out invalidation', () => {
     }
 
     const dispose = installProviderUsage(context as never, orderForm as never, directory)
+    expect(locale).toBe('settings.providers')
     directory.register({ key: 'llm-grok', usage: createGrokUsageReader() })
     await flush()
     expect(face?.usage.getSnapshot().providers[0]).toMatchObject({ status: 'ready', windows: [{ remainingPercent: 90 }] })

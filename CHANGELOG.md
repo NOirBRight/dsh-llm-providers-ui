@@ -1,3 +1,7 @@
+## Unreleased
+
+- Compare release archives with `Buffer.equals()` in `pack:check`, preserving mismatch failures without constructing memory-intensive binary assertion diffs.
+
 ## v0.2.13
 
 - Broaden DSH peer and development dependency ranges from 0.1.7-alpha.2 onward; rebuild and verify on official 0.1.7-rc.1.

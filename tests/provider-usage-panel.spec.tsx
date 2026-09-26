@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createRoot, type Root } from 'react-dom/client'
+import { copy } from '../src/client/provider-section.ts'
 import {
   ProviderUsagePanel,
   type ProviderUsagePanelProps,
@@ -60,6 +61,7 @@ const SIX: readonly ProviderUsageSummary[] = [
 
 function props(overrides: Partial<ProviderUsagePanelProps> = {}): ProviderUsagePanelProps {
   return {
+    t: key => copy.zh[key],
     providers: SIX,
     onRefresh: vi.fn(),
     onToggleVisibility: vi.fn(),
@@ -392,4 +394,48 @@ describe('ProviderUsagePanel callbacks', () => {
     act(() => { dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
     expect(container.querySelector('.pu-popover')).toBeNull()
   })
+})
+
+
+describe('ProviderUsagePanel locale', () => {
+  it('uses English in empty states, filters, status labels and quota details', () => {
+    const english = { t: (key: keyof typeof copy.en) => copy.en[key] }
+    const empty = mount({ ...english, providers: [] })
+    expect(empty.textContent).toContain('No queryable providers')
+    click(empty.querySelector('button[aria-label="Choose sidebar providers"]'))
+    expect(empty.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Sidebar visibility')
+    expect(empty.querySelector('input')?.getAttribute('placeholder')).toBe('Search providers')
+    expect(empty.textContent).toContain('No matching providers')
+    const container = mount({ ...english, providers: [{ providerKey: 'example', name: 'Example', status: 'error', windows: [] }] })
+    expect(container.querySelector('[data-usage-key]')?.getAttribute('aria-label')).toBe('Example Could not load quota')
+    click(container.querySelector('[data-usage-key]'))
+    expect(container.textContent).toContain('Remaining quota')
+    expect(container.querySelector('button[aria-label="Back to all providers"]')).not.toBeNull()
+    expect(container.textContent).toContain('Could not load quota')
+  })
+})
+
+
+it('updates an open filter when the active locale changes', () => {
+  const container = mount({ providers: [], t: key => copy.en[key] })
+  click(container.querySelector('button[aria-label="Choose sidebar providers"]'))
+  const root = mounted.at(-1)!
+  act(() => { root.render(createElement(ProviderUsagePanel, props({ providers: [] }))) })
+  expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('侧栏显示')
+  expect(container.querySelector('input')?.getAttribute('placeholder')).toBe('搜索 Provider')
+  expect(container.textContent).toContain('暂无可查询的 Provider')
+  expect(container.textContent).not.toContain('No queryable providers')
+})
+
+it('localizes stale quota and missing reset time in the sidebar detail', () => {
+  const container = mount({ t: key => copy.en[key], providers: [{
+    providerKey: 'example', name: 'Example', status: 'stale', windows: [
+      { id: 'week', label: 'Week', shortLabel: 'W', remainingPercent: 50, valueText: '50%' },
+    ],
+  }] })
+  const row = container.querySelector('[data-usage-key]')
+  expect(row?.getAttribute('aria-label')).toBe('Example 50% · Expired')
+  click(row)
+  expect(container.textContent).toContain('Remaining quota · Expired')
+  expect(container.textContent).toContain('Week · reset time not provided')
 })
