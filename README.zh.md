@@ -6,7 +6,7 @@ DeepSeek Harness **LLM Providers** 设置页的挂载 owner。
 
 ## 兼容性
 
-Host `@deepseek-ai/dsh-*` peer 范围面向 `0.1.7-alpha.2` 至 `<0.1.8`；Cordis 面向 `~4.0.4`。开发依赖固定 alpha2 编译目标。
+Host 和开发用的 `@deepseek-ai/dsh-*` 依赖接受 `>=0.1.7-alpha.2`，包括 `0.1.7-rc.1` 及后续版本。锁文件记录已测试的 rc.1 构建。Cordis 接受 `>=4.0.4 <5.0.0`。
 
 `package.json#dsh.compatibility.dshReleases` 里的已验证宿主是证据，不是允许列表。未知的新宿主告警一次后仍按正常路径挂载。只有复现过的故障才会加入 blocklist。
 
@@ -56,13 +56,13 @@ provider 插件用 `import type {}` 从 `dsh-llm-providers-ui/client` 导入 dir
 
 ## Release 安装（Latest）
 
-共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。发布包只含构建后的 Host/Client 文件，没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。打包夹具与编译目标 `devDependencies` 为 0.1.5-rc.1。
+共享的 LLM Providers 设置页、导航、卡片排序与 picker 排序 owner。发布包只含构建后的 Host/Client 文件，没有 sibling 仓库源码、工作站路径、link: 或 workspace: 依赖。锁文件将 DSH 开发依赖解析到 0.1.7-rc.1。
 
 Latest 安装（资产文件名须与当前最新版本一致）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
 ~~~
 
 固定版本安装（`v0.2.8`）：
@@ -77,7 +77,7 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到 Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.11.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor

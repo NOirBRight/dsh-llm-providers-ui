@@ -16,6 +16,30 @@ export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from '../or
 /** Locale copy: empty state names all six providers. */
 export declare const copy: {
     readonly zh: {
+        readonly usageLoading: "加载中…";
+        readonly usageEmptyQuota: "暂无额度数据";
+        readonly usageLoggedOut: "未登录";
+        readonly usageUnsupported: "不支持查询";
+        readonly usageStale: "额度已过期";
+        readonly usageError: "加载失败";
+        readonly usageExpired: "已过期";
+        readonly usageShowProvider: "在侧栏显示 {name}";
+        readonly usageDetails: "{name} 额度详情";
+        readonly usageBack: "返回全部 Provider";
+        readonly usageRefreshProvider: "刷新 {name}";
+        readonly usageNoProviders: "暂无可查询的 Provider";
+        readonly usageNoneVisible: "没有显示的 Provider";
+        readonly usageFilterHint: "使用筛选按钮选择要在侧栏显示的 Provider";
+        readonly usageOpenFilter: "打开筛选";
+        readonly usageChooseProviders: "选择侧栏显示的 Provider";
+        readonly usageRefreshAll: "刷新全部";
+        readonly usageVisibility: "侧栏显示";
+        readonly usageVisibilityHint: "只影响 Provider Usage，不影响模型列表";
+        readonly usageCloseFilter: "关闭筛选";
+        readonly usageSearch: "搜索 Provider";
+        readonly usageShowAll: "显示全部 {n} 个";
+        readonly usageNoMatch: "没有匹配的 Provider";
+        readonly usageReorder: "调整顺序: {name}";
         readonly nav: "LLM 供应商";
         readonly title: "LLM 供应商";
         readonly subtitle: "先看账户额度，再进入独立详情页配置。";
@@ -78,6 +102,30 @@ export declare const copy: {
         readonly addModel: "手动添加模型";
     };
     readonly en: {
+        readonly usageLoading: "Loading…";
+        readonly usageEmptyQuota: "No quota data";
+        readonly usageLoggedOut: "Signed out";
+        readonly usageUnsupported: "Quota unavailable";
+        readonly usageStale: "Quota expired";
+        readonly usageError: "Could not load quota";
+        readonly usageExpired: "Expired";
+        readonly usageShowProvider: "Show {name} in sidebar";
+        readonly usageDetails: "{name} quota details";
+        readonly usageBack: "Back to all providers";
+        readonly usageRefreshProvider: "Refresh {name}";
+        readonly usageNoProviders: "No queryable providers";
+        readonly usageNoneVisible: "No visible providers";
+        readonly usageFilterHint: "Use the filter to choose which providers appear in the sidebar";
+        readonly usageOpenFilter: "Open filter";
+        readonly usageChooseProviders: "Choose sidebar providers";
+        readonly usageRefreshAll: "Refresh all";
+        readonly usageVisibility: "Sidebar visibility";
+        readonly usageVisibilityHint: "Only affects Provider Usage, not the model list";
+        readonly usageCloseFilter: "Close filter";
+        readonly usageSearch: "Search providers";
+        readonly usageShowAll: "Show all {n}";
+        readonly usageNoMatch: "No matching providers";
+        readonly usageReorder: "Reorder: {name}";
         readonly nav: "LLM Providers";
         readonly title: "LLM Providers";
         readonly subtitle: "Review account quota, then open an independent detail page to configure.";

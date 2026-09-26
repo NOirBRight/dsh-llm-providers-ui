@@ -18,17 +18,19 @@ try {
   }))
   assert.equal(report.filename, filename)
   const archive = join(work, filename)
-  assert.deepEqual(readFileSync(join(root, filename)), readFileSync(archive), 'tracked release archive differs from the current build')
+  // Avoid constructing a potentially huge assertion diff for compressed binary data.
+  assert.ok(readFileSync(join(root, filename)).equals(readFileSync(archive)), 'tracked release archive differs from the current build')
   const packed = JSON.parse(execFileSync('tar', ['-xOzf', archive, 'package/package.json'], { encoding: 'utf8' }))
   assert.equal(packed.name, manifest.name)
   assert.equal(packed.version, manifest.version)
   assert.equal(packed.dsh?.compatibility?.dshReleases?.['0.1.7-alpha.2'], 'compatible')
+  assert.equal(packed.dsh?.compatibility?.dshReleases?.['0.1.7-rc.1'], 'compatible')
   for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
     for (const [name, spec] of Object.entries(packed[section] ?? {})) {
       assert.doesNotMatch(spec, /^(?:file|link|workspace|npm):|^\//u, `${section}.${name} must not be local`)
       if (name.startsWith('@deepseek-ai/dsh-')) {
         assert.equal(section, 'peerDependencies', `${name} must be a Host-provided peer`)
-        assert.equal(spec, '>=0.1.7-alpha.2 <0.1.8', `${name} must match the tested official Host line`)
+        assert.match(spec, /^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u, `${name} must have no upper version bound`)
       }
     }
   }
@@ -50,7 +52,7 @@ try {
   assert.equal(registered.length, 1)
   assert.equal(registered[0].id, packed.name)
   assert.equal(typeof registered[0].factory, 'function')
-  console.log(`pack check passed: ${basename(archive)} matches tracked artifact, Alpha.2 peers, exports, and Web ModuleLoader`)
+  console.log(`pack check passed: ${basename(archive)} matches tracked artifact, DSH peer range, exports, and Web ModuleLoader`)
 } finally {
   rmSync(work, { recursive: true, force: true })
 }

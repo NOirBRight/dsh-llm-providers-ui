@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import type { ProviderSectionLocaleKey } from './provider-section.js'
+
 import { ProviderMark } from './provider-marks.js'
 import { SortableList } from './SortableList.js'
 import { formatResetLabel, pickPrimaryWindow, type ProviderUsageStatus, type ProviderUsageSummary, type UsageWindowSummary } from './usage.js'
@@ -17,12 +19,14 @@ function usageLow(remainingPercent: number | undefined): boolean {
   return remainingPercent !== undefined && remainingPercent <= 20
 }
 
-function FilterRow(props: { summary: ProviderUsageSummary, hidden: boolean, onToggle: (visible: boolean) => void }): ReactNode {
+type Translate = (key: ProviderSectionLocaleKey) => string
+
+function FilterRow(props: { t: Translate, summary: ProviderUsageSummary, hidden: boolean, onToggle: (visible: boolean) => void }): ReactNode {
   return (
     <label className="pu-filter-item">
       <input
         type="checkbox"
-        aria-label={'在侧栏显示 ' + props.summary.name}
+        aria-label={props.t('usageShowProvider').replace('{name}', props.summary.name)}
         checked={!props.hidden}
         onChange={event => { props.onToggle(event.target.checked) }}
       />
@@ -34,6 +38,8 @@ function FilterRow(props: { summary: ProviderUsageSummary, hidden: boolean, onTo
 
 /** Controlled props: normalized summaries in display order plus visibility callbacks. */
 export interface ProviderUsagePanelProps {
+  /** Translator supplied by the registered settings.providers locale namespace. */
+  t: Translate
   /** All queryable providers in display order; hiddenKeys filters the grid. */
   providers: readonly ProviderUsageSummary[]
   /** Hidden provider keys (e.g. from provider Loader Config). Defaults to visible-all. */
@@ -46,13 +52,13 @@ export interface ProviderUsagePanelProps {
   onReorder?: (keys: readonly string[]) => void
 }
 
-const STATUS_TEXT: Record<ProviderUsageStatus, string> = {
-  loading: '加载中…',
-  ready: '暂无额度数据',
-  'logged-out': '未登录',
-  unsupported: '不支持查询',
-  stale: '额度已过期',
-  error: '加载失败',
+const STATUS_KEY: Record<ProviderUsageStatus, ProviderSectionLocaleKey> = {
+  loading: 'usageLoading',
+  ready: 'usageEmptyQuota',
+  'logged-out': 'usageLoggedOut',
+  unsupported: 'usageUnsupported',
+  stale: 'usageStale',
+  error: 'usageError',
 }
 
 const panelCss = [
@@ -116,12 +122,12 @@ function RefreshIcon(): ReactNode {
   return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 7A6.5 6.5 0 1 0 16 13.5" /><path d="M16.2 3.8V7H13" /></svg>
 }
 
-function ProviderRow(props: { summary: ProviderUsageSummary, onSelect: () => void }): ReactNode {
+function ProviderRow(props: { t: Translate, summary: ProviderUsageSummary, onSelect: () => void }): ReactNode {
   const summary = props.summary
   const hasData = summary.status === 'ready' || summary.status === 'stale'
   const primary = hasData ? pickPrimaryWindow(summary.windows) ?? summary.windows[0] : undefined
   const headline = primary === undefined ? (summary.status === 'loading' ? '…' : '—') : windowValueText(primary)
-  const label = summary.name + ' ' + (primary === undefined ? STATUS_TEXT[summary.status] : headline) + (summary.status === 'stale' ? ' · 已过期' : '')
+  const label = summary.name + ' ' + (primary === undefined ? props.t(STATUS_KEY[summary.status]) : headline) + (summary.status === 'stale' ? ' · ' + props.t('usageExpired') : '')
   const low = usageLow(primary?.remainingPercent)
   return (
     <div className="pu-cell">
@@ -140,12 +146,12 @@ function ProviderRow(props: { summary: ProviderUsageSummary, onSelect: () => voi
   )
 }
 
-function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void, onRefresh: () => void }): ReactNode {
+function UsageDetail(props: { t: Translate, summary: ProviderUsageSummary, onBack: () => void, onRefresh: () => void }): ReactNode {
   const summary = props.summary
   return (
-    <div className="pu-detail" aria-label={summary.name + ' 额度详情'}>
+    <div className="pu-detail" aria-label={props.t('usageDetails').replace('{name}', summary.name)}>
       <div className="pu-detail-head">
-        <button type="button" className="pu-icon-btn" aria-label="返回全部 Provider" autoFocus onClick={props.onBack}>
+        <button type="button" className="pu-icon-btn" aria-label={props.t('usageBack')} autoFocus onClick={props.onBack}>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>
         </button>
         <span className="pu-mark"><ProviderMark providerKey={summary.providerKey} /></span>
@@ -153,18 +159,18 @@ function UsageDetail(props: { summary: ProviderUsageSummary, onBack: () => void,
         <button
           type="button"
           className={'pu-icon-btn' + (summary.refreshing === true ? ' pu-spinning' : '')}
-          aria-label={'刷新 ' + summary.name}
+          aria-label={props.t('usageRefreshProvider').replace('{name}', summary.name)}
           onClick={props.onRefresh}
         >
           {summary.refreshing === true ? <span className="pu-mini-spin" /> : <RefreshIcon />}
         </button>
       </div>
       <div className="pu-detail-body">
-      <div className="pu-detail-sub">{summary.status === 'stale' ? '剩余额度 · 已过期' : '剩余额度'}</div>
+      <div className="pu-detail-sub">{props.t('quotaHeading') + (summary.status === 'stale' ? ' · ' + props.t('usageExpired') : '')}</div>
       {summary.windows.length === 0
-        ? <div className="pu-tip-empty">{STATUS_TEXT[summary.status]}</div>
+        ? <div className="pu-tip-empty">{props.t(STATUS_KEY[summary.status])}</div>
         : summary.windows.map(quotaWindow => {
-          const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, { at: '重置于 ', overdue: '已到期，等待更新 · ', missing: '{period} · 重置时间未提供' })
+          const reset = formatResetLabel(quotaWindow.resetsAt, quotaWindow.label, { at: props.t('resetAt'), overdue: props.t('resetOverdue'), missing: props.t('resetMissing') })
           return (
             <ProviderQuotaMeter
               key={quotaWindow.id}
@@ -221,9 +227,9 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
   if (visible.length === 0) {
     body = (
       <div className="pu-empty">
-        <div>{providers.length === 0 ? '暂无可查询的 Provider' : '没有显示的 Provider'}</div>
-        <div>使用筛选按钮选择要在侧栏显示的 Provider</div>
-        <button type="button" className="pu-empty-btn" onClick={() => { setFilterOpen(true) }}>打开筛选</button>
+        <div>{providers.length === 0 ? props.t('usageNoProviders') : props.t('usageNoneVisible')}</div>
+        <div>{props.t('usageFilterHint')}</div>
+        <button type="button" className="pu-empty-btn" onClick={() => { setFilterOpen(true) }}>{props.t('usageOpenFilter')}</button>
       </div>
     )
   } else {
@@ -231,6 +237,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
       <div className="pu-rows">
         {visible.map(summary => (
           <ProviderRow
+            t={props.t}
             key={summary.providerKey}
             summary={summary}
             onSelect={() => { setFilterOpen(false); setDetailKey(summary.providerKey) }}
@@ -249,7 +256,7 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           <button
             type="button"
             className="pu-icon-btn"
-            aria-label="选择侧栏显示的 Provider"
+            aria-label={props.t('usageChooseProviders')}
             aria-expanded={filterOpen}
             onClick={() => { setFilterOpen(open => !open) }}
           >
@@ -258,35 +265,35 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
           <button
             type="button"
             className={'pu-icon-btn' + (props.refreshing === true ? ' pu-spinning' : '')}
-            aria-label="刷新全部"
+            aria-label={props.t('usageRefreshAll')}
             onClick={() => { props.onRefresh() }}
           >
             <RefreshIcon />
           </button>
         </span>
       </div>}
-      <div className={'pu-stage' + (detail === undefined ? '' : ' pu-stage-open')}>{detail === undefined ? body : <UsageDetail summary={detail} onBack={closeDetail} onRefresh={() => { props.onRefresh(detail.providerKey) }} />}</div>
+      <div className={'pu-stage' + (detail === undefined ? '' : ' pu-stage-open')}>{detail === undefined ? body : <UsageDetail t={props.t} summary={detail} onBack={closeDetail} onRefresh={() => { props.onRefresh(detail.providerKey) }} />}</div>
       {filterOpen
         ? (
           <section
             className="pu-popover"
             role="dialog"
-            aria-label="侧栏显示"
+            aria-label={props.t('usageVisibility')}
             onKeyDown={event => { if (event.key === 'Escape') { setFilterOpen(false); setDetailKey(undefined) } }}
           >
             <div className="pu-popover-head">
               <div>
-                <div className="pu-popover-title">侧栏显示</div>
-                <div className="pu-popover-sub">只影响 Provider Usage，不影响模型列表</div>
+                <div className="pu-popover-title">{props.t('usageVisibility')}</div>
+                <div className="pu-popover-sub">{props.t('usageVisibilityHint')}</div>
               </div>
-              <button type="button" className="pu-icon-btn pu-popover-close" aria-label="关闭筛选" onClick={() => { setFilterOpen(false) }}>×</button>
+              <button type="button" className="pu-icon-btn pu-popover-close" aria-label={props.t('usageCloseFilter')} onClick={() => { setFilterOpen(false) }}>×</button>
             </div>
             <input
               ref={searchRef}
               className="pu-search"
               type="search"
-              aria-label="搜索 Provider"
-              placeholder="搜索 Provider"
+              aria-label={props.t('usageSearch')}
+              placeholder={props.t('usageSearch')}
               value={query}
               onChange={event => { setQuery(event.target.value) }}
             />
@@ -297,22 +304,22 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
                 disabled={allVisible}
                 onClick={props.onShowAll}
               >
-                {'显示全部 ' + String(providers.length) + ' 个'}
+                {props.t('usageShowAll').replace('{n}', String(providers.length))}
               </button>
-              {matches.length === 0 ? <p className="pu-no-match">没有匹配的 Provider</p> : query.trim() === '' && props.onReorder !== undefined && matches.length > 1
+              {matches.length === 0 ? <p className="pu-no-match">{props.t('usageNoMatch')}</p> : query.trim() === '' && props.onReorder !== undefined && matches.length > 1
                 ? (
                   <SortableList
                     items={[...matches]}
                     getId={summary => summary.providerKey}
-                    dragLabel={summary => '调整顺序: ' + summary.name}
+                    dragLabel={summary => props.t('usageReorder').replace('{name}', summary.name)}
                     onReorder={next => { props.onReorder?.(next.map(summary => summary.providerKey)) }}
                     renderItem={summary => (
-                      <FilterRow summary={summary} hidden={hidden.has(summary.providerKey)} onToggle={visible => { props.onToggleVisibility(summary.providerKey, visible) }} />
+                      <FilterRow t={props.t} summary={summary} hidden={hidden.has(summary.providerKey)} onToggle={visible => { props.onToggleVisibility(summary.providerKey, visible) }} />
                     )}
                   />
                 )
                 : matches.map(summary => (
-                  <FilterRow key={summary.providerKey} summary={summary} hidden={hidden.has(summary.providerKey)} onToggle={visible => { props.onToggleVisibility(summary.providerKey, visible) }} />
+                  <FilterRow t={props.t} key={summary.providerKey} summary={summary} hidden={hidden.has(summary.providerKey)} onToggle={visible => { props.onToggleVisibility(summary.providerKey, visible) }} />
                 ))}
             </div>
           </section>
