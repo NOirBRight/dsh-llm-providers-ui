@@ -401,6 +401,8 @@ describe('ProviderUsagePanel locale', () => {
   it('uses English in empty states, filters, status labels and quota details', () => {
     const english = { t: (key: keyof typeof copy.en) => copy.en[key] }
     const empty = mount({ ...english, providers: [] })
+    expect(empty.querySelector('[data-provider-usage-panel]')?.getAttribute('aria-label')).toBe('Provider Usage')
+    expect(empty.querySelector('.pu-title')?.textContent).toBe('Provider Usage')
     expect(empty.textContent).toContain('No queryable providers')
     click(empty.querySelector('button[aria-label="Choose sidebar providers"]'))
     expect(empty.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Sidebar visibility')
@@ -421,6 +423,8 @@ it('updates an open filter when the active locale changes', () => {
   click(container.querySelector('button[aria-label="Choose sidebar providers"]'))
   const root = mounted.at(-1)!
   act(() => { root.render(createElement(ProviderUsagePanel, props({ providers: [] }))) })
+  expect(container.querySelector('[data-provider-usage-panel]')?.getAttribute('aria-label')).toBe('供应商额度')
+  expect(container.querySelector('.pu-title')?.textContent).toBe('供应商额度')
   expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('侧栏显示')
   expect(container.querySelector('input')?.getAttribute('placeholder')).toBe('搜索 Provider')
   expect(container.textContent).toContain('暂无可查询的 Provider')

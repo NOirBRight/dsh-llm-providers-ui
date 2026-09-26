@@ -44,6 +44,7 @@ export type { CatalogGroup, ProviderItemKey, ProviderOrderSettings } from '../or
 /** Locale copy: empty state names all six providers. */
 export const copy = {
   zh: {
+    usageTitle: '供应商额度',
     usageLoading: '加载中…',
     usageEmptyQuota: '暂无额度数据',
     usageLoggedOut: '未登录',
@@ -62,7 +63,7 @@ export const copy = {
     usageChooseProviders: '选择侧栏显示的 Provider',
     usageRefreshAll: '刷新全部',
     usageVisibility: '侧栏显示',
-    usageVisibilityHint: '只影响 Provider Usage，不影响模型列表',
+    usageVisibilityHint: '只影响侧栏额度，不影响模型列表',
     usageCloseFilter: '关闭筛选',
     usageSearch: '搜索 Provider',
     usageShowAll: '显示全部 {n} 个',
@@ -130,6 +131,7 @@ export const copy = {
     addModel: '手动添加模型',
   },
   en: {
+    usageTitle: 'Provider Usage',
     usageLoading: 'Loading…',
     usageEmptyQuota: 'No quota data',
     usageLoggedOut: 'Signed out',

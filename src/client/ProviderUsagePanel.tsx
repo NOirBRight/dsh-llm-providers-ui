@@ -248,10 +248,10 @@ export function ProviderUsagePanel(props: ProviderUsagePanelProps): ReactNode {
   }
 
   return (
-    <section data-provider-usage-panel aria-label="Provider Usage">
+    <section data-provider-usage-panel aria-label={props.t('usageTitle')}>
       <style>{providerUiCss + panelCss}</style>
       {detail === undefined && <div className="pu-head">
-        <span className="pu-title">Provider Usage</span>
+        <span className="pu-title">{props.t('usageTitle')}</span>
         <span className="pu-actions">
           <button
             type="button"
