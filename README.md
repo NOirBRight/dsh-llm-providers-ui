@@ -6,7 +6,7 @@ Mounted owner of the **LLM Providers** Settings page for DeepSeek Harness.
 
 ## Compatibility
 
-Host and development `@deepseek-ai/dsh-*` dependencies accept `>=0.1.7-alpha.2`, including `0.1.7-rc.1` and later releases. The lockfile records the tested rc.1 build. Cordis accepts `>=4.0.4 <5.0.0`.
+Host and development `@deepseek-ai/dsh-*` dependencies accept `>=0.1.7-alpha.2`, including `0.1.7-rc.1` and later releases. The lockfile records the tested rc.2 build. Cordis accepts `>=4.0.4 <5.0.0`.
 
 Verified Hosts in `package.json#dsh.compatibility.dshReleases` are evidence, not an allowlist. Unknown newer Hosts warn once and keep the normal mount path. Only a reproduced failure is blocklisted.
 
@@ -48,7 +48,7 @@ This package is a bundle and must be listed in the profile. Until DSH mounts tra
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 ```
 
 No strict load order with providers is required. See `cordis.patch.yml`.
@@ -66,13 +66,13 @@ Until this package is published to npm, lab checkouts may use `link:../dsh-llm-p
 
 ## Release installation (Latest)
 
-Shared LLM Providers settings page, navigation, card order, and picker sort owner. The published pack contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency. The lockfile resolves DSH development dependencies to 0.1.7-rc.1.
+Shared LLM Providers settings page, navigation, card order, and picker sort owner. The published pack contains built Host/Client files only; it has no sibling-repository source, workstation path, link:, or workspace: dependency. The lockfile resolves DSH development dependencies to 0.1.7-rc.2.
 
 Latest installation (asset name matches the current latest tarball):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 ~~~
 
 Fixed-version installation (`v0.2.8`):
@@ -87,7 +87,7 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to Latest
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.13.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor

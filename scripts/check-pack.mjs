@@ -28,6 +28,7 @@ try {
   assert.equal(packed.version, manifest.version)
   assert.equal(packed.dsh?.compatibility?.dshReleases?.['0.1.7-alpha.2'], 'compatible')
   assert.equal(packed.dsh?.compatibility?.dshReleases?.['0.1.7-rc.1'], 'compatible')
+  assert.equal(packed.dsh?.compatibility?.dshReleases?.['0.1.7-rc.2'], 'compatible')
   for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
     for (const [name, spec] of Object.entries(packed[section] ?? {})) {
       assert.doesNotMatch(spec, /^(?:file|link|workspace|npm):|^\//u, `${section}.${name} must not be local`)

@@ -1,5 +1,7 @@
-## Unreleased
+## v0.2.14
 
+- Follow the active DSH language for the Provider Usage heading, controls, status, empty states, and quota details.
+- Verify official DSH 0.1.7-rc.2 with open-ended Host dependency ranges.
 - Compare release archives with `Buffer.equals()` in `pack:check`, preserving mismatch failures without constructing memory-intensive binary assertion diffs.
 
 ## v0.2.13
